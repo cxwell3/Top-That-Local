@@ -9,23 +9,52 @@
 </head>
 <body>
   <header>
-    <h1>Three’s</h1>
+    <h1 class="logo">Three’s</h1>
+
+    <!-- rules dropdown -->
+    <details id="rules">
+      <summary>Rules ▾</summary>
+      <ol>
+        <li>Play higher than the top card (2, 5, 10, or four‑of‑a‑kind exempt).</li>
+        <li><strong>2</strong> resets – next player may play any card.</li>
+        <li><strong>5</strong> copies previous rank for next turn.</li>
+        <li><strong>10</strong> burns the pile (clears, restarts play).</li>
+        <li>Four of a kind also burns.</li>
+        <li>Draw to 3 cards while deck remains.</li>
+        <li>When hand &amp; deck empty, play face‑up row, then blind down row.</li>
+        <li>Invalid blind flip → pick up pile. First to empty all wins.</li>
+      </ol>
+    </details>
+
     <input id="name" placeholder="Your name" />
     <button id="join">Join Table</button>
   </header>
 
+  <!-- lobby & runtime banners -->
+  <div id="lobby-banner"  class="banner hidden">Waiting for players…</div>
+  <div id="notice-banner" class="notice hidden"></div>
+
   <main id="table" class="hidden">
+    <!-- opponents -->
     <section id="other-players"></section>
 
+    <!-- central piles -->
     <div id="center">
       <div id="draw-pile"    class="pile"></div>
       <div id="play-pile"    class="pile"></div>
       <div id="discard-pile" class="pile small"></div>
     </div>
 
+    <!-- you -->
     <section id="my-area">
       <h2 id="my-name"></h2>
+
+      <div class="row-label">Hand:</div>
       <div id="my-hand" class="hand"></div>
+
+      <div class="row-label">Up / Down:</div>
+      <div id="my-stacks" class="stack-row"></div>
+
       <button id="play" disabled>Play Selected</button>
       <button id="take" disabled>Take Pile</button>
     </section>

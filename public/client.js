@@ -1,100 +1,75 @@
+                                                           /* ------------------------------------------------------------------
+                                                              Three’s Card Game – Browser client
+                                                              ------------------------------------------------------------------ */
 
-/* ------------------------------------------------------------------
-   Three's Card Game – Browser client
-   ------------------------------------------------------------------ */
+                                                           const socket = io();
+                                                           let myId = null;
+                                                           const $ = id => document.getElementById(id);
 
-const socket = io();
-let myId = null;
+                                                           /* ---------- refs ---------- */
+                                                           const nameIn=$('name'), joinBtn=$('join');
+                                                           const lobby=$('lobby-banner'), notice=$('notice-banner'), table=$('table');
+                                                           const myName=$('my-name'), myHand=$('my-hand'), myStacks=$('my-stacks');
+                                                           const playBtn=$('play'), takeBtn=$('take');
+                                                           const other=$('other-players');
+                                                           const playPile=$('play-pile'), drawPile=$('draw-pile'), discardPile=$('discard-pile');
 
-/* ---------- quick DOM helper ---------- */
-const $ = id => document.getElementById(id);
+                                                           /* ---------- helpers ---------- */
+                                                           function code(c){ if(!c) return ''; const v=c.value===10?'0':String(c.value).toUpperCase(); const s={hearts:'H',diamonds:'D',clubs:'C',spades:'S'}[c.suit]; return v+s; }
+                                                           function cardImg(card,sel=false){
+                                                             const img=new Image(); img.className='card-img';
+                                                             img.src=card.back?'https://deckofcardsapi.com/static/img/back.png':`https://deckofcardsapi.com/static/img/${code(card)}.png`;
+                                                             if(sel) img.onclick=()=>img.classList.toggle('selected');
+                                                             return img;
+                                                           }
+                                                           notice.onclick=()=>notice.classList.add('hidden');
 
-/* ---------- element refs ---------- */
-const nameIn   = $('name');
-const joinBtn  = $('join');
-const table    = $('table');
+                                                           /* ---------- join ---------- */
+                                                           joinBtn.onclick=()=>{
+                                                             const n=nameIn.value.trim(); if(!n) return alert('Enter a name');
+                                                             socket.emit('join',n);
+                                                           };
 
-const myName   = $('my-name');
-const myHand   = $('my-hand');
-const playBtn  = $('play');
-const takeBtn  = $('take');
+                                                           /* ---------- lobby ---------- */
+                                                           socket.on('lobby', list=>{
+                                                             lobby.textContent=`Waiting for players (${list.length}/2) — share this link!`;
+                                                             lobby.classList.remove('hidden'); table.classList.add('hidden');
+                                                           });
 
-const otherDiv = $('other-players');
+                                                           /* ---------- joined ---------- */
+                                                           socket.on('joined', d=>{
+                                                             myId=d.id; joinBtn.disabled=nameIn.disabled=true;
+                                                           });
 
-const playPile   = $('play-pile');
-const drawPile   = $('draw-pile');
-const discardPile= $('discard-pile');
+                                                           /* ---------- notices ---------- */
+                                                           socket.on('notice', msg=>{
+                                                             notice.textContent=`${msg} (click to dismiss)`; notice.classList.remove('hidden');
+                                                           });
 
-/* ---------- utility ---------- */
-function code(c) {
-  if (!c) return '';
-  const v = c.value === 10 ? '0' : String(c.value).toUpperCase();
-  const suits = { hearts:'H', diamonds:'D', clubs:'C', spades:'S' };
-  return v + suits[c.suit];
-}
+                                                           /* ---------- state ---------- */
+                                                           socket.on('state', s=>{
+                                                             lobby.classList.add('hidden'); table.classList.remove('hidden');
 
-function cardImg(card, selectable = false) {
-  const img = new Image();
-  img.className = 'card-img';
-  img.src = card ? `/cards/${code(card)}.svg` : '/cards/BACK.svg';
-  if (selectable) {
-    img.onclick = () => {
-      img.classList.toggle('selected');
-      playBtn.disabled = !document.querySelector('.card-img.selected');
-    };
-  }
-  return img;
-}
+                                                             const myTurn=s.turn===myId;
+                                                             playBtn.disabled=takeBtn.disabled=!myTurn;
 
-/* ---------- event handlers ---------- */
-joinBtn.onclick = () => {
-  const name = nameIn.value.trim();
-  if (name) {
-    socket.emit('join', name);
-    nameIn.disabled = true;
-    joinBtn.disabled = true;
-  }
-};
+                                                             playPile.innerHTML=''; if(s.playPile.length) playPile.appendChild(cardImg(s.playPile.at(-1)));
+                                                             drawPile.innerHTML=''; if(s.deckCount)        drawPile.appendChild(cardImg({back:true}));
+                                                             discardPile.textContent=s.discardCount;
 
-playBtn.onclick = () => {
-  const selected = [...myHand.children]
-    .map((img, i) => img.classList.contains('selected') ? i : -1)
-    .filter(i => i !== -1);
-  if (selected.length) socket.emit('playCards', selected);
-};
+                                                             other.innerHTML=''; myHand.innerHTML=''; myStacks.innerHTML='';
 
-takeBtn.onclick = () => socket.emit('takePile');
-
-/* ---------- socket handlers ---------- */
-socket.on('joined', data => {
-  myId = data.id;
-  table.classList.remove('hidden');
-});
-
-socket.on('state', state => {
-  // Update piles
-  drawPile.textContent = state.deckCount;
-  playPile.replaceChildren(cardImg(state.playPile.at(-1)));
-  discardPile.textContent = state.discardCount;
-
-  // Update my hand
-  const me = state.players.find(p => p.id === myId);
-  myName.textContent = me.name;
-  myHand.replaceChildren(...me.hand.map(c => cardImg(c, true)));
-
-  // Enable/disable buttons
-  takeBtn.disabled = state.turn !== myId;
-  playBtn.disabled = state.turn !== myId || !document.querySelector('.card-img.selected');
-
-  // Update other players
-  const others = state.players.filter(p => p.id !== myId);
-  otherDiv.replaceChildren(...others.map(p => {
-    const div = document.createElement('div');
-    div.className = 'player';
-    div.innerHTML = `<h3>${p.name}</h3>
-      <div class="up-row">${'⠀'.repeat(p.handCount)}</div>`;
-    return div;
-  }));
-});
-
-socket.on('err', msg => alert(msg));
+                                                             s.players.forEach(p=>{
+                                                               if(p.id===myId){
+                                                                 myName.textContent=p.name+(myTurn?'  ← your turn':'');
+                                                                 p.hand.forEach((c,i)=>{ const im=cardImg(c,true); im.dataset.idx=i; myHand.appendChild(im); });
+                                                                 p.up.forEach(c=>{ const col=document.createElement('div'); col.className='stack'; col.append(cardImg({back:true}),cardImg(c)); myStacks.appendChild(col); });
+                                                                 return;
+                                                               }
+                                                               const panel=document.createElement('div'); panel.className='player';
+                                                               panel.innerHTML=`<h3>${p.name}</h3><div class="row-label">Up / Down:</div>`;
+                                                               const sr=document.createElement('div'); sr.className='stack-row';
+                                                               p.up.forEach(c=>{ const col=document.createElement('div'); col.className='stack'; col.append(cardImg({back:true}),cardImg(c)); sr.appendChild(col); });
+                                                               const lab=document.createElement('div'); lab.className='row-label'; lab.textContent='Hand:';
+                                                               const hr=document.createElement('div'); hr.className='opp-hand';
+                                                               for(let i=0;i<p.handCount;i++) hr.appendChild(cardImg({back:true
