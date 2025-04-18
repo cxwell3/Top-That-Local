@@ -2,7 +2,7 @@ const socket = io();
 let myId = null;
 const $ = id => document.getElementById(id);
 
-/* Refs */
+/* ---------- refs ---------- */
 const nameIn = $('name'), joinBtn = $('join');
 const lobby = $('lobby-banner'), notice = $('notice-banner'), table = $('table');
 const myName = $('my-name'), myHand = $('my-hand'), myStacks = $('my-stacks');
@@ -10,6 +10,7 @@ const playBtn = $('play'), takeBtn = $('take');
 const other = $('other-players');
 const playPile = $('play-pile'), drawPile = $('draw-pile'), discardPile = $('discard-pile');
 
+/* ---------- helpers ---------- */
 function code(c) {
   if (!c) return '';
   const v = c.value === 10 ? '0' : String(c.value).toUpperCase();
@@ -18,45 +19,65 @@ function code(c) {
 }
 
 function cardImg(card, sel = false) {
+  const container = document.createElement('div');
+  container.style.position = 'relative';
+  container.style.display = 'inline-block';
+
   const img = new Image();
   img.className = 'card-img';
   img.src = card.back
     ? 'https://deckofcardsapi.com/static/img/back.png'
     : `https://deckofcardsapi.com/static/img/${code(card)}.png`;
 
+  if (sel) {
+    img.onclick = () => img.classList.toggle('selected');
+    img.ondblclick = () => {
+      img.classList.add('selected');
+      const selected = Array.from(myHand.children).filter(c =>
+        c.querySelector('.card-img')?.classList.contains('selected')
+      );
+      if (selected.length) {
+        const indexes = selected.map(c => parseInt(c.querySelector('.card-img').dataset.idx));
+        socket.emit('playCards', indexes);
+      }
+    };
+  }
+
+  container.appendChild(img);
+
   if (card.copied) {
     const badge = document.createElement('div');
     badge.className = 'copy-badge';
-    badge.textContent = 'COPY';
-    const wrapper = document.createElement('div');
-    wrapper.style.position = 'relative';
-    wrapper.appendChild(img);
-    wrapper.appendChild(badge);
-    return wrapper;
+    badge.textContent = `Copied ${card.value}`;
+    container.appendChild(badge);
   }
 
-  return img;
+  return container;
 }
 
 notice.onclick = () => notice.classList.add('hidden');
 
+/* ---------- join ---------- */
 joinBtn.onclick = () => {
   const n = nameIn.value.trim();
   if (!n) return alert('Enter a name');
   socket.emit('join', n);
 };
 
+/* ---------- lobby ---------- */
 socket.on('lobby', list => {
   lobby.textContent = `Waiting for players (${list.length}/2) — share this link!`;
   lobby.classList.remove('hidden');
   table.classList.add('hidden');
 });
 
+/* ---------- joined ---------- */
 socket.on('joined', d => {
   myId = d.id;
   joinBtn.disabled = nameIn.disabled = true;
 });
 
+/* ---------- notices ---------- */
 socket.on('notice', msg => {
   if (!msg) {
     notice.classList.add('hidden');
@@ -66,15 +87,13 @@ socket.on('notice', msg => {
   notice.classList.remove('hidden');
 });
 
+/* ---------- state ---------- */
 socket.on('state', s => {
   lobby.classList.add('hidden');
   table.classList.remove('hidden');
 
   const myTurn = s.turn === myId;
   playBtn.disabled = takeBtn.disabled = !myTurn;
-
-  $('my-area')?.classList.toggle('your-turn', myTurn);
-  $('turn-indicator')?.classList.toggle('hidden', !myTurn);
 
   playPile.innerHTML = '';
   if (s.playPile.length) playPile.appendChild(cardImg(s.playPile.at(-1)));
@@ -90,51 +109,18 @@ socket.on('state', s => {
 
   s.players.forEach(p => {
     if (p.id === myId) {
-      myName.textContent = p.name + (myTurn ? ' — your turn' : '');
+      myName.textContent = p.name + (myTurn ? '  ← your turn' : '');
       p.hand.forEach((c, i) => {
-        c.idx = i;
         const el = cardImg(c, true);
-        el.dataset.idx = i;
-        el.onclick = () => el.classList.toggle('selected');
-        el.ondblclick = () => {
-          el.classList.add('selected');
-          socket.emit('playCards', [i]);
-        };
+        el.querySelector('.card-img').dataset.idx = i;
         myHand.appendChild(el);
       });
-
-      p.up.forEach((card, i) => {
+      p.up.forEach(c => {
         const col = document.createElement('div');
         col.className = 'stack';
-        const upCard = cardImg(card, p.hand.length === 0);
-        upCard.dataset.idx = i + 1000;
-
-        if (p.hand.length === 0) {
-          upCard.onclick = () => upCard.classList.toggle('selected');
-          upCard.ondblclick = () => {
-            upCard.classList.add('selected');
-            socket.emit('playCards', [i + 1000]);
-          };
-        }
-
-        col.append(cardImg({ back: true }), upCard);
+        col.append(cardImg({ back: true }), cardImg(c));
         myStacks.appendChild(col);
       });
-
-      if (p.hand.length === 0 && p.up.length === 0 && p.downCount > 0) {
-        const col = document.createElement('div');
-        col.className = 'stack';
-        const downCard = cardImg({ back: true }, true);
-        downCard.dataset.idx = 2000;
-        downCard.onclick = () => downCard.classList.toggle('selected');
-        downCard.ondblclick = () => {
-          downCard.classList.add('selected');
-          socket.emit('playCards', [2000]);
-        };
-        col.appendChild(downCard);
-        myStacks.appendChild(col);
-      }
-
       return;
     }
 
@@ -153,25 +139,23 @@ socket.on('state', s => {
     const lab = document.createElement('div');
     lab.className = 'row-label';
     lab.textContent = 'Hand:';
-
     const hr = document.createElement('div');
     hr.className = 'opp-hand';
-    for (let i = 0; i < p.handCount; i++) {
-      hr.appendChild(cardImg({ back: true }));
-    }
+    for (let i = 0; i < p.handCount; i++) hr.appendChild(cardImg({ back: true }));
 
     panel.append(sr, lab, hr);
     other.appendChild(panel);
   });
 });
 
+/* ---------- play ---------- */
 playBtn.onclick = () => {
   const sel = Array.from(myHand.children).filter(c =>
-    c.classList.contains('selected') || c.querySelector?.('.selected')
+    c.querySelector('.card-img')?.classList.contains('selected')
   );
-  const indexes = sel.map(c =>
-    parseInt(c.dataset?.idx || c.firstChild?.dataset?.idx)
-  );
-  if (indexes.length) socket.emit('playCards', indexes);
+  if (!sel.length) return;
+  const indexes = sel.map(c => parseInt(c.querySelector('.card-img').dataset.idx));
+  socket.emit('playCards', indexes);
 };
+
 takeBtn.onclick = () => socket.emit('takePile');

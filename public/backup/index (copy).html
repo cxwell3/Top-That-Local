@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Top That! – Card Game</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="/socket.io/socket.io.js"></script>
+  <script defer type="module" src="client.js"></script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1 class="logo">Top That!</h1>
+      <p class="tagline">One Pile. One Winner. No Mercy.</p>
+    </div>
+    <details id="rules">
+      <summary>How to Play ▾</summary>
+      <ol>
+        <li>Play higher than the top card (2, 5, 10, or four‑of‑a‑kind exempt).</li>
+        <li><b>2</b> resets • <b>5</b> copies rank • <b>10</b> burns pile.</li>
+        <li>Draw to 3 cards while deck remains; then play face‑up, then blind.</li>
+        <li>First player with no cards anywhere wins.</li>
+      </ol>
+    </details>
+    <input id="name" placeholder="Your name" />
+    <button id="join">Join Table</button>
+  </header>
+  <div id="lobby-banner" class="banner hidden">Waiting for players…</div>
+  <div id="notice-banner" class="notice hidden"></div>
+  <main id="table" class="hidden">
+    <section id="other-players"></section>
+    <div id="center">
+      <div id="draw-pile" class="pile"></div>
+      <div id="play-pile" class="pile"></div>
+      <div id="discard-pile" class="pile small"></div>
+    </div>
+    <section id="my-area">
+      <h2 id="my-name"></h2>
+      <div class="row-label">Hand:</div>
+      <div id="my-hand" class="hand"></div>
+      <div class="row-label">Up / Down:</div>
+      <div id="my-stacks" class="stack-row"></div>
+      <button id="play" disabled>Play Selected</button>
+      <button id="take" disabled>Take Pile</button>
+    </section>
+  </main>
+</body>
+</html>

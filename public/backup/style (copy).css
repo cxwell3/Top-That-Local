@@ -20,6 +20,7 @@ body {
   flex-direction: column;
 }
 
+/* Header / Branding */
 header {
   display: flex;
   gap: 1rem;
@@ -44,9 +45,7 @@ header {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--name);
-  margin-top: 0.25rem;
-  padding-top: 0.25rem;
-  border-top: 1px solid var(--panelBorder);
+  margin-top: -0.2rem;
 }
 #rules summary {
   list-style: none;
@@ -62,6 +61,9 @@ header {
   box-shadow: 0 4px 10px #0006;
 }
 #rules[open] summary { margin-bottom: 0.5rem; }
+#rules ol { padding-left: 1.2rem; }
+#rules li { margin-bottom: 0.4rem; line-height: 1.35em; }
+
 header input {
   flex: 0 0 180px;
   padding: 6px 10px;
@@ -86,6 +88,7 @@ header button:disabled {
   cursor: not-allowed;
 }
 
+/* Banners */
 .banner, .notice {
   text-align: center;
   padding: 0.8rem 1rem;
@@ -104,6 +107,7 @@ header button:disabled {
 }
 .hidden { display: none !important; }
 
+/* Layout */
 main {
   flex: 1;
   display: flex;
@@ -122,17 +126,43 @@ main {
 #center {
   display: flex;
   gap: 1.2rem;
-  margin: 2rem 0 1.2rem 0;
+  margin: 2rem 0 1rem 0;
   align-items: center;
   justify-content: center;
 }
+#my-area {
+  margin-top: auto;
+  text-align: center;
+}
 
-.player, #my-area {
+/* Piles */
+.pile {
+  width: 84px;
+  height: 116px;
+  border-radius: 8px;
+  position: relative;
+  background: linear-gradient(145deg, #126d4d 10%, #09442e 90%);
+  box-shadow: inset 0 4px 8px #0004, 0 2px 6px #0005;
+}
+.pile.small {
+  width: 56px;
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--accent);
+  background: #06402b;
+}
+
+/* Player Panels */
+.player {
   background: transparent;
   border: 2px solid var(--panelBorder);
   border-radius: 12px;
   padding: 0.7rem 1rem;
-  min-width: 220px;
+  min-width: 200px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -143,46 +173,7 @@ main {
   color: var(--name);
 }
 
-.button-row {
-  margin-top: 0.8rem;
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.stack-row, .hand, .opp-hand {
-  display: flex;
-  gap: 0.35rem;
-  justify-content: center;
-  margin-bottom: 0.5rem;
-}
-.stack {
-  position: relative;
-  width: 84px;
-  height: 116px;
-}
-.stack img {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-.stack img:first-child {
-  z-index: 1;
-  transform: translateY(6px);
-}
-.stack img:last-child {
-  z-index: 2;
-}
-
-.opp-hand { opacity: 0.8; }
-
-.row-label {
-  font-size: 0.85rem;
-  color: var(--mute);
-  margin: 0.45rem 0 0.25rem;
-}
-
+/* Cards */
 .card-img {
   width: 84px;
   height: 116px;
@@ -196,7 +187,9 @@ main {
   transform: translateY(-10px) scale(1.05);
 }
 
+/* Buttons */
 #my-area button {
+  margin: 0.7rem 0.3rem 0;
   padding: 7px 16px;
   border: none;
   border-radius: 6px;
@@ -214,6 +207,33 @@ main {
   cursor: not-allowed;
 }
 
+/* Stacks and Labels */
+.row-label {
+  font-size: 0.85rem;
+  color: var(--mute);
+  margin: 0.45rem 0 0.25rem;
+}
+.stack-row, .hand, .opp-hand {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+  margin-bottom: 0.45rem;
+}
+.stack {
+  position: relative;
+  width: 84px;
+  height: 116px;
+}
+.stack img {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.opp-hand {
+  opacity: 0.8;
+}
+
+/* Copied Card Badge */
 .copy-badge {
   position: absolute;
   top: -4px;

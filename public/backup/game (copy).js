@@ -22,13 +22,7 @@ export class Game {
   play(sock, idxs) {
     const p = this.byId(sock.id);
     if (!p || this.turn !== p.id) return;
-
-    const cards = idxs.map(i => {
-      if (i === 2000) return p.down[0];
-      if (i >= 1000) return p.up[i - 1000];
-      return p.hand[i];
-    });
-
+    const cards = idxs.map(i => p.hand[i]);
     if (!this.valid(cards)) {
       sock.emit('err', 'Illegal play');
       return;
@@ -41,8 +35,6 @@ export class Game {
     }
 
     p.hand = p.hand.filter((_, i) => !idxs.includes(i));
-    p.up = p.up.filter((_, i) => !idxs.includes(i + 1000));
-    if (idxs.includes(2000)) p.down.shift();
 
     this.applySpecial(cards);
     this.refill(p);
@@ -120,6 +112,7 @@ export class Game {
 
   applySpecial(cards) {
     const v = cards[0].value;
+
     if (v === 10 || cards.length === 4) {
       this.discard = (this.discard || []).concat(this.playPile.splice(0));
       if (this.deck.length) this.playPile.push(this.draw());
@@ -145,8 +138,6 @@ export class Game {
   hasMove(p) {
     if (p.hand.length) return p.hand.some(c => this.valid([c]));
     if (this.deck.length === 0) return p.up.some(c => this.valid([c]));
-    if (this.deck.length === 0 && p.up.length === 0 && p.down.length)
-      return true;
     return false;
   }
 

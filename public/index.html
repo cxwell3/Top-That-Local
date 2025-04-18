@@ -2,61 +2,90 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Three’s Card Table</title>
+  <title>Top That! – Card Game</title>
   <link rel="stylesheet" href="style.css" />
   <script defer src="/socket.io/socket.io.js"></script>
   <script defer type="module" src="client.js"></script>
+  <style>
+    .subitem {
+      padding-left: 2em;
+      text-indent: -1em;
+    }
+  </style>
 </head>
 <body>
   <header>
-    <h1 class="logo">Three’s</h1>
+    <div class="brand">
+      <h1 class="logo">Top That!</h1>
+      <p class="tagline">One Pile. One Winner. No Mercy!</p>
+    </div>
 
-    <!-- rules dropdown -->
     <details id="rules">
-      <summary>Rules ▾</summary>
-      <ol>
-        <li>Play higher than the top card (2, 5, 10, or four‑of‑a‑kind exempt).</li>
-        <li><strong>2</strong> resets – next player may play any card.</li>
-        <li><strong>5</strong> copies previous rank for next turn.</li>
-        <li><strong>10</strong> burns the pile (clears, restarts play).</li>
-        <li>Four of a kind also burns.</li>
-        <li>Draw to 3 cards while deck remains.</li>
-        <li>When hand &amp; deck empty, play face‑up row, then blind down row.</li>
-        <li>Invalid blind flip → pick up pile. First to empty all wins.</li>
-      </ol>
+      <summary>How to Play ▾</summary>
+      <ul>
+        <li><strong>Setup:</strong>
+          <div class="subitem">– Each player gets 3 face-down cards, 3 face-up cards, and 3 cards in hand.</div>
+        </li>
+        <li><strong>Start:</strong>
+          <div class="subitem">– Flip the top card of the draw pile to begin the play pile.</div>
+        </li>
+        <li><strong>Your Turn:</strong>
+          <div class="subitem">– Play a card (or matching set) higher than the top card of the pile.</div>
+          <div class="subitem">– You can play multiple cards of the same value at once.</div>
+        </li>
+        <li><strong>Can’t Play?</strong>
+          <div class="subitem">– Pick up the pile and end your turn.</div>
+        </li>
+        <li><strong>Refill:</strong>
+          <div class="subitem">– If you have fewer than 3 cards in hand and the draw pile still has cards, draw until you have 3.</div>
+        </li>
+        <li><strong>Play Order:</strong>
+          <div class="subitem">– Play from your hand first.</div>
+          <div class="subitem">– Once empty, play your face-up cards.</div>
+          <div class="subitem">– Then play your face-down cards blindly.</div>
+        </li>
+        <li><strong>Special Cards:</strong>
+          <div class="subitem">– <b>2:</b> Resets the pile. Can be played on anything.</div>
+          <div class="subitem">– <b>5:</b> Copies the value of the card played before it <em>unless drawn directly from the deck</em>.</div>
+          <div class="subitem">– <b>10:</b> Burns the pile. All cards are cleared and discarded.</div>
+          <div class="subitem">– <b>Four-of-a-Kind:</b> Burns the pile if played all at once. Doesn’t need to beat the previous card.</div>
+        </li>
+        <li><strong>Win:</strong>
+          <div class="subitem">– Be the first to play all your cards: hand, face-up, and face-down.</div>
+        </li>
+      </ul>
     </details>
 
     <input id="name" placeholder="Your name" />
-    <button id="join">Join Table</button>
+    <button id="join">Join Table</button>
   </header>
 
-  <!-- lobby & runtime banners -->
-  <div id="lobby-banner"  class="banner hidden">Waiting for players…</div>
+  <div id="lobby-banner" class="banner hidden">Waiting for players…</div>
   <div id="notice-banner" class="notice hidden"></div>
 
   <main id="table" class="hidden">
-    <!-- opponents -->
     <section id="other-players"></section>
 
-    <!-- central piles -->
     <div id="center">
-      <div id="draw-pile"    class="pile"></div>
-      <div id="play-pile"    class="pile"></div>
+      <div id="draw-pile" class="pile"></div>
+      <div id="play-pile" class="pile"></div>
       <div id="discard-pile" class="pile small"></div>
     </div>
 
-    <!-- you -->
     <section id="my-area">
+      <div id="turn-indicator" class="hidden">Your Turn</div>
       <h2 id="my-name"></h2>
 
       <div class="row-label">Hand:</div>
       <div id="my-hand" class="hand"></div>
 
-      <div class="row-label">Up / Down:</div>
+      <div class="row-label">Up / Down:</div>
       <div id="my-stacks" class="stack-row"></div>
 
-      <button id="play" disabled>Play Selected</button>
-      <button id="take" disabled>Take Pile</button>
+      <div class="button-row">
+        <button id="play" disabled>Play Selected</button>
+        <button id="take" disabled>Take Pile</button>
+      </div>
     </section>
   </main>
 </body>
