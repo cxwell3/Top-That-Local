@@ -123,20 +123,11 @@ export class Game {
     if (v === 10 || cards.length === 4) {
       this.discard = (this.discard || []).concat(this.playPile.splice(0));
       if (this.deck.length) this.playPile.push(this.draw());
-      // Emit special effect for 10 or 4-of-a-kind
-      this.io.emit('specialEffect', { value: 10, type: cards.length === 4 ? 'four' : 'ten' });
       return;
-    }
-
-    if (v === 2) {
-      // Emit special effect for 2
-      this.io.emit('specialEffect', { value: 2, type: 'two' });
     }
 
     if (v === 5 && this.lastRealCard) {
       this.playPile.push({ ...this.lastRealCard, copied: true });
-      // Emit special effect for 5
-      this.io.emit('specialEffect', { value: 5, type: 'five' });
     }
   }
 
