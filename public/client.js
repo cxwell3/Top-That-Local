@@ -53,5 +53,9 @@ document.getElementById('sort-button').addEventListener('click', () => {
   sorted.forEach(img => hand.appendChild(img));
 });
 
+socket.on('specialEffect', (data) => {
+  applyCardEffect({ value: data.value });
+});
+
 // Example usage after play (integrate with your socket/game logic):
 // applyCardEffect({ value: 10 }); // or 2, or 5

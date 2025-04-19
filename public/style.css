@@ -228,3 +228,33 @@ main {
   user-select: none;
   z-index: 5;
 }
+
+.effect-2 {
+  animation: effect2 1s;
+  box-shadow: 0 0 16px 6px #2f80ed, 0 0 0 4px #fff4;
+}
+@keyframes effect2 {
+  0% { filter: brightness(1.5); }
+  50% { filter: brightness(2.2) drop-shadow(0 0 8px #2f80ed); }
+  100% { filter: brightness(1.5); }
+}
+
+.effect-5 {
+  animation: effect5 1s;
+  box-shadow: 0 0 16px 6px #ffd36b, 0 0 0 4px #fff4;
+}
+@keyframes effect5 {
+  0% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(90deg) brightness(1.8); }
+  100% { filter: hue-rotate(0deg); }
+}
+
+.effect-10 {
+  animation: effect10 1s;
+  box-shadow: 0 0 24px 10px #ff9e0b, 0 0 0 6px #fff4;
+}
+@keyframes effect10 {
+  0% { filter: brightness(1.5); }
+  30% { filter: brightness(2.5) drop-shadow(0 0 16px #ff9e0b); }
+  100% { filter: brightness(1.5); }
+}
