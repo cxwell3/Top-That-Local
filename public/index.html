@@ -1,92 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Top That! – Card Game</title>
+  <meta charset="UTF-8" />
+  <title>Top That!</title>
   <link rel="stylesheet" href="style.css" />
   <script defer src="/socket.io/socket.io.js"></script>
-  <script defer type="module" src="client.js"></script>
-  <style>
-    .subitem {
-      padding-left: 2em;
-      text-indent: -1em;
-    }
-  </style>
+  <script defer src="client.js"></script>
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <h1 class="logo">Top That!</h1>
-      <p class="tagline">One Pile. One Winner. No Mercy!</p>
-    </div>
-
-    <details id="rules">
-      <summary>How to Play ▾</summary>
+  <div id="header">
+    <h1>Top That!</h1>
+    <p class="tagline">One Deck. One Winner. No Mercy.</p>
+    <div class="rules">
+      <strong>Rules:</strong>
       <ul>
-        <li><strong>Setup:</strong>
-          <div class="subitem">– Each player gets 3 face-down cards, 3 face-up cards, and 3 cards in hand.</div>
-        </li>
-        <li><strong>Start:</strong>
-          <div class="subitem">– Flip the top card of the draw pile to begin the play pile.</div>
-        </li>
-        <li><strong>Your Turn:</strong>
-          <div class="subitem">– Play a card (or matching set) higher than the top card of the pile.</div>
-          <div class="subitem">– You can play multiple cards of the same value at once.</div>
-        </li>
-        <li><strong>Can’t Play?</strong>
-          <div class="subitem">– Pick up the pile and end your turn.</div>
-        </li>
-        <li><strong>Refill:</strong>
-          <div class="subitem">– If you have fewer than 3 cards in hand and the draw pile still has cards, draw until you have 3.</div>
-        </li>
-        <li><strong>Play Order:</strong>
-          <div class="subitem">– Play from your hand first.</div>
-          <div class="subitem">– Once empty, play your face-up cards.</div>
-          <div class="subitem">– Then play your face-down cards blindly.</div>
-        </li>
-        <li><strong>Special Cards:</strong>
-          <div class="subitem">– <b>2:</b> Resets the pile. Can be played on anything.</div>
-          <div class="subitem">– <b>5:</b> Copies the value of the card played before it <em>unless drawn directly from the deck</em>.</div>
-          <div class="subitem">– <b>10:</b> Burns the pile. All cards are cleared and discarded.</div>
-          <div class="subitem">– <b>Four-of-a-Kind:</b> Burns the pile if played all at once. Doesn’t need to beat the previous card.</div>
-        </li>
-        <li><strong>Win:</strong>
-          <div class="subitem">– Be the first to play all your cards: hand, face-up, and face-down.</div>
-        </li>
+        <li class="subitem">Play higher than the last card on the pile</li>
+        <li class="subitem">2: Reset – can be played on anything</li>
+        <li class="subitem">5: Copy – acts like the last played card</li>
+        <li class="subitem">10: Burn – clears the play pile</li>
+        <li class="subitem">4 of a kind – clears the play pile</li>
+        <li class="subitem">Draw to 3 cards in hand after playing</li>
+        <li class="subitem">Move to up cards, then down cards when hand is empty</li>
       </ul>
-    </details>
+    </div>
+  </div>
 
-    <input id="name" placeholder="Your name" />
-    <button id="join">Join Table</button>
-  </header>
-
-  <div id="lobby-banner" class="banner hidden">Waiting for players…</div>
-  <div id="notice-banner" class="notice hidden"></div>
-
-  <main id="table" class="hidden">
-    <section id="other-players"></section>
+  <div id="game">
+    <div id="opponent" class="player-panel">
+      <div class="player-name">Opponent</div>
+      <div id="opponent-hand" class="card-row"></div>
+      <div id="opponent-up" class="card-row"></div>
+      <div id="opponent-down" class="card-row"></div>
+    </div>
 
     <div id="center">
-      <div id="draw-pile" class="pile"></div>
-      <div id="play-pile" class="pile"></div>
-      <div id="discard-pile" class="pile small"></div>
+      <div id="deck" class="card-stack">
+        <div class="label">Draw</div>
+        <div id="draw-pile"></div>
+      </div>
+      <div id="pile" class="card-stack">
+        <div class="label">Play</div>
+        <div id="play-pile"></div>
+      </div>
+      <div id="discard" class="card-stack">
+        <div class="label">Discard</div>
+        <div id="discard-pile"></div>
+      </div>
     </div>
 
-    <section id="my-area">
-      <div id="turn-indicator" class="hidden">Your Turn</div>
-      <h2 id="my-name"></h2>
+    <div id="player" class="player-panel">
+      <div class="player-name">You</div>
+      <div id="player-hand" class="card-row"></div>
+      <div id="player-up" class="card-row"></div>
+      <div id="player-down" class="card-row"></div>
+      <button id="sort-button">Sort Hand</button>
+    </div>
+  </div>
 
-      <div class="row-label">Hand:</div>
-      <div id="my-hand" class="hand"></div>
-
-      <div class="row-label">Up / Down:</div>
-      <div id="my-stacks" class="stack-row"></div>
-
-      <div class="button-row">
-        <button id="play" disabled>Play Selected</button>
-        <button id="take" disabled>Take Pile</button>
-      </div>
-    </section>
-  </main>
+  <div id="message-banner" class="hidden"></div>
 </body>
 </html>

@@ -1,177 +1,61 @@
 const socket = io();
 let myId = null;
-const $ = id => document.getElementById(id);
-
-/* Refs */
-const nameIn = $('name'), joinBtn = $('join');
-const lobby = $('lobby-banner'), notice = $('notice-banner'), table = $('table');
-const myName = $('my-name'), myHand = $('my-hand'), myStacks = $('my-stacks');
-const playBtn = $('play'), takeBtn = $('take');
-const other = $('other-players');
-const playPile = $('play-pile'), drawPile = $('draw-pile'), discardPile = $('discard-pile');
 
 function code(c) {
   if (!c) return '';
-  const v = c.value === 10 ? '0' : String(c.value).toUpperCase();
-  const s = { hearts: 'H', diamonds: 'D', clubs: 'C', spades: 'S' }[c.suit];
-  return v + s;
+  let v = c.value === 10 ? '0' : String(c.value);
+  const suits = { hearts:'H', diamonds:'D', clubs:'C', spades:'S' };
+  return v + suits[c.suit];
 }
 
-function cardImg(card, sel = false) {
-  const img = new Image();
+function makeImg(card = null, selectable = false, back = false) {
+  const img = document.createElement('img');
   img.className = 'card-img';
-  img.src = card.back
+  img.src = back
     ? 'https://deckofcardsapi.com/static/img/back.png'
     : `https://deckofcardsapi.com/static/img/${code(card)}.png`;
-
-  if (card.copied) {
-    const badge = document.createElement('div');
-    badge.className = 'copy-badge';
-    badge.textContent = 'COPY';
-    const wrapper = document.createElement('div');
-    wrapper.style.position = 'relative';
-    wrapper.appendChild(img);
-    wrapper.appendChild(badge);
-    return wrapper;
+  if (selectable) {
+    img.addEventListener('click', () => img.classList.toggle('selected'));
   }
-
   return img;
 }
 
-notice.onclick = () => notice.classList.add('hidden');
+function renderRow(id, cards, sel = false, back = false) {
+  const ctr = document.getElementById(id);
+  ctr.innerHTML = '';
+  cards.forEach(card => ctr.appendChild(makeImg(card, sel, back)));
+}
 
-joinBtn.onclick = () => {
-  const n = nameIn.value.trim();
-  if (!n) return alert('Enter a name');
-  socket.emit('join', n);
-};
+function applyCardEffect(card) {
+  const topCard = document.querySelector('#play-pile img:last-child');
+  if (!topCard) return;
 
-socket.on('lobby', list => {
-  lobby.textContent = `Waiting for players (${list.length}/2) — share this link!`;
-  lobby.classList.remove('hidden');
-  table.classList.add('hidden');
-});
+  topCard.classList.remove('effect-2', 'effect-5', 'effect-10');
 
-socket.on('joined', d => {
-  myId = d.id;
-  joinBtn.disabled = nameIn.disabled = true;
-});
-
-socket.on('notice', msg => {
-  if (!msg) {
-    notice.classList.add('hidden');
-    return;
+  if (card.value === 2) {
+    topCard.classList.add('effect-2');
+  } else if (card.value === 5) {
+    topCard.classList.add('effect-5');
+  } else if (card.value === 10) {
+    topCard.classList.add('effect-10');
   }
-  notice.textContent = `${msg} (click to dismiss)`;
-  notice.classList.remove('hidden');
+
+  setTimeout(() => {
+    topCard.classList.remove('effect-2', 'effect-5', 'effect-10');
+  }, 1500);
+}
+
+document.getElementById('sort-button').addEventListener('click', () => {
+  const cards = document.querySelectorAll('#player-hand img');
+  const sorted = Array.from(cards).sort((a, b) => a.src.localeCompare(b.src));
+  const hand = document.getElementById('player-hand');
+  hand.innerHTML = '';
+  sorted.forEach(img => hand.appendChild(img));
 });
 
-socket.on('state', s => {
-  lobby.classList.add('hidden');
-  table.classList.remove('hidden');
-
-  const myTurn = s.turn === myId;
-  playBtn.disabled = takeBtn.disabled = !myTurn;
-
-  $('my-area')?.classList.toggle('your-turn', myTurn);
-  $('turn-indicator')?.classList.toggle('hidden', !myTurn);
-
-  playPile.innerHTML = '';
-  if (s.playPile.length) playPile.appendChild(cardImg(s.playPile.at(-1)));
-
-  drawPile.innerHTML = '';
-  if (s.deckCount) drawPile.appendChild(cardImg({ back: true }));
-
-  discardPile.textContent = s.discardCount;
-
-  other.innerHTML = '';
-  myHand.innerHTML = '';
-  myStacks.innerHTML = '';
-
-  s.players.forEach(p => {
-    if (p.id === myId) {
-      myName.textContent = p.name + (myTurn ? ' — your turn' : '');
-      p.hand.forEach((c, i) => {
-        c.idx = i;
-        const el = cardImg(c, true);
-        el.dataset.idx = i;
-        el.onclick = () => el.classList.toggle('selected');
-        el.ondblclick = () => {
-          el.classList.add('selected');
-          socket.emit('playCards', [i]);
-        };
-        myHand.appendChild(el);
-      });
-
-      p.up.forEach((card, i) => {
-        const col = document.createElement('div');
-        col.className = 'stack';
-        const upCard = cardImg(card, p.hand.length === 0);
-        upCard.dataset.idx = i + 1000;
-
-        if (p.hand.length === 0) {
-          upCard.onclick = () => upCard.classList.toggle('selected');
-          upCard.ondblclick = () => {
-            upCard.classList.add('selected');
-            socket.emit('playCards', [i + 1000]);
-          };
-        }
-
-        col.append(cardImg({ back: true }), upCard);
-        myStacks.appendChild(col);
-      });
-
-      if (p.hand.length === 0 && p.up.length === 0 && p.downCount > 0) {
-        const col = document.createElement('div');
-        col.className = 'stack';
-        const downCard = cardImg({ back: true }, true);
-        downCard.dataset.idx = 2000;
-        downCard.onclick = () => downCard.classList.toggle('selected');
-        downCard.ondblclick = () => {
-          downCard.classList.add('selected');
-          socket.emit('playCards', [2000]);
-        };
-        col.appendChild(downCard);
-        myStacks.appendChild(col);
-      }
-
-      return;
-    }
-
-    const panel = document.createElement('div');
-    panel.className = 'player';
-    panel.innerHTML = `<h3>${p.name}</h3><div class="row-label">Up / Down:</div>`;
-    const sr = document.createElement('div');
-    sr.className = 'stack-row';
-    p.up.forEach(c => {
-      const col = document.createElement('div');
-      col.className = 'stack';
-      col.append(cardImg({ back: true }), cardImg(c));
-      sr.appendChild(col);
-    });
-
-    const lab = document.createElement('div');
-    lab.className = 'row-label';
-    lab.textContent = 'Hand:';
-
-    const hr = document.createElement('div');
-    hr.className = 'opp-hand';
-    for (let i = 0; i < p.handCount; i++) {
-      hr.appendChild(cardImg({ back: true }));
-    }
-
-    panel.append(sr, lab, hr);
-    other.appendChild(panel);
-  });
+socket.on('specialEffect', (data) => {
+  applyCardEffect({ value: data.value });
 });
 
-playBtn.onclick = () => {
-  const sel = Array.from(myHand.children).filter(c =>
-    c.classList.contains('selected') || c.querySelector?.('.selected')
-  );
-  const indexes = sel.map(c =>
-    parseInt(c.dataset?.idx || c.firstChild?.dataset?.idx)
-  );
-  if (indexes.length) socket.emit('playCards', indexes);
-};
-takeBtn.onclick = () => socket.emit('takePile');
+// Example usage after play (integrate with your socket/game logic):
+// applyCardEffect({ value: 10 }); // or 2, or 5

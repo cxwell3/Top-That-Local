@@ -123,11 +123,20 @@ export class Game {
     if (v === 10 || cards.length === 4) {
       this.discard = (this.discard || []).concat(this.playPile.splice(0));
       if (this.deck.length) this.playPile.push(this.draw());
+      // Emit special effect for 10 or 4-of-a-kind
+      this.io.emit('specialEffect', { value: 10, type: cards.length === 4 ? 'four' : 'ten' });
       return;
+    }
+
+    if (v === 2) {
+      // Emit special effect for 2
+      this.io.emit('specialEffect', { value: 2, type: 'two' });
     }
 
     if (v === 5 && this.lastRealCard) {
       this.playPile.push({ ...this.lastRealCard, copied: true });
+      // Emit special effect for 5
+      this.io.emit('specialEffect', { value: 5, type: 'five' });
     }
   }
 
@@ -161,12 +170,31 @@ export class Game {
   }
 
   pushState() {
+    const deckPosition = { x: 500, y: 300 }; // Example central position of the deck
+    const cardSpacing = 50; // Spacing between cards
+    const verticalOffset = 150; // Vertical offset for players' cards
+
     const p = this.byId(this.turn);
     if (!this.hasMove(p)) {
       if (p && p.sock) p.sock.emit('notice', 'No valid moves. You must Take Pile.');
     }
 
-    this.players.forEach(t => {
+    this.players.forEach((t, index) => {
+      // Determine if the player is on the top or bottom of the deck
+      const isTop = index % 2 === 0;
+
+      // Calculate base position for the player's cards
+      const baseX = deckPosition.x - (cardSpacing * (t.hand.length - 1)) / 2;
+      const baseY = isTop
+        ? deckPosition.y - verticalOffset
+        : deckPosition.y + verticalOffset;
+
+      // Calculate positions for each card in the player's hand
+      const cardPositions = t.hand.map((_, i) => ({
+        x: baseX + i * cardSpacing,
+        y: baseY,
+      }));
+
       t.sock?.emit('state', {
         deckCount: this.deck.length,
         playPile: this.playPile,
@@ -178,7 +206,8 @@ export class Game {
           hand: p.id === t.id ? p.hand : [],
           handCount: p.hand.length,
           up: p.up,
-          downCount: p.down.length
+          downCount: p.down.length,
+          cardPositions: p.id === t.id ? cardPositions : [], // Include positions
         }))
       });
     });
