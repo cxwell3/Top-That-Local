@@ -8,6 +8,15 @@ socket.on('connect_error', (err) => {
   console.error('❌ Socket connection failed:', err.message);
 });
 
+// 🛑 Dev shortcut: Ctrl + R = admin reset (with reload prevention)
+document.addEventListener('keydown', e => {
+  if (e.key === 'r' && e.ctrlKey) {
+    e.preventDefault(); // Prevent browser from reloading
+    socket.emit('adminReset');
+    console.log('🛑 Sent adminReset');
+  }
+});
+
 let myId = null;
 const $ = id => document.getElementById(id);
 
@@ -112,6 +121,12 @@ socket.on('joined', d => {
 socket.on('notice', msg => {
   if (!msg) return notice.classList.add('hidden');
   notice.textContent = `${msg} (click to dismiss)`;
+  notice.classList.remove('hidden');
+});
+
+/* ---------- error handling ---------- */
+socket.on('err', msg => {
+  notice.textContent = `Error: ${msg} (click to dismiss)`;
   notice.classList.remove('hidden');
 });
 

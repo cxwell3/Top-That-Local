@@ -55,3 +55,4 @@ Host via Replit or deploy to Vercel/Render for persistent access
 Add instructions on how to start the game (for new players)
 
 Favicon, page title polish, and loading screen
+sort cards from lowest to highest
