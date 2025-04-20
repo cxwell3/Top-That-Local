@@ -19,6 +19,13 @@ body {
   background: var(--bg);
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  min-height: 100vh;
+  padding: 1rem;
+  overflow-y: auto;
+  margin: 0;
 }
 
 /* Header / Branding */
@@ -116,6 +123,16 @@ header button:disabled {
   color: #000;
   cursor: pointer;
   user-select: none;
+  position: absolute;
+  bottom: 5rem; /* Adjusted to be near play buttons */
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1rem;
+  background-color: #ffcccc;
+  border: 1px solid #ff0000;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  z-index: 1000;
 }
 .hidden { display: none !important; }
 
@@ -125,53 +142,53 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1.2rem;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  gap: 1rem;
+  padding: 0.5rem;
 }
 #other-players {
   display: flex;
-  gap: 2rem;
+  gap: 1rem;
   flex-wrap: wrap;
   justify-content: center;
   width: 100%;
-  margin-bottom: 1.5rem;  /* Further reduced spacing */
+  padding: 0.5rem;
 }
 #center {
+  background-color: var(--bg);
   display: flex;
-  gap: 1.2rem;
-  margin: 0;
-  min-height: 120px;  /* Reduced height */
-  padding: 1rem 0;
+  gap: 2rem;
+  padding: 1rem;
   align-items: center;
   justify-content: center;
-}
-#my-area {
-  margin-top: 2rem;
-  background: transparent;
   border: 2px solid var(--panelBorder);
   border-radius: 12px;
-  padding: 1.5rem;
-  min-width: 280px;
+  width: 100%;
+  max-width: 600px;
+  min-height: 120px;
+}
+#my-area {
+  width: 100%;
+  max-width: 800px;
+  margin: 1rem auto;
+  padding: 1rem;
+}
+#table {
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: border-color 0.3s ease;
-  position: relative;
-  padding-bottom: 1rem;  /* Reduced padding since buttons are outside */
-}
-#my-area.active {
-  border-color: var(--active-border);
-  box-shadow: 0 0 15px #00fff233;
-}
-#my-area button {
-  position: static;  /* Reset position */
-  margin: 0;
-  min-width: 140px;
-}
-#my-area #play {
-  left: 1rem;
-}
-#my-area #take {
-  right: 1rem;
+  justify-content: flex-start;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  background-color: var(--bg);
+  border: 2px solid var(--panelBorder);
+  border-radius: 12px;
+  padding: 1rem;
+  gap: 1rem;
+  overflow-y: auto;
 }
 
 /* Piles */
@@ -509,3 +526,46 @@ main {
 .event.reset { background: var(--accent2); }
 .event.copy  { background: var(--accent); color: black; }
 .event.burn  { background: #b00020; color: white; }
+
+/* Responsive adjustments */
+@media (max-height: 800px) {
+  .card-img {
+    width: 50px;
+    height: 70px;
+  }
+  
+  .pile {
+    width: 50px;
+    height: 70px;
+  }
+  
+  #center {
+    min-height: 100px;
+    padding: 0.75rem;
+  }
+  
+  .stack {
+    width: 50px;
+    height: 80px;
+  }
+}
+
+@media (max-width: 600px) {
+  #table {
+    padding: 0.5rem;
+  }
+  
+  #center {
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+  
+  .button-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .button-container button {
+    width: 100%;
+  }
+}

@@ -144,13 +144,13 @@ socket.on('joined', d => {
 /* ---------- notices ---------- */
 socket.on('notice', msg => {
   if (!msg) return notice.classList.add('hidden');
-  notice.textContent = msg;  // Remove "(click to dismiss)"
+  notice.textContent = msg.replace('Take Pile', 'take pile'); // Fix capitalization
   notice.classList.remove('hidden');
 });
 
 /* ---------- error handling ---------- */
 socket.on('err', msg => {
-  notice.textContent = `Error: ${msg}`;  // Remove "(click to dismiss)"
+  notice.textContent = `Error: ${msg.replace('Take Pile', 'take pile')}`; // Fix capitalization
   notice.classList.remove('hidden');
 });
 
