@@ -1,7 +1,20 @@
-const socket = io();
+const socket = io({
+  reconnectionDelayMax: 10000,
+  reconnection: true,
+  reconnectionDelay: 1000,
+});
 
 socket.on('connect', () => {
   console.log('✅ Socket connected');
+  // Clear game state on reconnect
+  myId = null;
+  currentRoom = null;
+  nameIn.value = '';
+  nameIn.disabled = false;
+  joinBtn.disabled = false;
+  notice.classList.add('hidden');
+  lobby.classList.remove('hidden');
+  table.classList.add('hidden');
 });
 
 socket.on('connect_error', (err) => {
@@ -14,10 +27,16 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); // Prevent browser from reloading
     socket.emit('adminReset');
     console.log('🛑 Sent adminReset');
+    // Clear client state
+    myId = null;
+    currentRoom = null;
+    nameIn.value = '';
+    notice.classList.add('hidden');
   }
 });
 
 let myId = null;
+let currentRoom = null;
 const $ = id => document.getElementById(id);
 
 /* ---------- refs ---------- */
@@ -26,7 +45,7 @@ const lobby = $('lobby-banner'), notice = $('notice-banner'), table = $('table')
 const myName = $('my-name'), myHand = $('my-hand'), myStacks = $('my-stacks');
 const playBtn = $('play'), takeBtn = $('take');
 const other = $('other-players');
-const playPile = $('play-pile'), drawPile = $('draw-pile'), discardPile = $('discard-pile');
+const playPile = $('play-pile'), drawPile = $('draw-pile');
 
 /* ---------- helpers ---------- */
 function code(c) {
@@ -59,6 +78,9 @@ function cardImg(card, sel = false) {
         socket.emit('playCards', indexes);
       }
     };
+  } else {
+    img.style.pointerEvents = 'none';
+    img.style.cursor = 'default';
   }
 
   container.appendChild(img);
@@ -109,6 +131,8 @@ socket.on('lobby', list => {
   lobby.textContent = `Waiting for players (${list.length}/2) — share this link!`;
   lobby.classList.remove('hidden');
   table.classList.add('hidden');
+  // Re-enable input fields when returning to lobby
+  joinBtn.disabled = nameIn.disabled = false;
 });
 
 /* ---------- joined ---------- */
@@ -120,13 +144,13 @@ socket.on('joined', d => {
 /* ---------- notices ---------- */
 socket.on('notice', msg => {
   if (!msg) return notice.classList.add('hidden');
-  notice.textContent = `${msg} (click to dismiss)`;
+  notice.textContent = msg;  // Remove "(click to dismiss)"
   notice.classList.remove('hidden');
 });
 
 /* ---------- error handling ---------- */
 socket.on('err', msg => {
-  notice.textContent = `Error: ${msg} (click to dismiss)`;
+  notice.textContent = `Error: ${msg}`;  // Remove "(click to dismiss)"
   notice.classList.remove('hidden');
 });
 
@@ -138,17 +162,34 @@ socket.on('state', s => {
   const myTurn = s.turn === myId;
   playBtn.disabled = takeBtn.disabled = !myTurn;
 
+  // Add or remove active class on my-area based on turn
+  $('my-area').classList.toggle('active', myTurn);
+
+  // Update play pile with count
   playPile.innerHTML = '';
+  const playCount = $('play-count');
   if (s.playPile.length) {
     const topCard = s.playPile.at(-1);
     playPile.appendChild(cardImg(topCard));
     if ([2, 5, 10].includes(topCard.value)) showCardEvent(topCard.value);
+    playCount.textContent = s.playPile.length;
+  } else {
+    playCount.textContent = '';
   }
 
+  // Update draw pile with count
   drawPile.innerHTML = '';
-  if (s.deckCount) drawPile.appendChild(cardImg({ back: true }));
+  const drawCount = $('draw-count');
+  if (s.deckCount) {
+    drawPile.appendChild(cardImg({ back: true }));
+    drawCount.textContent = s.deckCount;
+  } else {
+    drawCount.textContent = '';
+  }
 
-  discardPile.textContent = s.discardCount;
+  // Remove reference to discardPile since it's no longer used
+  const discardPile = $('discard-pile');
+  if (discardPile) discardPile.remove();
 
   other.innerHTML = '';
   myHand.innerHTML = '';
@@ -156,39 +197,50 @@ socket.on('state', s => {
 
   s.players.forEach(p => {
     if (p.id === myId) {
-      myName.textContent = p.name + (myTurn ? '  ← your turn' : '');
+      myName.textContent = p.name;
+      // Hand cards
       p.hand.forEach((c, i) => {
-        const el = cardImg(c, true);
+        const el = cardImg(c, myTurn);  // Only enable clicks when it's player's turn
         el.querySelector('.card-img').dataset.idx = i;
         myHand.appendChild(el);
       });
-      p.up.forEach(c => {
+      // Up cards
+      p.up.forEach((c, i) => {
         const col = document.createElement('div');
         col.className = 'stack';
-        col.append(cardImg({ back: true }), cardImg(c));
+        // Only enable clicks on up/down cards when it's player's turn
+        col.append(
+          cardImg({ back: true }, myTurn),
+          cardImg(c, myTurn)
+        );
+        col.querySelector('.card-img:last-child').dataset.idx = i + 1000;
         myStacks.appendChild(col);
       });
       return;
     }
 
+    // Other players
     const panel = document.createElement('div');
     panel.className = 'player';
-    panel.innerHTML = `<h3>${p.name}</h3><div class="row-label">Up / Down:</div>`;
+    if (p.id === s.turn) panel.classList.add('active');
+    
+    panel.innerHTML = `<h3>${p.name}</h3>`;
     const sr = document.createElement('div');
     sr.className = 'stack-row';
     p.up.forEach(c => {
       const col = document.createElement('div');
       col.className = 'stack';
-      col.append(cardImg({ back: true }), cardImg(c));
+      // Never enable clicks on opponent cards
+      col.append(cardImg({ back: true }, false), cardImg(c, false));
       sr.appendChild(col);
     });
 
     const lab = document.createElement('div');
-    lab.className = 'row-label';
     lab.textContent = 'Hand:';
     const hr = document.createElement('div');
     hr.className = 'opp-hand';
-    for (let i = 0; i < p.handCount; i++) hr.appendChild(cardImg({ back: true }));
+    // Never enable clicks on opponent cards
+    for (let i = 0; i < p.handCount; i++) hr.appendChild(cardImg({ back: true }, false));
 
     panel.append(sr, lab, hr);
     other.appendChild(panel);
@@ -206,3 +258,24 @@ playBtn.onclick = () => {
 };
 
 takeBtn.onclick = () => socket.emit('takePile');
+
+/* ---------- game room ---------- */
+socket.on('gameRoom', roomId => {
+  currentRoom = roomId;
+  // Update page URL with room ID
+  const url = new URL(window.location);
+  url.searchParams.set('room', roomId);
+  window.history.pushState({}, '', url);
+  
+  // Update lobby text to show room info
+  lobby.textContent = `Game Room: ${roomId} - Waiting for players (1/2) — Share this link!`;
+});
+
+// Check for room ID in URL when page loads
+window.addEventListener('load', () => {
+  const params = new URLSearchParams(window.location.search);
+  const roomId = params.get('room');
+  if (roomId) {
+    currentRoom = roomId;
+  }
+});

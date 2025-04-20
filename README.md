@@ -56,3 +56,67 @@ Add instructions on how to start the game (for new players)
 
 Favicon, page title polish, and loading screen
 sort cards from lowest to highest
+
+UI / Visual Changes
+
+    Theme overhaul: Switched entire page to a felt‑green “card‑table” background and kept it consistent after each refresh.
+
+    Theme overhaul: Introduced gold‑accent variables and gradients for logo, buttons, and banners.
+
+    Branding: Renamed game from Three’s to Top That!.
+
+    Branding: Added centered logo + tagline block; current tagline: One Pile. One Winner. No Mercy.
+
+    Layout & spacing: Player and opponent panels wrapped in matching bordered boxes.
+
+    Layout & spacing: Spacing rules – twice the space between opponent area and deck, half that between deck and main player; applied to desktop & mobile break‑points.
+
+    Layout & spacing: Up‑cards now hover slightly over down‑cards to reveal the hidden layer.
+
+    Layout & spacing: Buttons repositioned so they never overlap cards; consistent margin across viewports.
+
+    Card presentation: Cards sort visually from lowest → highest each render for every player.
+
+    Card presentation: Double‑click to play on the main hand; single‑click toggles selection highlight.
+
+    Card presentation: “COPY” badge overlay appears on 5s that duplicate a value.
+
+    Card presentation: Card hover / selected states styled with subtle lift‑and‑shadow.
+
+    Pile & status indicators: Discard‑pile counter recolored to match theme.
+
+    Pile & status indicators: Error banner when a player cannot play; pile is not taken until the player clicks the banner.
+
+    Pile & status indicators: Share‑link banner made clickable so users can copy/send the room URL.
+
+    Rules & helper text: Rules panel pinned top‑left, directly under the logo block for constant reference.
+
+    Rules & helper text: Reformatted rules with indented dashes, no extra commentary, and clarified special‑card effects.
+
+Game‑Play / Logic Changes
+
+    Special‑card engine: 2 resets the pile (next player can lay any card).
+
+    Special‑card engine: 5 copies last value unless it starts a fresh pile, in which case it’s a normal 5.
+
+    Special‑card engine: 10 clears the pile without granting an extra turn.
+
+    Multi‑card plays: Added index‑tracking so simultaneous plays of doubles/triples register correctly.
+
+    Copied‑flag lifecycle: Flag is set only while a copied card is in play and removed automatically if a player picks up the pile.
+
+    Turn validation: Illegal play now prevented in real time; server returns “Illegal play” and UI leaves cards in hand.
+
+    Pile pick‑up flow: After an invalid play, the error banner appears; clicking it transfers the pile to that player, then flips one deck card to seed the new pile.
+
+    Hand ordering: sortHand() runs on every draw, play, and pile‑pickup for all participants so their hands stay low→high.
+
+    Real‑time feedback: Socket events for join/leave/status broadcast to lobby and in‑game clients.
+
+Dev / Quality‑of‑Life Additions
+
+    Final working snapshot committed with message “Final working game state with sortHand and copied fix” for easy reference.
+
+    Added Ctrl + R debug hook that explicitly calls game.reset() and logs socket IDs on connect.
+
+    Style, client, and index files are treated as “authoritative copies”; every change sent as complete files to avoid partial merges.

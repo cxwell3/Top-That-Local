@@ -90,9 +90,14 @@
   <main id="table" class="hidden">
     <section id="other-players"></section>
     <div id="center">
-      <div id="draw-pile" class="pile"></div>
-      <div id="play-pile" class="pile"></div>
-      <div id="discard-pile" class="pile small"></div>
+      <div class="pile-container">
+        <div id="draw-pile" class="pile"></div>
+        <div id="draw-count" class="pile-count"></div>
+      </div>
+      <div class="pile-container">
+        <div id="play-pile" class="pile"></div>
+        <div id="play-count" class="pile-count"></div>
+      </div>
     </div>
     <section id="my-area">
       <h2 id="my-name"></h2>
@@ -100,8 +105,10 @@
       <div id="my-hand" class="hand"></div>
       <div class="row-label">Up / Down:</div>
       <div id="my-stacks" class="stack-row"></div>
-      <button id="play" disabled>Play Selected</button>
-      <button id="take" disabled>Take Pile</button>
+      <div class="button-container">
+        <button id="play" disabled>Play Selected</button>
+        <button id="take" disabled>Take Pile</button>
+      </div>
     </section>
   </main>
 

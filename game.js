@@ -68,7 +68,7 @@ export class Game {
 
   buildDeck() {
     const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-    const vals = [3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A'];
+    const vals = [2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A'];
     this.deck = [];
     for (let d = 0; d < Math.ceil(this.players.length / 4); d++) {
       suits.forEach(s => vals.forEach(v => this.deck.push({ value: v, suit: s })));
@@ -108,6 +108,7 @@ export class Game {
 
   rank(c) {
     const v = String(c.value).toUpperCase();
+    if (v === '2') return 2;
     return { 'J': 11, 'Q': 12, 'K': 13, 'A': 14 }[v] ?? parseInt(v);
   }
 
@@ -211,5 +212,6 @@ export class Game {
     this.turn = null;
     this.started = false;
     this.lastRealCard = null;
+    this.io.emit('lobby', []); // Emit empty lobby state to reset all clients
   }
 }
