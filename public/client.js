@@ -197,56 +197,44 @@ socket.on('state', s => {
   s.players.forEach(p => {
     if (p.id === myId) {
       myName.textContent = p.name;
-      
-      // Clear card containers first
       myHand.innerHTML = '';
       myStacks.innerHTML = '';
-      
-      // Create a document fragment for better performance
       const handFragment = document.createDocumentFragment();
       const stackFragment = document.createDocumentFragment();
-      
-      // Hand cards with improved event delegation
       p.hand.forEach((c, i) => {
         const el = cardImg(c, myTurn);
         const cardElement = el.querySelector('.card-img');
         cardElement.dataset.idx = i;
         handFragment.appendChild(el);
       });
-      
-      // Up cards with improved stacking
-      p.up.forEach((c, i) => {
-        const col = document.createElement('div');
-        col.className = 'stack';
-        const isClickable = myTurn && p.hand.length === 0;
-        
-        // Down card (always face down)
-        const downCard = cardImg({ back: true }, false);
-        downCard.querySelector('.card-img').classList.add('down-card');
-        
-        // Up card
-        const upCard = cardImg(c, isClickable);
-        upCard.querySelector('.card-img').classList.add('up-card');
-        const upCardElement = upCard.querySelector('.card-img');
-        upCardElement.dataset.idx = i + 1000;
-        
-        col.append(downCard, upCard);
-        stackFragment.appendChild(col);
-      });
-      
-      // Down cards: always render each card individually
-      if (p.down && p.down.length > 0) {
+      // Only render up stacks if up cards remain
+      if (p.up.length > 0) {
+        p.up.forEach((c, i) => {
+          const col = document.createElement('div');
+          col.className = 'stack';
+          const isClickable = myTurn && p.hand.length === 0;
+          // Down card (always face down)
+          const downCard = cardImg({ back: true }, false);
+          downCard.querySelector('.card-img').classList.add('down-card');
+          // Up card
+          const upCard = cardImg(c, isClickable);
+          upCard.querySelector('.card-img').classList.add('up-card');
+          const upCardElement = upCard.querySelector('.card-img');
+          upCardElement.dataset.idx = i + 1000;
+          col.append(downCard, upCard);
+          stackFragment.appendChild(col);
+        });
+      } else if (p.down && p.down.length > 0) {
+        // Only render down cards by themselves if no up cards remain
         p.down.forEach((c, i) => {
           const col = document.createElement('div');
           col.className = 'stack';
           const downCard = cardImg(c, myTurn && p.hand.length === 0 && p.up.length === 0 && !c.back);
           downCard.querySelector('.card-img').classList.add('down-card');
           col.appendChild(downCard);
-          myStacks.appendChild(col);
+          stackFragment.appendChild(col);
         });
       }
-      
-      // Append fragments for better performance
       myHand.appendChild(handFragment);
       myStacks.appendChild(stackFragment);
       return;
