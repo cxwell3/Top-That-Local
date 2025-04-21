@@ -195,39 +195,16 @@ socket.on('state', s => {
   table.classList.remove('hidden');
 
   const myTurn = s.turn === myId;
-  playBtn.disabled = takeBtn.disabled = !myTurn;
 
-  // Add or remove active class on my-area based on turn
-  $('my-area').classList.toggle('active', myTurn);
+  // Remove any existing dynamic button container
+  const oldBtn = document.getElementById('dynamic-btn-container');
+  if (oldBtn && oldBtn.parentNode) oldBtn.parentNode.removeChild(oldBtn);
 
-  // Update play pile with count
-  playPile.innerHTML = '';
-  const playCount = $('play-count');
-  if (s.playPile.length) {
-    const topCard = s.playPile.at(-1);
-    playPile.appendChild(cardImg(topCard));
-    // Show event banner for wilds and four of a kind
-    if ([2, 5, 10].includes(topCard.value) || (s.playPile.length >= 4 && s.playPile.slice(-4).every(c => c.value === topCard.value))) {
-      showCardEvent(topCard.value, s.playPile.length >= 4 ? 'four' : undefined);
-    }
-    playCount.textContent = s.playPile.length;
-  } else {
-    playCount.textContent = '';
-  }
-
-  // Update draw pile with count
-  drawPile.innerHTML = '';
-  const drawCount = $('draw-count');
-  if (s.deckCount) {
-    drawPile.appendChild(cardImg({ back: true }));
-    drawCount.textContent = s.deckCount;
-  } else {
-    drawCount.textContent = '';
-  }
-
-  other.innerHTML = '';
-  myHand.innerHTML = '';
-  myStacks.innerHTML = '';
+  let shouldShowHandButtons = false;
+  let shouldShowStackButtons = false;
+  let myHandCount = 0;
+  let myUpCount = 0;
+  let myDownCount = 0;
 
   s.players.forEach(p => {
     if (p.id === myId) {
@@ -236,6 +213,9 @@ socket.on('state', s => {
       myStacks.innerHTML = '';
       const handFragment = document.createDocumentFragment();
       const stackFragment = document.createDocumentFragment();
+      myHandCount = p.hand.length;
+      myUpCount = p.up.length;
+      myDownCount = p.down ? p.down.length : 0;
       p.hand.forEach((c, i) => {
         const el = cardImg(c, myTurn);
         const cardElement = el.querySelector('.card-img');
@@ -353,6 +333,64 @@ socket.on('state', s => {
       other.appendChild(panel);
     }
   });
+
+  // Decide where to show the button container
+  if (myHandCount > 0) {
+    shouldShowHandButtons = true;
+  } else if (myUpCount > 0 || myDownCount > 0) {
+    shouldShowStackButtons = true;
+  }
+
+  // Create the button container
+  const btnContainer = document.createElement('div');
+  btnContainer.className = 'button-container';
+  btnContainer.id = 'dynamic-btn-container';
+  // Play button
+  const playBtnDyn = document.createElement('button');
+  playBtnDyn.id = 'play';
+  playBtnDyn.textContent = 'Play Selected';
+  playBtnDyn.disabled = s.turn !== myId;
+  playBtnDyn.onclick = playSelectedCards;
+  // Take Pile button
+  const takeBtnDyn = document.createElement('button');
+  takeBtnDyn.id = 'take';
+  takeBtnDyn.textContent = 'Take Pile';
+  takeBtnDyn.disabled = s.turn !== myId;
+  takeBtnDyn.onclick = () => socket.emit('takePile');
+  btnContainer.appendChild(playBtnDyn);
+  btnContainer.appendChild(takeBtnDyn);
+
+  // Insert the button container in the correct place
+  if (shouldShowHandButtons) {
+    myHand.parentNode.insertBefore(btnContainer, myHand.nextSibling);
+  } else if (shouldShowStackButtons) {
+    myStacks.parentNode.insertBefore(btnContainer, myStacks.nextSibling);
+  }
+
+  // Update play pile with count
+  playPile.innerHTML = '';
+  const playCount = $('play-count');
+  if (s.playPile.length) {
+    const topCard = s.playPile.at(-1);
+    playPile.appendChild(cardImg(topCard));
+    // Show event banner for wilds and four of a kind
+    if ([2, 5, 10].includes(topCard.value) || (s.playPile.length >= 4 && s.playPile.slice(-4).every(c => c.value === topCard.value))) {
+      showCardEvent(topCard.value, s.playPile.length >= 4 ? 'four' : undefined);
+    }
+    playCount.textContent = s.playPile.length;
+  } else {
+    playCount.textContent = '';
+  }
+
+  // Update draw pile with count
+  drawPile.innerHTML = '';
+  const drawCount = $('draw-count');
+  if (s.deckCount) {
+    drawPile.appendChild(cardImg({ back: true }));
+    drawCount.textContent = s.deckCount;
+  } else {
+    drawCount.textContent = '';
+  }
 
   // Update the card event handling for better touch support
   if (myTurn) {

@@ -25,7 +25,7 @@ export class Game {
     
     this.players.push({ 
       id: 'computer',
-      name: 'Computer',
+      name: 'Dennis L.', // Always use this name for the computer player
       isComputer: true,
       hand: [],
       up: [],
