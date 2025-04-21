@@ -305,8 +305,23 @@ socket.on('state', s => {
       const sr = document.createElement('div');
       sr.className = 'stack-row';
 
-      // Down cards: always render each card individually as back
-      if (p.down && p.down.length > 0) {
+      if (p.up && p.up.length > 0) {
+        // Only render up stacks if up cards remain
+        p.up.forEach((c, i) => {
+          const col = document.createElement('div');
+          col.className = 'stack';
+          // Down card (always face down)
+          const downCard = cardImg({ back: true }, false);
+          downCard.querySelector('.card-img').classList.add('down-card');
+          // Up card (face up)
+          const upCard = cardImg(c, false);
+          upCard.querySelector('.card-img').classList.add('up-card');
+          col.appendChild(downCard);
+          col.appendChild(upCard);
+          sr.appendChild(col);
+        });
+      } else if (p.down && p.down.length > 0) {
+        // Only render down cards by themselves if no up cards remain
         p.down.forEach((c, i) => {
           const col = document.createElement('div');
           col.className = 'stack';
@@ -316,21 +331,6 @@ socket.on('state', s => {
           sr.appendChild(col);
         });
       }
-
-      // Up cards: render as stack (down card underneath, up card on top, both centered)
-      p.up.forEach((c, i) => {
-        const col = document.createElement('div');
-        col.className = 'stack';
-        // Down card (always face down)
-        const downCard = cardImg({ back: true }, false);
-        downCard.querySelector('.card-img').classList.add('down-card');
-        // Up card (face up)
-        const upCard = cardImg(c, false);
-        upCard.querySelector('.card-img').classList.add('up-card');
-        col.appendChild(downCard);
-        col.appendChild(upCard);
-        sr.appendChild(col);
-      });
 
       upDownSection.appendChild(sr);
       panel.appendChild(upDownSection);
