@@ -96,38 +96,58 @@ export class Game {
     setTimeout(() => {
       // Only play from hand if we have hand cards
       if (computer.hand.length > 0) {
-        const playableCards = computer.hand
+        // Separate wilds and regular cards
+        const wilds = computer.hand
           .map((card, index) => ({ card, index }))
-          .filter(({ card }) => this.valid([card]))
-          .sort((a, b) => this.rank(a.card) - this.rank(b.card));
-
-        if (playableCards.length > 0) {
-          const { index } = playableCards[0];
-          this.play({ id: 'computer' }, [index]);
+          .filter(({ card }) => [2, 5, 10].includes(card.value));
+        const regulars = computer.hand
+          .map((card, index) => ({ card, index }))
+          .filter(({ card }) => ![2, 5, 10].includes(card.value));
+        // Find playable regulars and wilds
+        const playableRegulars = regulars.filter(({ card }) => this.valid([card]));
+        const playableWilds = wilds.filter(({ card }) => this.valid([card]));
+        let playChoice = null;
+        // Prefer regulars, but sometimes (20%) play a wild if both are available
+        if (playableRegulars.length > 0 && playableWilds.length > 0 && Math.random() < 0.2) {
+          playChoice = playableWilds[Math.floor(Math.random() * playableWilds.length)];
+        } else if (playableRegulars.length > 0) {
+          // Sometimes (20%) play a higher regular instead of lowest
+          if (playableRegulars.length > 1 && Math.random() < 0.2) {
+            playChoice = playableRegulars[playableRegulars.length - 1];
+          } else {
+            playChoice = playableRegulars[0];
+          }
+        } else if (playableWilds.length > 0) {
+          // Prefer 10 if it burns the pile
+          const ten = playableWilds.find(({ card }) => card.value === 10);
+          if (ten) playChoice = ten;
+          else playChoice = playableWilds[0];
+        }
+        if (playChoice) {
+          this.play({ id: 'computer' }, [playChoice.index]);
           return;
         }
       }
-
       // Only try face-up cards if hand is empty
       if (computer.hand.length === 0 && computer.up.length > 0) {
         const playableUpCards = computer.up
           .map((card, index) => ({ card, index }))
-          .filter(({ card }) => this.valid([card]))
-          .sort((a, b) => this.rank(a.card) - this.rank(b.card));
-
+          .filter(({ card }) => this.valid([card]));
         if (playableUpCards.length > 0) {
-          const { index } = playableUpCards[0];
-          this.play({ id: 'computer' }, [index + 1000]);
+          // Sometimes (20%) play a higher up card
+          let playIdx = 0;
+          if (playableUpCards.length > 1 && Math.random() < 0.2) {
+            playIdx = playableUpCards.length - 1;
+          }
+          this.play({ id: 'computer' }, [playableUpCards[playIdx].index + 1000]);
           return;
         }
       }
-
       // Only try face-down cards if both hand and face-up are empty
       if (computer.hand.length === 0 && computer.up.length === 0 && computer.down.length > 0) {
         this.play({ id: 'computer' }, [2000]);
         return;
       }
-
       // If no valid moves or not allowed to play certain cards, take the pile
       this.takePile({ id: 'computer' });
     }, 1000);
@@ -165,6 +185,7 @@ export class Game {
   }
 
   deal() {
+    // Deal 3 cards to each player's hand, up, and down positions
     for (let i = 0; i < 3; i++) {
       this.players.forEach(p => {
         p.down.push(this.draw());
@@ -172,7 +193,20 @@ export class Game {
         p.hand.push(this.draw());
       });
     }
-    this.players.forEach(p => this.sortHand(p));
+    
+    // Sort hands after dealing
+    this.players.forEach(p => {
+      this.sortHand(p);
+      
+      // For computer player, ensure cards are properly initialized
+      if (p.isComputer) {
+        console.log('🤖 Computer player cards:', {
+          hand: p.hand.length,
+          up: p.up.length,
+          down: p.down.length
+        });
+      }
+    });
   }
 
   draw() {
@@ -270,25 +304,31 @@ export class Game {
 
   pushState() {
     const p = this.byId(this.turn);
-    if (!this.hasMove(p)) {
-      if (p && p.sock) p.sock.emit('notice', 'No valid moves. You must Take Pile.');
+    // Only show 'No valid moves' to the current human player
+    if (p && p.sock && !p.isComputer && !this.hasMove(p)) {
+      p.sock.emit('notice', 'No valid moves. You must Take Pile.');
     }
 
+    // For human players, send state through their socket
     this.players.forEach(t => {
-      t.sock?.emit('state', {
-        deckCount: this.deck.length,
-        playPile: this.playPile,
-        discardCount: (this.discard || []).length,
-        turn: this.turn,
-        players: this.players.map(p => ({
-          id: p.id,
-          name: p.name,
-          hand: p.id === t.id ? p.hand : [],
-          handCount: p.hand.length,
-          up: p.up,
-          downCount: p.down.length
-        }))
-      });
+      if (t.sock) {
+        t.sock.emit('state', {
+          deckCount: this.deck.length,
+          playPile: this.playPile,
+          discardCount: (this.discard || []).length,
+          turn: this.turn,
+          players: this.players.map(p => ({
+            id: p.id,
+            name: p.name,
+            isComputer: p.isComputer,
+            hand: p.id === t.id ? p.hand : p.hand.map(() => ({ back: true })),
+            handCount: p.hand.length,
+            up: p.up,
+            down: p.id === t.id ? p.down : p.down.map(() => ({ back: true })),
+            downCount: p.down.length
+          }))
+        });
+      }
     });
   }
 

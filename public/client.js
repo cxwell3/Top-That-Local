@@ -59,7 +59,7 @@ function code(c) {
 function cardImg(card, sel = false) {
   const container = document.createElement('div');
   container.style.position = 'relative';
-  container.style.height = '100%'; // Ensure container takes full height
+  container.style.height = '100%';
 
   const img = new Image();
   img.className = 'card-img';
@@ -67,21 +67,14 @@ function cardImg(card, sel = false) {
     ? 'https://deckofcardsapi.com/static/img/back.png'
     : `https://deckofcardsapi.com/static/img/${code(card)}.png`;
 
+  // Always set up click handlers for selectable cards
   if (sel) {
+    img.style.cursor = 'pointer';
     img.onclick = () => img.classList.toggle('selected');
     img.ondblclick = () => {
       img.classList.add('selected');
-      const selected = Array.from(myHand.children).filter(c =>
-        c.querySelector('.card-img')?.classList.contains('selected')
-      );
-      if (selected.length) {
-        const indexes = selected.map(c => parseInt(c.querySelector('.card-img').dataset.idx));
-        socket.emit('playCards', indexes);
-      }
+      playSelectedCards();
     };
-  } else {
-    img.style.pointerEvents = 'none';
-    img.style.cursor = 'default';
   }
 
   container.appendChild(img);
@@ -107,7 +100,7 @@ function showCardEvent(cardValue) {
     banner.textContent = 'COPY!';
     banner.className = 'event copy';
   } else if (cardValue === 10) {
-    banner.textContent = 'CLEAR!';
+    banner.textContent = 'BURN!';
     banner.className = 'event burn';
   } else {
     banner.textContent = '';
@@ -178,7 +171,10 @@ socket.on('state', s => {
   if (s.playPile.length) {
     const topCard = s.playPile.at(-1);
     playPile.appendChild(cardImg(topCard));
-    if ([2, 5, 10].includes(topCard.value)) showCardEvent(topCard.value);
+    if ([2, 5, 10].includes(topCard.value)) {
+      // Always show the event banner for wilds
+      showCardEvent(topCard.value);
+    }
     playCount.textContent = s.playPile.length;
   } else {
     playCount.textContent = '';
@@ -194,10 +190,6 @@ socket.on('state', s => {
     drawCount.textContent = '';
   }
 
-  // Remove reference to discardPile since it's no longer used
-  const discardPile = $('discard-pile');
-  if (discardPile) discardPile.remove();
-
   other.innerHTML = '';
   myHand.innerHTML = '';
   myStacks.innerHTML = '';
@@ -205,91 +197,200 @@ socket.on('state', s => {
   s.players.forEach(p => {
     if (p.id === myId) {
       myName.textContent = p.name;
-      // Hand cards
+      
+      // Clear card containers first
+      myHand.innerHTML = '';
+      myStacks.innerHTML = '';
+      
+      // Create a document fragment for better performance
+      const handFragment = document.createDocumentFragment();
+      const stackFragment = document.createDocumentFragment();
+      
+      // Hand cards with improved event delegation
       p.hand.forEach((c, i) => {
-        const el = cardImg(c, myTurn);  // Only enable clicks when it's player's turn
-        el.querySelector('.card-img').dataset.idx = i;
-        myHand.appendChild(el);
+        const el = cardImg(c, myTurn);
+        const cardElement = el.querySelector('.card-img');
+        cardElement.dataset.idx = i;
+        handFragment.appendChild(el);
       });
-      // Up cards - only enable if hand is empty
+      
+      // Up cards with improved stacking
       p.up.forEach((c, i) => {
         const col = document.createElement('div');
         col.className = 'stack';
-        // Only enable clicks on up cards when it's player's turn AND hand is empty
-        col.append(
-          cardImg({ back: true }, false), // Down cards never clickable here
-          cardImg(c, myTurn && p.hand.length === 0)
-        );
-        col.querySelector('.card-img:last-child').dataset.idx = i + 1000;
-        myStacks.appendChild(col);
+        const isClickable = myTurn && p.hand.length === 0;
+        
+        // Down card (always face down)
+        const downCard = cardImg({ back: true }, false);
+        downCard.querySelector('.card-img').classList.add('down-card');
+        
+        // Up card
+        const upCard = cardImg(c, isClickable);
+        upCard.querySelector('.card-img').classList.add('up-card');
+        const upCardElement = upCard.querySelector('.card-img');
+        upCardElement.dataset.idx = i + 1000;
+        
+        col.append(downCard, upCard);
+        stackFragment.appendChild(col);
       });
-      // Down cards - only add if both hand and up are empty
-      if (p.down.length > 0) {
+      
+      // Down cards: always render each card individually
+      if (p.down && p.down.length > 0) {
+        p.down.forEach((c, i) => {
+          const col = document.createElement('div');
+          col.className = 'stack';
+          const downCard = cardImg(c, myTurn && p.hand.length === 0 && p.up.length === 0 && !c.back);
+          downCard.querySelector('.card-img').classList.add('down-card');
+          col.appendChild(downCard);
+          myStacks.appendChild(col);
+        });
+      }
+      
+      // Append fragments for better performance
+      myHand.appendChild(handFragment);
+      myStacks.appendChild(stackFragment);
+      return;
+    } else {
+      // Other players panel setup with improved computer handling
+      const panel = document.createElement('div');
+      panel.className = 'player';
+      if (p.id === s.turn) panel.classList.add('active');
+      if (p.isComputer) panel.classList.add('computer-player');
+      panel.innerHTML = `<h3>${p.name}</h3>`;
+
+      // Hand section
+      const handSection = document.createElement('div');
+      handSection.className = 'player-section';
+      const handLabel = document.createElement('div');
+      handLabel.className = 'row-label';
+      handLabel.textContent = 'Hand:';
+      handSection.appendChild(handLabel);
+      const hr = document.createElement('div');
+      hr.className = 'opp-hand';
+      if (p.handCount > 0) {
+        const cardContainer = document.createElement('div');
+        cardContainer.className = 'opp-card-container';
+        for (let i = 0; i < Math.min(p.handCount, 3); i++) {
+          const cardDiv = cardImg({ back: true }, false);
+          cardDiv.style.position = 'absolute';
+          cardDiv.style.left = `${i * 20}px`;
+          cardDiv.style.zIndex = i;
+          cardContainer.appendChild(cardDiv);
+        }
+        const badge = document.createElement('div');
+        badge.className = 'card-count-badge';
+        if (p.isComputer) badge.classList.add('computer-badge');
+        badge.textContent = p.handCount;
+        cardContainer.appendChild(badge);
+        hr.appendChild(cardContainer);
+      }
+      handSection.appendChild(hr);
+      panel.appendChild(handSection);
+
+      // Up/Down section (centered, stacked like main player)
+      const upDownSection = document.createElement('div');
+      upDownSection.className = 'player-section';
+      const upDownLabel = document.createElement('div');
+      upDownLabel.className = 'row-label';
+      upDownLabel.textContent = 'Up / Down:';
+      upDownSection.appendChild(upDownLabel);
+      const sr = document.createElement('div');
+      sr.className = 'stack-row';
+
+      // Down cards: always render each card individually as back
+      if (p.down && p.down.length > 0) {
+        p.down.forEach((c, i) => {
+          const col = document.createElement('div');
+          col.className = 'stack';
+          const downCard = cardImg({ back: true }, false);
+          downCard.querySelector('.card-img').classList.add('down-card');
+          col.appendChild(downCard);
+          sr.appendChild(col);
+        });
+      }
+
+      // Up cards: render as stack (down card underneath, up card on top, both centered)
+      p.up.forEach((c, i) => {
         const col = document.createElement('div');
         col.className = 'stack';
-        col.append(
-          cardImg({ back: true }, myTurn && p.hand.length === 0 && p.up.length === 0),
-          cardImg({ back: true }, false)
-        );
-        col.querySelector('.card-img:first-child').dataset.idx = 2000;
-        myStacks.appendChild(col);
-      }
-      return;
+        // Down card (always face down)
+        const downCard = cardImg({ back: true }, false);
+        downCard.querySelector('.card-img').classList.add('down-card');
+        // Up card (face up)
+        const upCard = cardImg(c, false);
+        upCard.querySelector('.card-img').classList.add('up-card');
+        col.appendChild(downCard);
+        col.appendChild(upCard);
+        sr.appendChild(col);
+      });
+
+      upDownSection.appendChild(sr);
+      panel.appendChild(upDownSection);
+      other.appendChild(panel);
     }
-
-    // Other players
-    const panel = document.createElement('div');
-    panel.className = 'player';
-    if (p.id === s.turn) panel.classList.add('active');
-    
-    panel.innerHTML = `<h3>${p.name}</h3>`;
-    
-    // Create up/down cards section first
-    const sr = document.createElement('div');
-    sr.className = 'stack-row';
-    p.up.forEach(c => {
-      const col = document.createElement('div');
-      col.className = 'stack';
-      col.append(cardImg({ back: true }, false), cardImg(c, false));
-      sr.appendChild(col);
-    });
-    panel.appendChild(sr);
-
-    // Create hand section with proper structure
-    const handSection = document.createElement('div');
-    handSection.style.width = '100%';
-    
-    const handLabel = document.createElement('div');
-    handLabel.className = 'row-label';
-    handLabel.textContent = 'Hand:';
-    handSection.appendChild(handLabel);
-
-    const hr = document.createElement('div');
-    hr.className = 'opp-hand';
-    
-    for (let i = 0; i < p.handCount; i++) {
-      const cardContainer = document.createElement('div');
-      cardContainer.appendChild(cardImg({ back: true }, false));
-      hr.appendChild(cardContainer);
-    }
-
-    handSection.appendChild(hr);
-    panel.appendChild(handSection);
-
-    other.appendChild(panel);
   });
+
+  // Update the card event handling for better touch support
+  if (myTurn) {
+    // Add touch event handlers to the document
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+  } else {
+    // Remove touch handlers when not player's turn
+    document.removeEventListener('touchstart', handleTouchStart);
+    document.removeEventListener('touchend', handleTouchEnd);
+  }
 });
 
-/* ---------- play ---------- */
-playBtn.onclick = () => {
-  const sel = Array.from(myHand.children).filter(c =>
-    c.querySelector('.card-img')?.classList.contains('selected')
-  );
-  if (!sel.length) return;
-  const indexes = sel.map(c => parseInt(c.querySelector('.card-img').dataset.idx));
-  socket.emit('playCards', indexes);
-};
+// Touch event handling for mobile devices
+let touchTimeout;
+let touchedCard = null;
 
+function handleTouchStart(e) {
+  const card = e.target.closest('.card-img');
+  if (!card) return;
+  
+  touchedCard = card;
+  touchTimeout = setTimeout(() => {
+    if (touchedCard) {
+      touchedCard.classList.toggle('selected');
+    }
+  }, 500);
+}
+
+function handleTouchEnd(e) {
+  clearTimeout(touchTimeout);
+  const card = e.target.closest('.card-img');
+  
+  if (card && card === touchedCard && e.timeStamp - e.target._touchStartTime < 500) {
+    // Short tap - toggle selection
+    card.classList.toggle('selected');
+  }
+  touchedCard = null;
+}
+
+// Add playCards function
+function playCards(indexes) {
+  if (indexes && indexes.length > 0) {
+    socket.emit('playCards', indexes);
+  }
+}
+
+// Helper function to play selected cards
+function playSelectedCards() {
+  const selected = Array.from(myHand.children)
+    .filter(c => c.querySelector('.card-img')?.classList.contains('selected'))
+    .map(c => parseInt(c.querySelector('.card-img').dataset.idx));
+  
+  if (selected.length > 0) {
+    socket.emit('playCards', selected);
+  }
+}
+
+// Modify play button to use the helper function
+playBtn.onclick = playSelectedCards;
+
+/* ---------- play ---------- */
 takeBtn.onclick = () => socket.emit('takePile');
 
 /* ---------- game room ---------- */
@@ -310,5 +411,14 @@ window.addEventListener('load', () => {
   const roomId = params.get('room');
   if (roomId) {
     currentRoom = roomId;
+  }
+});
+
+// Move the event banner into the #center element for correct positioning
+document.addEventListener('DOMContentLoaded', () => {
+  const banner = document.getElementById('event-banner');
+  const center = document.getElementById('center');
+  if (banner && center && !center.contains(banner)) {
+    center.appendChild(banner);
   }
 });

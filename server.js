@@ -16,6 +16,12 @@ function createServer() {
   // Store active games
   const games = new Map();
 
+  // Add no-cache headers to prevent browser caching
+  app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    next();
+  });
+
   app.use(express.static(path.join(__dirname, 'public')));
 
   io.on('connection', socket => {
@@ -24,7 +30,23 @@ function createServer() {
 
     socket.on('join', (name, withComputer) => {
       try {
-        // Create new game
+        // Check URL parameters for room ID
+        const url = new URL(socket.handshake.headers.referer);
+        const urlRoomId = url.searchParams.get('room');
+
+        // If there's a room ID in the URL and it exists, try to join that game
+        if (urlRoomId && games.has(urlRoomId)) {
+          const game = games.get(urlRoomId);
+          if (!game.started) {
+            currentGame = urlRoomId;
+            socket.join(currentGame);
+            game.addPlayer(socket, name);
+            socket.emit('gameRoom', currentGame);
+            return;
+          }
+        }
+
+        // Create new game if no valid room found
         const roomId = Math.random().toString(36).substring(2, 8);
         const game = new Game(io);
         games.set(roomId, game);
