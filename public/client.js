@@ -109,24 +109,25 @@ function cardImg(card, sel = false) {
   return container;
 }
 
-function showCardEvent(cardValue) {
+function showCardEvent(cardValue, type) {
   const banner = document.getElementById('event-banner');
-  if (!banner) return;
-
+  const center = document.getElementById('center');
+  if (banner && center && !center.contains(banner)) {
+    center.appendChild(banner);
+  }
   if (cardValue === 2) {
     banner.textContent = 'RESET!';
     banner.className = 'event reset';
   } else if (cardValue === 5) {
     banner.textContent = 'COPY!';
     banner.className = 'event copy';
-  } else if (cardValue === 10) {
+  } else if (cardValue === 10 || type === 'four') {
     banner.textContent = 'BURN!';
     banner.className = 'event burn';
   } else {
     banner.textContent = '';
     banner.className = '';
   }
-
   banner.style.display = 'block';
   setTimeout(() => banner.style.display = 'none', 2000);
 }
@@ -191,9 +192,9 @@ socket.on('state', s => {
   if (s.playPile.length) {
     const topCard = s.playPile.at(-1);
     playPile.appendChild(cardImg(topCard));
-    if ([2, 5, 10].includes(topCard.value)) {
-      // Always show the event banner for wilds
-      showCardEvent(topCard.value);
+    // Show event banner for wilds and four of a kind
+    if ([2, 5, 10].includes(topCard.value) || (s.playPile.length >= 4 && s.playPile.slice(-4).every(c => c.value === topCard.value))) {
+      showCardEvent(topCard.value, s.playPile.length >= 4 ? 'four' : undefined);
     }
     playCount.textContent = s.playPile.length;
   } else {
@@ -429,4 +430,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (banner && center && !center.contains(banner)) {
     center.appendChild(banner);
   }
+});
+
+// Listen for specialEffect socket event
+socket.on('specialEffect', ({ value, type }) => {
+  showCardEvent(value, type);
 });

@@ -162,7 +162,7 @@ main {
   justify-content: center;
   width: 100%;
   padding: 0.25rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 2.5rem;
 }
 #center {
   background-color: var(--bg);
@@ -177,13 +177,14 @@ main {
   max-width: 600px;
   min-height: 120px;
   position: relative;
+  z-index: 10;
 }
 #my-area {
   background: transparent;
   border: 2px solid var(--panelBorder);
   border-radius: 12px;
   padding: 1.5rem 2.5rem 2.5rem 2.5rem;
-  margin: 0.5rem auto;
+  margin: 2.5rem auto 0.5rem auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -193,6 +194,7 @@ main {
   max-width: none;
   transition: border-color 0.3s ease;
   overflow: visible;
+  z-index: 20;
 }
 #table {
   display: flex;
@@ -267,6 +269,7 @@ main {
   max-width: none;
   transition: border-color 0.3s ease;
   overflow: visible;
+  z-index: 20;
 }
 
 .player-section {
@@ -664,12 +667,12 @@ main {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -70%);
+  transform: translate(-50%, -60%);
   font-size: 2.4rem;
   padding: 0.8rem 1.5rem;
   border-radius: 10px;
   display: none;
-  z-index: 2000;
+  z-index: 1000;
   font-weight: 700;
   text-align: center;
   background: var(--accent2);
@@ -749,5 +752,12 @@ main {
   .button-container button {
     width: 100%;
     margin: 0;
+  }
+
+  #other-players {
+    margin-bottom: 1.2rem;
+  }
+  #my-area {
+    margin-top: 1.2rem;
   }
 }
