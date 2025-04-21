@@ -266,7 +266,6 @@ socket.on('state', s => {
       const handSection = document.createElement('div');
       handSection.className = 'player-section';
       const handLabel = document.createElement('div');
-      handLabel.className = 'row-label';
       handLabel.textContent = 'Hand:';
       handSection.appendChild(handLabel);
       const hr = document.createElement('div');
@@ -295,7 +294,6 @@ socket.on('state', s => {
       const upDownSection = document.createElement('div');
       upDownSection.className = 'player-section';
       const upDownLabel = document.createElement('div');
-      upDownLabel.className = 'row-label';
       upDownLabel.textContent = 'Up / Down:';
       upDownSection.appendChild(upDownLabel);
       const sr = document.createElement('div');
@@ -457,12 +455,13 @@ takeBtn.onclick = () => socket.emit('takePile');
 
 /* ---------- game room ---------- */
 socket.on('gameRoom', roomId => {
+  console.log('[DEBUG] Received gameRoom event with roomId:', roomId);
   currentRoom = roomId;
   // Update page URL with room ID
   const url = new URL(window.location);
   url.searchParams.set('room', roomId);
   window.history.pushState({}, '', url);
-  
+  console.log('[DEBUG] Updated URL to:', url.toString());
   // Update lobby text to show room info
   lobby.textContent = `Game Room: ${roomId} - Waiting for players (1/2) — Share this link!`;
 });
