@@ -4,6 +4,26 @@ const socket = io({
   reconnectionDelay: 1000,
 });
 
+console.log('Top That! client.js version 20250421 loaded');
+
+// Add a visible version banner to the page for Render debugging
+(function() {
+  const versionBanner = document.createElement('div');
+  versionBanner.textContent = 'Top That! client.js version 20250421';
+  versionBanner.style.position = 'fixed';
+  versionBanner.style.bottom = '0';
+  versionBanner.style.right = '0';
+  versionBanner.style.background = '#ff9e0b';
+  versionBanner.style.color = '#000';
+  versionBanner.style.fontWeight = 'bold';
+  versionBanner.style.padding = '4px 12px';
+  versionBanner.style.zIndex = '9999';
+  versionBanner.style.fontSize = '1rem';
+  versionBanner.style.borderTopLeftRadius = '8px';
+  versionBanner.style.boxShadow = '0 0 8px #0006';
+  document.body.appendChild(versionBanner);
+})();
+
 socket.on('connect', () => {
   console.log('✅ Socket connected');
   // Clear game state on reconnect
