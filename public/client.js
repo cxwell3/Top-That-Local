@@ -46,6 +46,7 @@ const myName = $('my-name'), myHand = $('my-hand'), myStacks = $('my-stacks');
 const playBtn = $('play'), takeBtn = $('take');
 const other = $('other-players');
 const playPile = $('play-pile'), drawPile = $('draw-pile');
+const joinComputerBtn = $('join-computer');
 
 /* ---------- helpers ---------- */
 function code(c) {
@@ -58,7 +59,7 @@ function code(c) {
 function cardImg(card, sel = false) {
   const container = document.createElement('div');
   container.style.position = 'relative';
-  container.style.display = 'inline-block';
+  container.style.height = '100%'; // Ensure container takes full height
 
   const img = new Image();
   img.className = 'card-img';
@@ -123,7 +124,13 @@ notice.onclick = () => notice.classList.add('hidden');
 joinBtn.onclick = () => {
   const n = nameIn.value.trim();
   if (!n) return alert('Enter a name');
-  socket.emit('join', n);
+  socket.emit('join', n, false);
+};
+
+joinComputerBtn.onclick = () => {
+  const n = nameIn.value.trim();
+  if (!n) return alert('Enter a name');
+  socket.emit('join', n, true);
 };
 
 /* ---------- lobby ---------- */
@@ -204,18 +211,29 @@ socket.on('state', s => {
         el.querySelector('.card-img').dataset.idx = i;
         myHand.appendChild(el);
       });
-      // Up cards
+      // Up cards - only enable if hand is empty
       p.up.forEach((c, i) => {
         const col = document.createElement('div');
         col.className = 'stack';
-        // Only enable clicks on up/down cards when it's player's turn
+        // Only enable clicks on up cards when it's player's turn AND hand is empty
         col.append(
-          cardImg({ back: true }, myTurn),
-          cardImg(c, myTurn)
+          cardImg({ back: true }, false), // Down cards never clickable here
+          cardImg(c, myTurn && p.hand.length === 0)
         );
         col.querySelector('.card-img:last-child').dataset.idx = i + 1000;
         myStacks.appendChild(col);
       });
+      // Down cards - only add if both hand and up are empty
+      if (p.down.length > 0) {
+        const col = document.createElement('div');
+        col.className = 'stack';
+        col.append(
+          cardImg({ back: true }, myTurn && p.hand.length === 0 && p.up.length === 0),
+          cardImg({ back: true }, false)
+        );
+        col.querySelector('.card-img:first-child').dataset.idx = 2000;
+        myStacks.appendChild(col);
+      }
       return;
     }
 
@@ -225,24 +243,39 @@ socket.on('state', s => {
     if (p.id === s.turn) panel.classList.add('active');
     
     panel.innerHTML = `<h3>${p.name}</h3>`;
+    
+    // Create up/down cards section first
     const sr = document.createElement('div');
     sr.className = 'stack-row';
     p.up.forEach(c => {
       const col = document.createElement('div');
       col.className = 'stack';
-      // Never enable clicks on opponent cards
       col.append(cardImg({ back: true }, false), cardImg(c, false));
       sr.appendChild(col);
     });
+    panel.appendChild(sr);
 
-    const lab = document.createElement('div');
-    lab.textContent = 'Hand:';
+    // Create hand section with proper structure
+    const handSection = document.createElement('div');
+    handSection.style.width = '100%';
+    
+    const handLabel = document.createElement('div');
+    handLabel.className = 'row-label';
+    handLabel.textContent = 'Hand:';
+    handSection.appendChild(handLabel);
+
     const hr = document.createElement('div');
     hr.className = 'opp-hand';
-    // Never enable clicks on opponent cards
-    for (let i = 0; i < p.handCount; i++) hr.appendChild(cardImg({ back: true }, false));
+    
+    for (let i = 0; i < p.handCount; i++) {
+      const cardContainer = document.createElement('div');
+      cardContainer.appendChild(cardImg({ back: true }, false));
+      hr.appendChild(cardContainer);
+    }
 
-    panel.append(sr, lab, hr);
+    handSection.appendChild(hr);
+    panel.appendChild(handSection);
+
     other.appendChild(panel);
   });
 });

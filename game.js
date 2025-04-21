@@ -14,20 +14,27 @@ export class Game {
     this.players.push({ id: sock.id, sock, name, hand: [], up: [], down: [] });
     sock.emit('joined', { id: sock.id });
 
-    // Add computer player if this is the first human player
-    if (this.players.length === 1) {
-      this.players.push({ 
-        id: 'computer',
-        name: 'Computer',
-        isComputer: true,
-        hand: [],
-        up: [],
-        down: []
-      });
-    }
-
     this.io.emit('lobby', this.players.map(p => ({ id: p.id, name: p.name })));
     if (this.players.length >= 2) this.startGame();
+  }
+
+  addComputerPlayer() {
+    if (this.started) {
+      return;
+    }
+    
+    this.players.push({ 
+      id: 'computer',
+      name: 'Computer',
+      isComputer: true,
+      hand: [],
+      up: [],
+      down: []
+    });
+
+    if (this.players.length >= 2) {
+      this.startGame();
+    }
   }
 
   removePlayer(sock) {
@@ -37,6 +44,18 @@ export class Game {
   play(sock, idxs) {
     const p = this.byId(sock.id);
     if (!p || this.turn !== p.id) return;
+
+    // Check if trying to play down cards while up cards remain
+    if (idxs.some(i => i === 2000) && p.up.length > 0) {
+      sock.emit('err', 'You must play all face-up cards before playing face-down cards');
+      return;
+    }
+
+    // Check if trying to play up cards while hand cards remain
+    if (idxs.some(i => i >= 1000 && i < 2000) && p.hand.length > 0) {
+      sock.emit('err', 'You must play all hand cards before playing face-up cards');
+      return;
+    }
 
     const cards = idxs.map(i => {
       if (i === 2000) return p.down[0];
@@ -75,7 +94,7 @@ export class Game {
     if (!computer || this.turn !== 'computer') return;
 
     setTimeout(() => {
-      // First try to play from hand
+      // Only play from hand if we have hand cards
       if (computer.hand.length > 0) {
         const playableCards = computer.hand
           .map((card, index) => ({ card, index }))
@@ -89,11 +108,12 @@ export class Game {
         }
       }
 
-      // If no hand cards are playable, try face-up cards
+      // Only try face-up cards if hand is empty
       if (computer.hand.length === 0 && computer.up.length > 0) {
         const playableUpCards = computer.up
           .map((card, index) => ({ card, index }))
-          .filter(({ card }) => this.valid([card]));
+          .filter(({ card }) => this.valid([card]))
+          .sort((a, b) => this.rank(a.card) - this.rank(b.card));
 
         if (playableUpCards.length > 0) {
           const { index } = playableUpCards[0];
@@ -102,15 +122,15 @@ export class Game {
         }
       }
 
-      // If no face-up cards are playable and we have a face-down card, play it
+      // Only try face-down cards if both hand and face-up are empty
       if (computer.hand.length === 0 && computer.up.length === 0 && computer.down.length > 0) {
         this.play({ id: 'computer' }, [2000]);
         return;
       }
 
-      // If no valid moves, take the pile
+      // If no valid moves or not allowed to play certain cards, take the pile
       this.takePile({ id: 'computer' });
-    }, 1000); // Add a delay to make the computer's moves visible
+    }, 1000);
   }
 
   takePile(sock) {
@@ -118,6 +138,11 @@ export class Game {
     if (!p || this.turn !== p.id) return;
     this.givePile(p, 'You picked up the pile');
     this.pushState();
+
+    // After human player's turn, trigger computer's turn if it's next
+    if (this.turn === 'computer') {
+      this.computerTurn();
+    }
   }
 
   startGame() {

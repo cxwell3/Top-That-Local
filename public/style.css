@@ -123,16 +123,16 @@ header button:disabled {
   color: #000;
   cursor: pointer;
   user-select: none;
-  position: absolute;
-  bottom: 5rem; /* Adjusted to be near play buttons */
+  position: fixed;
+  bottom: 2rem;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 2000;
   padding: 0.5rem 1rem;
   background-color: #ffcccc;
   border: 1px solid #ff0000;
   border-radius: 4px;
   font-size: 0.9rem;
-  z-index: 1000;
 }
 .hidden { display: none !important; }
 
@@ -235,23 +235,103 @@ main {
   background: transparent;
   border: 2px solid var(--panelBorder);
   border-radius: 12px;
-  padding: 1.5rem;
-  min-width: 280px;
+  padding: 1.5rem 1rem;
+  margin: 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 380px;
+  min-width: 320px;
   transition: border-color 0.3s ease;
-  margin-bottom: 0.5rem;
 }
+
+.player > div {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .player.active {
   border-color: var(--active-border);
   box-shadow: 0 0 15px #00fff233;
+}
+.player.active, #my-area.active {
+  border-color: var(--active-border);
+  box-shadow: 0 0 20px var(--active-border);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .player h3, #my-name {
   margin-bottom: 0.6rem;
   font-size: 1.05rem;
   color: var(--name);
 }
+
+.player .stack-row {
+  margin-bottom: 1rem;
+}
+
+.player .row-label {
+  margin: 0.5rem 0;
+  text-align: center;
+  width: 100%;
+}
+
+.player > div:last-child {
+  margin-bottom: 0;
+}
+
+/* Card hand layout - unified for both players */
+.hand, .opp-hand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 95px;
+  margin: 0.5rem auto;
+  padding: 0.5rem;
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* Card positioning in hands */
+.hand > div, .opp-hand > div {
+  position: relative;
+  transform-origin: center bottom;
+  margin-left: -35px; /* Slightly more overlap */
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  z-index: 1;
+}
+
+/* Card interaction states */
+.hand > div:hover .card-img {
+  transform: translateY(-15px);
+  z-index: 20;
+  box-shadow: 0 12px 20px rgba(0,0,0,0.4);
+}
+
+/* Card hover effect for both hands */
+.hand > div:hover, .opp-hand > div:hover {
+  z-index: 20; /* Ensure hovered card is always on top */
+}
+
+/* Remove negative margin from first card */
+.hand > div:first-child, .opp-hand > div:first-child {
+  margin-left: 0;
+}
+
+/* Progressive z-index for overlapping cards */
+.hand > div:nth-child(2), .opp-hand > div:nth-child(2) { z-index: 2; }
+.hand > div:nth-child(3), .opp-hand > div:nth-child(3) { z-index: 3; }
+.hand > div:nth-child(4), .opp-hand > div:nth-child(4) { z-index: 4; }
+.hand > div:nth-child(5), .opp-hand > div:nth-child(5) { z-index: 5; }
+.hand > div:nth-child(6), .opp-hand > div:nth-child(6) { z-index: 6; }
+.hand > div:nth-child(7), .opp-hand > div:nth-child(7) { z-index: 7; }
 
 /* Cards */
 .card-img {
@@ -264,7 +344,9 @@ main {
   transition: all 0.15s ease;
 }
 .card-img.selected {
-  transform: translateY(-10px) scale(1.05);
+  transform: translateY(-15px) !important;
+  z-index: 15 !important;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.5) !important;
 }
 .card-img.unplayable {
   pointer-events: none;
@@ -331,6 +413,21 @@ main {
   transform: none;
 }
 
+/* Play Options */
+.play-options {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.play-options button {
+  min-width: 120px;
+}
+
+#join-computer {
+  background: var(--accent2);
+  color: white;
+}
+
 /* Stacks and Labels */
 .row-label {
   font-size: 0.85rem;
@@ -340,13 +437,13 @@ main {
   text-align: left;
   width: 100%;
 }
-.stack-row, .hand, .opp-hand {
+.stack-row {
   display: flex;
-  gap: 0.8rem;  /* Increased gap between stacks */
+  gap: 0.8rem;
   justify-content: center;
   margin: 0.5rem 0 1.5rem;
-  min-height: 95px;       /* Increased to account for hover effect */
-  position: relative;     /* For proper stacking */
+  min-height: 95px;
+  position: relative;
 }
 
 /* Up/down cards styling - base stacking effect */
@@ -378,84 +475,6 @@ main {
 .stack:hover img:last-child {
   transform: translateY(-8px);
   box-shadow: 0 8px 16px rgba(0,0,0,0.4);
-}
-
-/* Cards in hand styling */
-.hand {
-  display: flex;
-  justify-content: center;
-  padding: 1rem;
-  min-height: 120px;
-  margin: 0.5rem 0;
-  /* Remove gap property to allow cards to overlap */
-}
-
-.hand .card-img {
-  margin-right: -40px; /* Negative margin for overlap */
-  transition: transform 0.2s ease;
-  cursor: pointer;
-  position: relative;
-}
-
-.hand .card-img:last-child {
-  margin-right: 0; /* Remove margin from last card */
-}
-
-.hand .card-img:hover {
-  transform: translateY(-15px);
-  z-index: 10; /* Bring hovered card to front */
-}
-
-.hand .card-img.selected {
-  transform: translateY(-15px);
-  z-index: 5;
-}
-
-/* Opponent hand styling */
-.opp-hand {
-  display: flex;
-  justify-content: center;
-  padding: 0.5rem;
-  min-height: 100px;
-}
-
-.opp-hand .card-img {
-  margin-right: -40px;
-  position: relative;
-}
-
-.opp-hand .card-img:last-child {
-  margin-right: 0;
-}
-
-/* Opponent's hand */
-.opp-hand .card-img {
-  transform: translateY(0);
-}
-
-/* Up/down cards styling */
-.stack {
-  position: relative;
-  margin: 0.5rem;
-}
-
-.stack img:first-child {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.stack img:last-child {
-  position: absolute;
-  top: -8px;  /* More lift for face-up cards */
-  left: 0;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.stack:hover img:last-child {
-  transform: translateY(-12px);
-  box-shadow: 0 12px 20px rgba(0,0,0,0.6);
 }
 
 /* Copied Card Badge */
