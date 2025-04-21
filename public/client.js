@@ -118,7 +118,7 @@ function showCardEvent(cardValue, type) {
   if (cardValue === 2) {
     banner.textContent = 'RESET!';
     banner.className = 'event reset';
-  } else if (cardValue === 5) {
+  } else if (cardValue === 5 && type === 'five') {
     banner.textContent = 'COPY!';
     banner.className = 'event copy';
   } else if (cardValue === 10 || type === 'four') {
@@ -130,6 +130,20 @@ function showCardEvent(cardValue, type) {
   }
   banner.style.display = 'block';
   setTimeout(() => banner.style.display = 'none', 2000);
+}
+
+function showTookPileBanner(panel) {
+  // Remove any existing banner
+  const oldBanner = panel.querySelector('.took-pile-banner');
+  if (oldBanner) oldBanner.remove();
+  // Create and show the banner
+  const banner = document.createElement('div');
+  banner.className = 'took-pile-banner';
+  banner.textContent = 'Took the pile!';
+  panel.insertBefore(banner, panel.firstChild);
+  setTimeout(() => {
+    banner.remove();
+  }, 2000);
 }
 
 notice.onclick = () => notice.classList.add('hidden');
@@ -263,6 +277,7 @@ socket.on('state', s => {
       // Other players panel setup with improved computer handling
       const panel = document.createElement('div');
       panel.className = 'player';
+      panel.dataset.playerId = p.id;
       if (p.id === s.turn) panel.classList.add('active');
       if (p.isComputer) panel.classList.add('computer-player');
       panel.innerHTML = `<h3>${p.name}</h3>`;
@@ -435,4 +450,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // Listen for specialEffect socket event
 socket.on('specialEffect', ({ value, type }) => {
   showCardEvent(value, type);
+});
+
+// Listen for opponentTookPile socket event
+socket.on('opponentTookPile', ({ playerId }) => {
+  // Find the opponent's panel
+  const playerPanels = document.querySelectorAll('#other-players .player');
+  playerPanels.forEach(panel => {
+    const nameHeader = panel.querySelector('h3');
+    if (panel.dataset.playerId === playerId || (nameHeader && nameHeader.dataset.playerId === playerId)) {
+      showTookPileBanner(panel);
+    }
+  });
 });

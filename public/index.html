@@ -90,28 +90,30 @@
 
   <div id="lobby-banner" class="banner hidden">Waiting for players…</div>
   <main id="table" class="hidden">
-    <section id="other-players"></section>
-    <div id="center">
-      <div class="pile-container">
-        <div id="draw-pile" class="pile"></div>
-        <div id="draw-count" class="pile-count"></div>
+    <div class="horizontal-layout">
+      <section id="my-area">
+        <h2 id="my-name"></h2>
+        <div class="row-label">Hand:</div>
+        <div id="my-hand" class="hand"></div>
+        <div class="row-label">Up / Down:</div>
+        <div id="my-stacks" class="stack-row"></div>
+        <div class="button-container">
+          <button id="play" disabled>Play Selected</button>
+          <button id="take" disabled>Take Pile</button>
+        </div>
+      </section>
+      <div id="center">
+        <div class="pile-container">
+          <div id="draw-pile" class="pile"></div>
+          <div id="draw-count" class="pile-count"></div>
+        </div>
+        <div class="pile-container">
+          <div id="play-pile" class="pile"></div>
+          <div id="play-count" class="pile-count"></div>
+        </div>
       </div>
-      <div class="pile-container">
-        <div id="play-pile" class="pile"></div>
-        <div id="play-count" class="pile-count"></div>
-      </div>
+      <div id="other-players"></div>
     </div>
-    <section id="my-area">
-      <h2 id="my-name"></h2>
-      <div class="row-label">Hand:</div>
-      <div id="my-hand" class="hand"></div>
-      <div class="row-label">Up / Down:</div>
-      <div id="my-stacks" class="stack-row"></div>
-      <div class="button-container">
-        <button id="play" disabled>Play Selected</button>
-        <button id="take" disabled>Take Pile</button>
-      </div>
-    </section>
     <div id="notice-banner" class="notice hidden"></div>
   </main>
 

@@ -142,6 +142,28 @@ header button:disabled {
 }
 .hidden { display: none !important; }
 
+.took-pile-banner {
+  background: #ffd36b;
+  color: #222;
+  font-weight: bold;
+  font-size: 1.05rem;
+  border-radius: 8px;
+  padding: 0.3rem 1.1rem;
+  margin-bottom: 0.7rem;
+  text-align: center;
+  box-shadow: 0 2px 8px #0002;
+  position: relative;
+  z-index: 30;
+  animation: tookPileFadeIn 0.2s, tookPileFadeOut 0.4s 1.6s forwards;
+}
+@keyframes tookPileFadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes tookPileFadeOut {
+  to { opacity: 0; transform: translateY(-10px); }
+}
+
 /* Layout */
 main {
   flex: 1;
@@ -154,6 +176,66 @@ main {
   gap: 0.5rem;
   padding: 0.25rem;
   overflow: visible;
+}
+.horizontal-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2.5rem;
+  width: 100%;
+}
+#table {
+  display: block;
+  padding: 2rem 1.5rem 2.5rem 1.5rem;
+  border: 2px solid var(--panelBorder);
+  border-radius: 12px;
+  background-color: var(--bg);
+  width: 100vw;
+  max-width: 1200px;
+  margin: 0 auto;
+  overflow: visible;
+}
+#other-players {
+  min-width: 320px;
+  max-width: 340px;
+  flex: 1 1 320px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: flex-start;
+}
+#center {
+  flex: 0 0 260px;
+  min-width: 220px;
+  max-width: 320px;
+  margin: 0 1.5rem;
+  z-index: 10;
+}
+#my-area {
+  min-width: 320px;
+  max-width: 340px;
+  flex: 1 1 320px;
+  margin: 0;
+  z-index: 20;
+}
+@media (max-width: 1000px) {
+  .horizontal-layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.2rem;
+  }
+  #other-players, #my-area, #center {
+    min-width: 0;
+    max-width: none;
+    margin: 0 auto;
+  }
+  #center {
+    margin: 0.5rem auto;
+  }
 }
 #other-players {
   display: flex;

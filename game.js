@@ -157,6 +157,14 @@ export class Game {
     const p = this.byId(sock.id);
     if (!p || this.turn !== p.id) return;
     this.givePile(p, 'You picked up the pile');
+    // Emit to all other players that this player took the pile
+    if (p.sock && !p.isComputer) {
+      this.players.forEach(other => {
+        if (other.id !== p.id && other.sock) {
+          other.sock.emit('opponentTookPile', { playerId: p.id });
+        }
+      });
+    }
     this.pushState();
 
     // After human player's turn, trigger computer's turn if it's next
