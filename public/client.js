@@ -194,6 +194,9 @@ socket.on('state', s => {
   lobby.classList.add('hidden');
   table.classList.remove('hidden');
 
+  // Clear other players panel before rendering
+  other.innerHTML = '';
+
   const myTurn = s.turn === myId;
 
   // Remove any existing dynamic button container
