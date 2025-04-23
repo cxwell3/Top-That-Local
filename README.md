@@ -121,6 +121,15 @@ Dev / Quality‑of‑Life Additions
 
     Style, client, and index files are treated as “authoritative copies”; every change sent as complete files to avoid partial merges.
 
+   
+   
+   
+   
+   
+   
+   
+   
+   
     Duplicate player fix
     
      I reviewed your codebase and found the likely cause of the duplicate computer player display: in public/client.js, when rendering the list of other players in the socket.on('state', ...) handler, the #other-players container is not cleared before new player panels are appended. This causes the UI to accumulate duplicate panels for the computer player (and possibly other players) on each state update.

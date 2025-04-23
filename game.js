@@ -1,49 +1,77 @@
 export class Game {
   constructor(io) {
     this.io = io;
+    this.MAX_PLAYERS = 4; // Max players (can be adjusted)
     this.reset();
   }
 
   addPlayer(sock, name = 'Player') {
     if (this.started) {
       sock.emit('err', 'Game already started');
-      return;
+      return false;
+    }
+    if (this.players.length >= this.MAX_PLAYERS) {
+      sock.emit('err', 'Game room is full');
+      return false;
     }
 
-    // Add the human player
-    this.players.push({ id: sock.id, sock, name, hand: [], up: [], down: [] });
+    this.players.push({ id: sock.id, sock, name, hand: [], up: [], down: [], disconnected: false }); // Initialize disconnected
     sock.emit('joined', { id: sock.id });
 
-    this.io.emit('lobby', this.players.map(p => ({ id: p.id, name: p.name })));
-    if (this.players.length >= 2) this.startGame();
+    // Remove startGame call from here
+    // this.io.emit('lobby', this.players.map(p => ({ id: p.id, name: p.name }))); // Lobby update handled by server
+    // if (this.players.length >= 2) this.startGame();
+    return true;
   }
 
   addComputerPlayer() {
-    console.log('🔔 addComputerPlayer called – players:', this.players.map(p=>p.id));    // Do nothing if game already started or a computer player already exists
-    if (this.started) return;
-    if (this.players.some(p => p.isComputer)) return;
+    if (this.started) {
+      console.warn('Attempted to add computer player after game started.');
+      return false;
+    }
+    if (this.players.length >= this.MAX_PLAYERS) {
+      console.warn('Attempted to add computer player to a full game.');
+      return false;
+    }
 
+    const computerCount = this.players.filter(p => p.isComputer).length;
+    const computerId = `computer_${computerCount + 1}`;
+    const computerName = `CPU ${computerCount + 1}`;
+
+    console.log(`Adding computer player: ${computerName} (${computerId})`);
     this.players.push({
-      id: 'computer',
-      name: 'Dennis L.', // Always use this name for the computer player
+      id: computerId,
+      name: computerName,
       isComputer: true,
       hand: [],
       up: [],
-      down: []
+      down: [],
+      disconnected: false // Initialize disconnected
     });
 
-    if (this.players.length >= 2) {
-      this.startGame();
+    // Remove startGame call from here
+    // if (this.players.length >= 2) {
+    //   this.startGame();
+    // }
+    return true;
+  }
+
+  markPlayerDisconnected(playerId) {
+    const player = this.players.find(p => p.id === playerId);
+    if (player) {
+      console.log(`Marking player ${player.name} (${player.id}) as disconnected.`);
+      player.disconnected = true;
+      player.sock = null; // Remove socket reference
     }
   }
 
-  removePlayer(sock) {
-    this.players = this.players.filter(p => p.id !== sock.id);
+  findPlayerById(playerId) {
+    return this.players.find(p => p.id === playerId);
   }
 
   play(sock, idxs) {
-    const p = this.byId(sock.id);
-    if (!p || this.turn !== p.id) return;
+    const p = this.findPlayerById(sock.id); // Use findPlayerById
+    if (!p || p.disconnected || (this.turn !== p.id && p.id !== 'computer')) return;
 
     // Check if trying to play down cards while up cards remain
     if (idxs.some(i => i === 2000) && p.up.length > 0) {
@@ -83,79 +111,69 @@ export class Game {
     this.advanceTurn();
     this.pushState();
 
-    // After human player's turn, trigger computer's turn if it's next
-    if (this.turn === 'computer') {
-      this.computerTurn();
+    const nextPlayer = this.byId(this.turn);
+    if (nextPlayer && nextPlayer.isComputer) {
+      this.computerTurn(nextPlayer.id);
     }
   }
 
-  computerTurn() {
-    const computer = this.byId('computer');
-    if (!computer || this.turn !== 'computer') return;
+  computerTurn(computerId = 'computer') {
+    const computer = this.findPlayerById(computerId); // Use findPlayerById
+    if (!computer || computer.disconnected || this.turn !== computer.id) return;
 
     setTimeout(() => {
-      // Only play from hand if we have hand cards
       if (computer.hand.length > 0) {
-        // Separate wilds and regular cards
         const wilds = computer.hand
           .map((card, index) => ({ card, index }))
           .filter(({ card }) => [2, 5, 10].includes(card.value));
         const regulars = computer.hand
           .map((card, index) => ({ card, index }))
           .filter(({ card }) => ![2, 5, 10].includes(card.value));
-        // Find playable regulars and wilds
         const playableRegulars = regulars.filter(({ card }) => this.valid([card]));
         const playableWilds = wilds.filter(({ card }) => this.valid([card]));
         let playChoice = null;
-        // Prefer regulars, but sometimes (20%) play a wild if both are available
         if (playableRegulars.length > 0 && playableWilds.length > 0 && Math.random() < 0.2) {
           playChoice = playableWilds[Math.floor(Math.random() * playableWilds.length)];
         } else if (playableRegulars.length > 0) {
-          // Sometimes (20%) play a higher regular instead of lowest
           if (playableRegulars.length > 1 && Math.random() < 0.2) {
             playChoice = playableRegulars[playableRegulars.length - 1];
           } else {
             playChoice = playableRegulars[0];
           }
         } else if (playableWilds.length > 0) {
-          // Prefer 10 if it burns the pile
           const ten = playableWilds.find(({ card }) => card.value === 10);
           if (ten) playChoice = ten;
           else playChoice = playableWilds[0];
         }
         if (playChoice) {
-          this.play({ id: 'computer' }, [playChoice.index]);
+          this.play({ id: computerId }, [playChoice.index]);
           return;
         }
       }
-      // Only try face-up cards if hand is empty
       if (computer.hand.length === 0 && computer.up.length > 0) {
         const playableUpCards = computer.up
           .map((card, index) => ({ card, index }))
           .filter(({ card }) => this.valid([card]));
         if (playableUpCards.length > 0) {
-          // Sometimes (20%) play a higher up card
           let playIdx = 0;
           if (playableUpCards.length > 1 && Math.random() < 0.2) {
             playIdx = playableUpCards.length - 1;
           }
-          this.play({ id: 'computer' }, [playableUpCards[playIdx].index + 1000]);
+          this.play({ id: computerId }, [playableUpCards[playIdx].index + 1000]);
           return;
         }
       }
-      // Only try face-down cards if both hand and face-up are empty
       if (computer.hand.length === 0 && computer.up.length === 0 && computer.down.length > 0) {
-        this.play({ id: 'computer' }, [2000]);
+        this.play({ id: computerId }, [2000]);
         return;
       }
-      // If no valid moves or not allowed to play certain cards, take the pile
-      this.takePile({ id: 'computer' });
+      this.takePile({ id: computerId });
     }, 1000);
   }
 
   takePile(sock) {
-    const p = this.byId(sock.id);
-    if (!p || this.turn !== p.id) return;
+    const p = this.findPlayerById(sock.id); // Use findPlayerById
+    if (!p || p.disconnected || this.turn !== p.id) return;
     this.givePile(p, 'You picked up the pile');
     if (p.sock && !p.isComputer) {
       this.players.forEach(other => {
@@ -166,26 +184,51 @@ export class Game {
     }
     this.pushState();
 
-    if (this.turn === 'computer') {
-      this.computerTurn();
+    const nextPlayer = this.byId(this.turn);
+    if (nextPlayer && nextPlayer.isComputer) {
+      this.computerTurn(nextPlayer.id);
     }
   }
 
   startGame() {
+    if (this.started) {
+      console.warn("startGame called but game already started.");
+      return;
+    }
+    if (this.players.length < 2) {
+        console.warn(`startGame called but only ${this.players.length} players present.`);
+        return; // Don't start with fewer than 2 players
+    }
+    console.log(`Starting game with players: ${this.players.map(p => p.name).join(', ')}`);
     this.started = true;
     this.buildDeck();
     this.deal();
-    this.playPile.push(this.draw());
-    this.turn = this.players[0].id;
-    this.pushState();
+    if (this.deck.length > 0) { // Ensure deck isn't empty before drawing for play pile
+        this.playPile.push(this.draw());
+    } else {
+        console.error("Deck is empty after dealing, cannot start play pile.");
+        // Handle this error state appropriately - maybe reset?
+    }
+    this.turn = this.players[0].id; // Start with the first player
+    this.pushState(); // Send initial state
+    console.log(`Game started. First turn: ${this.players[0].name}`);
+
+    // Check if the first player is a computer and trigger its turn
+    const firstPlayer = this.byId(this.turn);
+    if (firstPlayer && firstPlayer.isComputer) {
+        console.log("First player is computer, initiating turn.");
+        this.computerTurn(firstPlayer.id);
+    }
   }
 
   buildDeck() {
     const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
     const vals = [2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A'];
     this.deck = [];
-    for (let d = 0; d < Math.ceil(this.players.length / 4); d++) {
-      suits.forEach(s => vals.forEach(v => this.deck.push({ value: v, suit: s })));        }
+    const numDecks = this.players.length <= 2 ? 1 : 2;
+    for (let d = 0; d < numDecks; d++) {
+      suits.forEach(s => vals.forEach(v => this.deck.push({ value: v, suit: s })));
+    }
     this.shuffle(this.deck);
   }
 
@@ -225,7 +268,7 @@ export class Game {
   }
 
   byId(id) {
-    return this.players.find(p => p.id === id);
+    return this.players.find(p => p.id === id && !p.disconnected);
   }
 
   rank(c) {
@@ -272,8 +315,12 @@ export class Game {
   }
 
   advanceTurn() {
-    const i = this.players.findIndex(p => p.id === this.turn);
-    this.turn = this.players[(i + 1) % this.players.length].id;
+    const currentIndex = this.players.findIndex(p => p.id === this.turn);
+    if (currentIndex !== -1) {
+      this.turn = this.players[(currentIndex + 1) % this.players.length].id;
+    } else if (this.players.length > 0) {
+      this.turn = this.players[0].id;
+    }
   }
 
   hasMove(p) {
@@ -301,13 +348,17 @@ export class Game {
   }
 
   pushState() {
-    const p = this.byId(this.turn);
-    if (p && p.sock && !p.isComputer && !this.hasMove(p)) {
-      p.sock.emit('notice', 'No valid moves. You must Take Pile.');
+    const currentPlayer = this.byId(this.turn); // Find active player whose turn it is
+    if (currentPlayer && currentPlayer.sock && !currentPlayer.isComputer && !this.hasMove(currentPlayer)) {
+      currentPlayer.sock.emit('notice', 'No valid moves. You must Take Pile.');
+    } else if (currentPlayer && currentPlayer.sock) {
+      currentPlayer.sock.emit('notice', '');
     }
-    this.players.forEach(t => {
-      if (t.sock) {
-        t.sock.emit('state', {
+
+    this.players.forEach(targetPlayer => {
+      // Only send state to active players
+      if (targetPlayer.sock && !targetPlayer.disconnected) {
+        targetPlayer.sock.emit('state', {
           deckCount: this.deck.length,
           playPile: this.playPile,
           discardCount: (this.discard || []).length,
@@ -316,10 +367,11 @@ export class Game {
             id: p.id,
             name: p.name,
             isComputer: p.isComputer,
-            hand: p.id === t.id ? p.hand : p.hand.map(() => ({ back: true })),
+            disconnected: p.disconnected, // Include disconnected status
+            hand: p.id === targetPlayer.id ? p.hand : [],
             handCount: p.hand.length,
             up: p.up,
-            down: p.id === t.id ? p.down : p.down.map(() => ({ back: true })),
+            down: p.id === targetPlayer.id ? p.down : p.down.map(() => ({ back: true })),
             downCount: p.down.length
           }))
         });
@@ -335,6 +387,5 @@ export class Game {
     this.turn = null;
     this.started = false;
     this.lastRealCard = null;
-    this.io.emit('lobby', []); // Emit empty lobby state to reset all clients
   }
 }

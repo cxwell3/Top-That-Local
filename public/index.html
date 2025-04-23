@@ -81,10 +81,14 @@
         </li>
       </ul>
     </details>
-    <input id="name" placeholder="Your name" />
-    <div class="play-options">
-      <button id="join">Join Table</button>
+    <div class="join-options">
+      <input type="text" id="name" placeholder="Enter your name" />
+      <button id="join">Join Game</button>
+    </div>
+    <div class="join-options computer-options">
       <button id="join-computer">Play vs Computer</button>
+      <label for="computer-count">Opponents:</label>
+      <input type="number" id="computer-count" name="computer-count" min="1" max="3" value="1">
     </div>
   </header>
 
@@ -93,25 +97,23 @@
     <div class="horizontal-layout">
       <section id="my-area">
         <h2 id="my-name"></h2>
-        <div id="my-hand" class="hand"></div>
-        <div id="my-stacks" class="stack-row"></div>
-        <!-- Button container will be rendered dynamically by client.js -->
+        <!-- Hand, Stacks, Buttons rendered by client.js -->
       </section>
       <div id="center">
-        <div class="pile-container">
-          <div id="draw-pile" class="pile"></div>
-          <div id="draw-count" class="pile-count"></div>
+        <div class="center-pile-container" id="deck-pile-container">
+          <!-- Deck pile label and cards rendered by client.js -->
+          <div id="deck-pile"></div>
         </div>
-        <div class="pile-container">
-          <div id="play-pile" class="pile"></div>
-          <div id="play-count" class="pile-count"></div>
+        <div class="center-pile-container" id="discard-pile-container">
+          <!-- Discard pile label and cards rendered by client.js -->
+          <div id="discard-pile"></div>
         </div>
+        <div id="event-banner" style="display: none;"></div>
       </div>
-      <div id="other-players"></div>
+      <div id="other-players">
+        <!-- Opponent panels rendered by client.js -->
+      </div>
     </div>
-    <div id="notice-banner" class="notice hidden"></div>
   </main>
-
-  <div id="event-banner"></div>
 </body>
 </html>

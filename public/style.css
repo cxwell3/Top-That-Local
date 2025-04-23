@@ -1,7 +1,8 @@
 /* ========== Color Variables & Root Styles ========== */
 :root {
-  --bg: #0b5137;
-  --accent: #ff9e0b;
+  --bg: #0a4a33; /* Slightly darker, richer green */
+  --bg-gradient: linear-gradient(180deg, #0f5c40 0%, #0a4a33 100%); /* Subtle gradient */
+  --accent: #ffb74d; /* Slightly softer orange */
   --accent2: #2f80ed;
   --name: #ffd36b;
   --text: #f5f5f5;
@@ -18,7 +19,7 @@ html, body {
   color: var(--text);
 }
 body {
-  background: var(--bg);
+  background: var(--bg-gradient); /* Use gradient */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -36,8 +37,9 @@ header {
   gap: 1rem;
   align-items: center;
   flex-wrap: wrap;
-  padding: 0.6rem 1.2rem;
+  padding: 0.8rem 1.5rem; /* Increased padding */
   border-bottom: 2px solid var(--panelBorder);
+  background-color: rgba(0, 0, 0, 0.1); /* Subtle header background */
 }
 
 .brand {
@@ -125,26 +127,25 @@ header button:disabled {
   color: #fff;
 }
 .notice {
-  background: var(--bg);
+  position: fixed; /* Position relative to viewport */
+  bottom: 10px; /* Distance from bottom */
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Fine-tune centering */
+  background: rgba(0, 0, 0, 0.7); /* Darker background for visibility */
   color: var(--accent);
-  border: 2px solid var(--accent);
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-  font-weight: 700;
-  font-size: 1.1rem;
-  cursor: pointer;
+  border: 1px solid var(--panelBorder);
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: default;
   user-select: none;
-  position: static;
-  margin: 1.2rem auto 0 auto;
-  left: unset;
-  bottom: unset;
-  transform: none;
-  z-index: 120;
-  width: fit-content;
-  max-width: 90vw;
-  box-sizing: border-box;
-  padding: 0.9rem 2.2rem;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  z-index: 150; /* Ensure it's above most elements */
+  width: auto; /* Adjust width based on content */
+  max-width: 80%; /* Limit maximum width */
+  padding: 0.5rem 1rem; /* Add some padding */
+  text-align: center;
+  margin: 0; /* Reset margin */
 }
 .hidden { display: none !important; }
 
@@ -155,12 +156,13 @@ header button:disabled {
   font-size: 1.05rem;
   border-radius: 8px;
   padding: 0.3rem 1.1rem;
-  margin-bottom: 0.7rem;
+  margin-top: 0.5rem; /* Add margin above it */
   text-align: center;
   box-shadow: 0 2px 8px #0002;
-  position: relative;
+  position: relative; /* Keep relative positioning */
   z-index: 30;
   animation: tookPileFadeIn 0.2s, tookPileFadeOut 0.4s 1.6s forwards;
+  order: 2.5; /* Try to position it after #center if they share a flex container */
 }
 @keyframes tookPileFadeIn {
   from { opacity: 0; transform: translateY(-10px); }
@@ -187,7 +189,7 @@ main {
 .horizontal-layout {
   display: flex;
   flex-direction: row;
-  align-items: center; /* Changed from flex-start to center for vertical alignment */
+  align-items: center; /* Reverted from stretch */
   justify-content: center;
   gap: 1.5rem;
   width: 100%;
@@ -214,620 +216,227 @@ main {
 }
 
 #center {
-  flex: 0 0 auto;
+  flex: 0 0 auto; /* Don't grow or shrink */
   min-width: 170px;
   margin: 0 1rem;
   z-index: 10;
   display: flex;
-  flex-direction: row;
+  flex-direction: row; /* Piles side-by-side */
   justify-content: center;
-  align-items: center; /* Ensure piles are centered */
-  align-self: center; /* Center vertically in the layout */
-  padding: 1.5rem 0; /* Add vertical padding for better spacing */
-  gap: 2rem;
+  align-items: center; /* Center piles internally */
+  align-self: center; /* Ensure it aligns itself centrally if needed */
+  padding: 1rem 0; /* Adjusted padding */
+  gap: 2.5rem; /* Increased gap between piles */
+  order: 2; /* Center column */
+}
+
+/* New styles for center pile containers and labels */
+.center-pile-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pile-label {
+  font-weight: 700; /* Bolder */
+  text-transform: uppercase;
+  font-size: 1rem; /* Larger */
+  color: var(--accent); /* Use accent color */
+  margin-bottom: 0.3rem; /* Increased margin */
+  letter-spacing: 0.5px; /* Added letter spacing */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); /* Added shadow */
+  text-align: center; /* Explicitly center text */
 }
 
 #other-players, #my-area {
-  flex: 1 1 350px; /* Allow both grow AND shrink for better balance */
-  min-width: 320px; /* Increased minimum width */
-  max-width: 45%; /* Limit maximum width to 45% of container */
+  flex: 1 1 350px; /* Allow grow/shrink, base width 350px */
+  min-width: 320px;
   margin: 0;
   z-index: 20;
   width: auto;
-  overflow-x: visible; /* Remove horizontal scrolling, show all content */
-  overflow: visible;
+  display: flex; /* Use flex for internal alignment */
+  flex-direction: column; /* Stack elements vertically */
+  align-items: center; /* Center content horizontally */
 }
 
-/* ========== CLEAN SLATE - REMOVE ALL CONFLICTING STYLES ========== */
-/* These rules supersede and override all previous styles */
-
-/* CRITICAL: Clear out ALL existing computer player card styles */
-.computer-player .opp-hand,
-.computer-player .opp-card-container,
-.computer-player .card-img,
-.computer-player .opp-card-container .card-img,
-#other-players .player.computer-player .opp-hand,
-#other-players .player.computer-player .opp-card-container,
-#other-players .player.computer-player .opp-card-container .card-img {
-  /* Reset all properties to avoid conflicts */
-  position: static;
-  transform: none;
-  margin: 0;
-  padding: 0;
-  top: auto;
-  left: auto;
-  display: block;
-  transition: none;
-  align-items: center;
-  justify-content: center;
+#other-players {
+  order: 3; /* Right column */
 }
 
-/* ========== BASIC CARD DIMENSIONS - GUARANTEED ========== */
-.card-img {
-  width: 63px !important;
-  height: 87px !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
-  border-radius: 4px !important;
-}
-
-/* ========== CLEAN LABELS ========== */
-/* Reset ALL label styles first */
-.row-label, #my-area .row-label, .player .row-label {
-  font-size: 1.25rem !important;
-  color: var(--name) !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.03em !important;
-  text-align: center !important;
-  margin: 1rem 0 0.5rem !important;
-  padding: 0.3rem 0 !important;
-  display: block !important;
-  width: 100% !important;
-}
-
-/* Disable ALL ::after elements */
-.row-label::after, #my-area .row-label::after, .player .row-label::after {
-  display: none !important;
-}
-
-/* ========== COMPUTER PLAYER CARDS - SIMPLE FLEX APPROACH ========== */
-.computer-player {
-  background: transparent !important;
-  margin: 1rem auto !important;
-  padding: 1rem !important;
-}
-
-.computer-player .opp-hand {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  padding: 1.5rem 0.5rem !important;
-  margin: 1rem auto !important;
-  min-height: 120px !important; 
-  gap: 0.5rem !important;
-  position: relative !important;
-  flex-wrap: wrap !important;
-}
-
-.computer-player .opp-card-container {
-  position: static !important;
-  display: inline-block !important;
-  height: 87px !important;
-  width: 63px !important;
-  margin: 0 0.25rem !important;
-}
-
-.computer-player .card-img, 
-.computer-player .opp-card-container .card-img {
-  position: static !important;
-  display: block !important;
-  height: 87px !important;
-  width: 63px !important;
-  margin: 0 !important;
-}
-
-/* IMPROVED SPACING FOR COMPUTER PLAYER CARDS */
-
-/* Reset and simplify computer player layout */
-.computer-player {
-  position: relative !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  padding: 1.5rem !important;
-}
-
-/* Improve spacing between hand and stack row in computer player */
-.computer-player .player-section {
-  width: 100% !important;
-  margin-bottom: 0.5rem !important;
-}
-
-/* Add consistent vertical alignment for computer hand */
-.computer-player .opp-hand {
-  min-height: 150px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 1rem 0.5rem !important;
-}
-
-/* Create button spacer to match human player layout */
-.computer-player::after {
-  content: '' !important;
-  display: block !important;
-  height: 120px !important; /* Height that matches button container + margins */
-  width: 100% !important;
-  margin: 0.7rem 0 1.2rem !important;
-}
-
-/* Make computer cards display consistently */
-.computer-player .opp-card-container {
-  display: inline-block !important;
-  margin: 0 5px !important;
-  position: static !important;
-  transform: none !important;
-  height: 87px !important;
-  width: 63px !important;
-}
-
-/* Fix the card images */
-.computer-player .opp-card-container .card-img {
-  position: static !important;
-  display: block !important;
-  height: 87px !important;
-  width: 63px !important;
-}
-
-/* Improve stack row alignment for computer player */
-.computer-player .stack-row {
-  margin-top: 0.5rem !important;
-  margin-bottom: 1rem !important;
-  padding-bottom: 2rem !important;
-}
-
-/* ========== MY AREA ORDERING - GUARANTEED ========== */
 #my-area {
-  display: flex !important;
-  flex-direction: column !important;
+  order: 1; /* Left column */
 }
 
-#my-area .row-label:first-of-type {
-  order: 0 !important;
-  margin-top: 0.7rem !important;
-  margin-bottom: 0.7rem !important;
-}
-
-#my-area .hand {
-  order: 1 !important;
-}
-
-#my-area .button-container {
-  order: 2 !important;
-  margin: 0.7rem auto 1.5rem !important;
-}
-
-#my-area .row-label:last-of-type {
-  order: 3 !important;
-  margin-top: 1rem !important;
-  margin-bottom: 0.7rem !important;
-}
-
-#my-area .stack-row {
-  order: 4 !important;
-}
-
-/* ========== ENSURE SPACING BETWEEN SECTIONS ========== */
-.player-section {
-  margin-bottom: 1.5rem !important;
-}
-
-.stack-row {
-  margin-top: 0.5rem !important;
-}
-
-/* ========== REMOVE ANY LEFTOVER ARTIFACTS ========== */
-.computer-player::after {
-  display: none !important;
-}
-
-#computer-player-fix {
-  display: none !important;
-}
-
-/* ========== Piles & Card Containers ========== */
-.pile {
-  width: 63px;  /* Reduced from 84px */
-  height: 87px; /* Reduced from 116px */
-  border-radius: 8px;
-  position: relative;
-  background: linear-gradient(145deg, #126d4d 10%, #09442e 90%);
-  box-shadow: inset 0 4px 8px #0004, 0 2px 6px #0005;
-}
-.pile.small {
-  width: 42px;   /* Reduced from 56px */
-  height: 58px;  /* Reduced from 78px */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--accent);
-  background: #06402b;
-}
-
-.pile-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0.5rem; /* Add horizontal margin for spacing between piles */
-}
-
-/* ========== Player Panels ========== */
+/* ========== Player Panels (Unified Styles) ========== */
 .player, #my-area {
-  background: transparent;
-  border: 3px solid rgba(255, 255, 255, 0.2); /* Thicker, more visible border */
+  background: rgba(0, 0, 0, 0.15);
+  border: 2px solid var(--panelBorder);
   border-radius: 12px;
-  padding: 1.5rem;
-  margin: 0.5rem auto;
+  padding: 1rem 1rem 1.5rem 1rem; /* Keep some base bottom padding */
+  margin: 0; /* Let the parent layout handle margins */
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.5rem; /* Increased gap slightly */
   width: 100%;
-  min-width: 300px;
-  max-width: 100%;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Added transition for box-shadow */
-  overflow: visible;
-  overflow-x: visible;
-  z-index: 20;
   box-sizing: border-box;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Add subtle shadow for depth */
-}
-
-/* Fix the order of elements in #my-area - Keep hand area first */
-#my-area {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Consolidated label styling */
-#my-area .row-label, .player .row-label, .row-label {
-  font-size: 1.2rem !important; /* Even larger font size for better visibility */
-  color: var(--name) !important; 
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.03em !important;
-  text-align: center !important;
-  width: 100% !important;
-  padding: 0.3rem 0 !important;
-  position: relative !important;
-  margin: 0.7rem 0 0.5rem 0 !important;
-  display: block !important;
-}
-
-/* Remove all ::after pseudo-elements that might be adding decorative lines */
-#my-area .row-label::after, 
-.player .row-label::after, 
-.row-label::after {
-  display: none !important;
-}
-
-/* Clean up element ordering and spacing */
-#my-area .row-label:first-of-type {
-  order: 0 !important;
-  margin-top: 0.5rem !important; 
-  margin-bottom: 0.6rem !important;
-}
-
-#my-area .hand {
-  order: 1 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0.8rem !important;
-}
-
-#my-area .button-container {
-  order: 2 !important;
-  margin-top: 0.3rem !important;
-  margin-bottom: 1.2rem !important;
-}
-
-#my-area .row-label:last-of-type {
-  order: 2.5 !important;
-  margin-top: 1.5rem !important;
-  margin-bottom: 0.6rem !important;
-}
-
-#my-area .stack-row {
-  order: 3 !important;
-}
-
-.player-section {
-  width: 100%;
-  margin-bottom: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: visible;
-}
-
-.player-section:last-child {
-  margin-bottom: 0;
-}
-
-.player > div {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  overflow: visible; /* REMOVED hidden, set to visible */
 }
 
 .player.active, #my-area.active {
   border-color: var(--active-border);
-  box-shadow: 0 0 25px 5px rgba(22, 240, 255, 0.3); /* More pronounced glow effect */
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 0 15px 3px rgba(22, 240, 255, 0.25); /* Adjusted glow */
 }
 
-/* Computer player specifics */
-.computer-player {
-  border-color: rgba(255, 255, 255, 0.2); /* Match the regular player border */
-}
-
-.computer-player.active, .player.active {
-  border-color: var(--active-border);
-  box-shadow: 0 0 25px 5px rgba(22, 240, 255, 0.3); /* More pronounced glow effect */
-}
-
-.computer-player::after {
-  content: '';
-  display: block;
-  height: 85px; /* Increased to match button container + its padding + margins */
-  width: 100%;
-  margin-top: 0.5rem;
-  margin-bottom: 1rem;
-}
-
+/* Player Name Headers */
 .player h3, #my-name {
-  margin: 0 0 1rem 0; /* More space below player name */
-  font-size: 1.2rem; /* Larger player name */
-}
-
-.player .stack-row {
-  margin-bottom: 1rem;
-}
-
-/* Add spacing to computer player to match button area */
-.computer-player::after {
-  content: '';
-  display: block;
-  height: 64px; /* Approximate height of button container + margins */
+  margin: 0 0 0.8rem 0; /* Consistent margin */
+  font-size: 1.45rem; /* Increased size */
+  font-weight: 700;
+  color: var(--name);
+  text-align: center;
   width: 100%;
-  margin-top: 0.5rem;
-  margin-bottom: 1rem;
+  min-height: 1.4em; /* Ensure space even if name is short */
+  padding-bottom: 0.4rem; /* Consistent padding */
+  border-bottom: 1px solid var(--panelBorder);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); /* Added shadow */
 }
 
-.computer-badge {
-  background: var(--accent2) !important;
-  color: white !important;
-}
-
-/* Fix computer player card layout */
-#other-players .player.computer-player .opp-hand {
-  padding-top: 10px !important;
-  padding-bottom: 10px !important;
-  min-height: 120px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-top: 0.8rem !important;
-  margin-bottom: 0.8rem !important;
-}
-
-.computer-player .opp-card-container {
-  position: relative !important;
-  display: inline-block !important;
-  height: 90px !important;
-  width: 110px !important;
-  transform: none !important;
-  margin: 0 !important;
-}
-
-.computer-player .opp-card-container .card-img {
-  position: relative !important;
-  top: 0 !important;
-  left: 0 !important;
-  margin: 0 !important;
-  height: 87px !important;
-  width: 63px !important;
-}
-
-/* ========== Card Hands & Display ========== */
-/* Shared hand styles */
-.hand, .opp-hand {
+/* ========== Section Layout (Label + Row) ========== */
+.player-section {
   display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  min-height: 140px;
-  margin: 0.75rem auto;
-  padding: 0.75rem 1rem 1.5rem 1rem;
-  position: relative;
+  flex-direction: column;
+  align-items: center; /* Center label and row */
+  gap: 0.3rem; /* Space between label and row */
+  margin-bottom: 0.5rem; /* Reduced space between sections */
   width: 100%;
-  max-width: none;
-  overflow-x: visible;
-  overflow-y: visible;
-  gap: 0.5rem;
+}
+.player-section:last-child {
+  margin-bottom: 0; /* No margin after the last section */
+}
+
+/* Row Labels */
+.row-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.95rem; /* Slightly larger */
+  color: var(--accent); /* Use accent color */
+  margin-bottom: 0.3rem; /* Increased margin */
+  letter-spacing: 0.5px; /* Added letter spacing */
+}
+
+/* ========== Card Row Containers (Hand, Stacks) ========== */
+.hand,
+.opp-hand,
+.stack-row {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping */
+  gap: 8px; /* Consistent gap between cards/stacks */
+  justify-content: center;
+  align-items: center; /* Vertically center items in the row */
+  width: 100%;
+  padding: 0.5rem 0.5rem 1rem 0.5rem; /* Added extra bottom padding */
   box-sizing: border-box;
-  scroll-behavior: smooth;
 }
 
-/* Fix card container consistency - make sure computer player cards align with player cards */
-.opp-card-container {
-  position: relative;
-  display: inline-block;
-  height: 87px; /* Standardized height */
-  width: 110px;
-  max-width: 100%;
-  overflow: visible;
-}
-
-/* Ensure ALL opponent hands (computer and human players) have identical styling */
+/* Specifics for opponent hand */
 .opp-hand {
-  justify-content: center !important; /* Override any other justification */
-  padding: 0.75rem 0.5rem 1.5rem 0.5rem;
-  min-height: 140px;
+  align-items: center; /* Ensure back cards are centered */
 }
 
-/* Remove duplicate rules for specific player types that may cause inconsistency */
-.player .opp-hand, .computer-player .opp-hand {
-  /* Using the same styles for both player types ensures consistency */
-  min-height: 140px;
-  padding: 0.75rem 0.5rem 1.5rem 0.5rem;
+/* Container for opponent's hand cards */
+.opp-hand > div { /* Targets the container div */
+  position: relative; /* Needed for overlap */
+  transition: margin-left 0.2s ease-out; /* Smooth transition */
+}
+.opp-hand > div:not(:first-child) {
+  margin-left: -45px; /* Overlap cards, same as player hand */
 }
 
-/* Apply consistent styling to all cards regardless of container */
+/* Specifics for stack row */
+.stack-row {
+  align-items: flex-end; /* Align stacks from the bottom */
+  gap: 10px; /* Slightly larger gap for stacks */
+}
+
+/* ========== Card Images & Containers ========== */
 .card-img {
+  display: block; /* Ensure images behave predictably */
   width: 63px;
   height: 87px;
-  border-radius: 6px;
-  user-select: none;
-  box-shadow: 0 2px 4px #0008;
-  transition: all 0.15s ease;
-  position: relative; /* Add position to ensure proper placement */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
 }
 
-/* Position cards in computer's hand at same vertical height as player's */
-.computer-player .card-img,
-.player .card-img {
-  top: 0; /* Reset any top positioning */
-  margin-bottom: 0; /* Reset any margin that might affect alignment */
-}
-
-/* ========== Fix Computer Player Card Heights ========== */
-/* Specific CSS to fix the computer player card height issue */
-.computer-player .opp-card-container {
+/* Container for player's hand cards (for fanning/hover) */
+#my-hand > div {
   position: relative;
-  display: inline-block;
-  height: 87px;
-  width: 110px;
-  max-width: 100%;
-  overflow: visible;
-  margin-bottom: 0; /* Remove any bottom margin */
+  transition: margin-left 0.2s ease-out, transform 0.2s ease-out;
 }
-
-/* Ensure the cards in the computer player's hand are at the correct height */
-.computer-player .opp-card-container .card-img {
-  position: absolute; /* Make position absolute to have full control */
-  top: 0; /* Align with top of container */
-  left: 0; /* Align with left of container */
-  margin: 0; /* Remove any margins */
-  height: 87px; /* Explicit height */
-  width: 63px; /* Explicit width */
-  z-index: 1; /* Ensure proper stacking */
+#my-hand > div:not(:first-child) {
+  margin-left: -45px; /* Overlap cards */
 }
-
-/* Adjust the card container position in opponent hand */
-.player .opp-hand, .computer-player .opp-hand {
-  position: relative;
-  align-items: flex-start; /* Align items at the top */
-  padding-top: 1.5rem; /* Add padding to top */
-  padding-bottom: 1.5rem; /* Add padding to bottom */
+#my-hand > div.playable-card-container:hover {
+  transform: translateY(-10px);
+  z-index: 10;
 }
-
-/* Make sure all cards have the same height */
-.hand .card-img, .opp-hand .card-img, .stack .card-img {
-  height: 87px !important;
-  width: 63px !important;
-}
-
-/* ========== CRITICAL FIX FOR COMPUTER CARDS ========== */
-/* This section uses high specificity and !important to ensure changes take effect */
-#other-players .player.computer-player .opp-hand {
-  padding-top: 10px !important;
-  padding-bottom: 10px !important;
-  min-height: 120px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-top: 0.8rem !important;
-  margin-bottom: 0.8rem !important;
-}
-
-#other-players .player.computer-player .opp-card-container {
-  position: relative !important;
-  transform: none !important;
-  margin: 0 !important;
-}
-
-#other-players .player.computer-player .opp-card-container .card-img {
-  width: 63px !important;
-  height: 87px !important;
-  position: relative !important; /* Override absolute positioning if it exists */
-  top: 0 !important; /* Clear any top value */
-  left: 0 !important; /* Clear any left value */
-}
-
-/* Force proper vertical alignment of cards in any player container */
-.player .stack-row, #my-area .stack-row {
-  align-items: center !important;
-  padding-bottom: 40px !important; /* Add extra padding to prevent clipping */
-}
-
-/* Ensure all cards have consistent height anywhere they appear */
-.card-img, .stack img, .opp-hand img, .hand img {
-  width: 63px !important;
-  height: 87px !important;
-}
-
-/* ========== Cards & Card Styles ========== */
-.card-img[style*="cursor: pointer"] {
-  transform: translateY(0);
-}
-
-.card-img[style*="cursor: pointer"]:hover {
-  transform: translateY(-8px);
+#my-hand .card-img.selected {
+  transform: translateY(-15px);
+  z-index: 15;
   box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-}
-
-.card-img.selected {
-  transform: translateY(-15px) !important;
-  z-index: 15 !important;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.5) !important;
   border: 2px solid var(--accent);
 }
 
-.card-img.unplayable {
-  pointer-events: none;
-  opacity: 0.5;
-  filter: grayscale(0.5);
+/* Container for opponent's hand cards */
+.opp-hand > div { /* Targets the container div */
+  width: 63px;
+  height: 87px;
+  position: relative;
 }
 
-.card-count-badge {
+/* Stacks */
+.stack {
+  flex-shrink: 0;
+  position: relative;
+  width: 63px;
+  height: 90px; /* Adjusted height for more overlap */
+}
+.stack .card-img {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  z-index: 25;
-  background: var(--accent);
-  color: #000;
-  font-weight: bold;
-  border-radius: 50%;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 6px;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  left: 50%;
+  transform: translateX(-50%);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.stack .card-img.down-card {
+  z-index: 1;
+  top: 70px; /* Offset down card more for ~80% overlap */
+}
+.stack .card-img.up-card {
+  z-index: 2;
+  top: 0;
+}
+.stack.playable-stack:hover .card-img.up-card,
+.stack.playable-stack:hover .card-img.down-card {
+  transform: translateX(-50%) translateY(-10px) scale(1.05); /* Keep hover effect */
+  box-shadow: 0 5px 12px rgba(0,0,0,0.45); /* Keep shadow */
+  z-index: 3; /* Ensure hovered stack is above others */
 }
 
-.computer-player .card-count-badge.computer-badge {
-  background: var(--accent2);
-  color: white;
+/* Ensure hover effect applies within opponent panel too */
+.player .stack.playable-stack:hover .card-img.up-card,
+.player .stack.playable-stack:hover .card-img.down-card,
+#my-area .stack.playable-stack:hover .card-img.up-card, /* Explicitly add for player */
+#my-area .stack.playable-stack:hover .card-img.down-card { /* Explicitly add for player */
+  transform: translateX(-50%) translateY(-10px) scale(1.05); /* Keep hover effect */
+  box-shadow: 0 5px 12px rgba(0,0,0,0.45); /* Keep shadow */
+  z-index: 3; /* Ensure hovered stack is above others */
 }
 
-/* ========== Buttons & Controls ========== */
+/* ========== Buttons ========== */
 .button-container {
   position: relative;
   display: flex;
@@ -838,7 +447,7 @@ main {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   border: none;
-  margin: 0.4rem auto 0;
+  margin: 0.8rem auto;
   max-width: 360px; /* Further reduced width */
 }
 
@@ -889,144 +498,6 @@ main {
   color: white;
 }
 
-/* ========== Stacks & Card Rows ========== */
-.stack-row {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 0.75rem; /* Further reduced gap */
-  justify-content: center; /* Center stacks for both players */
-  align-items: flex-end;
-  min-height: 140px;
-  width: 100%; /* Take full width */
-  max-width: none;
-  overflow-x: visible; /* Show all content */
-  overflow-y: visible;
-  padding: 0.75rem 1rem 2.5rem 1rem; /* Increased bottom padding */
-  margin-bottom: 1rem; /* Add margin below stack rows */
-  box-sizing: border-box;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-}
-
-/* Card Stack Alignment for Up/Down Cards */
-.stack {
-  flex-shrink: 0; /* Prevent stacks from shrinking */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  position: relative;
-  width: 63px;
-  height: 95px;
-  margin: 0 0.2rem;
-  margin-bottom: 20px; /* Add space below stacks to prevent clipping */
-  perspective: 1000px;
-  overflow: visible;
-}
-
-.stack img {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 63px;
-  height: 87px;
-  transition: transform 0.2s cubic-bezier(.4,2,.6,1), box-shadow 0.2s;
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
-  z-index: 1;
-}
-
-.stack img.down-card {
-  z-index: 1;
-  top: 16px;
-}
-
-.stack img.up-card {
-  z-index: 2;
-  top: 0;
-  box-shadow: 0 2px 8px #0006;
-}
-
-.stack:hover img.up-card {
-  transform: translateX(-50%) translateY(-18px) scale(1.06);
-  box-shadow: 0 8px 24px #000a;
-}
-
-/* ========== Special Effects & Badges ========== */
-/* Copied Card Badge */
-.copy-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: var(--accent2);
-  color: white;
-  font-size: 0.6rem;
-  padding: 1px 4px;
-  border-radius: 6px;
-  box-shadow: 0 1px 4px #0006;
-  pointer-events: none;
-  user-select: none;
-  z-index: 5;
-}
-
-/* Card Effects */
-.effect-2 {
-  animation: effect2 1s;
-  box-shadow: 0 0 16px 6px #2f80ed, 0 0 0 4px #fff4;
-}
-@keyframes effect2 {
-  0% { filter: brightness(1.5); }
-  50% { filter: brightness(2.2) drop-shadow(0 0 8px #2f80ed); }
-  100% { filter: brightness(1.5); }
-}
-
-.effect-5 {
-  animation: effect5 1s;
-  box-shadow: 0 0 16px 6px #ffd36b, 0 0 0 4px #fff4;
-}
-@keyframes effect5 {
-  0% { filter: hue-rotate(0deg); }
-  50% { filter: hue-rotate(90deg) brightness(1.8); }
-  100% { filter: hue-rotate(0deg); }
-}
-
-.effect-10 {
-  animation: effect10 1s;
-  box-shadow: 0 0 24px 10px #ff9e0b, 0 0 0 6px #fff4;
-}
-@keyframes effect10 {
-  0% { filter: brightness(1.5); }
-  30% { filter: brightness(2.5) drop-shadow(0 0 16px #ff9e0b); }
-  100% { filter: brightness(1.5); }
-}
-
-/* Event Banner */
-#event-banner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -60%);
-  font-size: 2.4rem;
-  padding: 0.8rem 1.5rem;
-  border-radius: 10px;
-  display: none;
-  z-index: 1000;
-  font-weight: 700;
-  text-align: center;
-  background: var(--accent2);
-  color: var(--text);
-  box-shadow: 0 4px 24px #000a;
-  pointer-events: none;
-  border: 3px solid #fff;
-  opacity: 0.98;
-  transition: opacity 0.2s, transform 0.2s;
-}
-
-.event.reset { background: var(--accent2); color: #fff; border-color: #fff; }
-.event.copy  { background: var(--accent); color: #000; border-color: var(--accent2); }
-.event.burn  { background: #b00020; color: #fff; border-color: #fff; }
-
 /* ========== Responsive Styles ========== */
 @media (max-height: 800px) {
   .card-img {
@@ -1046,25 +517,31 @@ main {
   
   .stack {
     width: 50px;
-    height: 80px;
+    height: 72px; /* Adjusted height for overlap (70px card height + small buffer) */
   }
-  .stack img {
+  .stack .card-img { /* Corrected selector */
     width: 50px;
     height: 70px;
   }
-  .stack img:first-child {
-    top: 12px;
+  .stack .card-img.down-card { /* Corrected selector */
+    top: 56px; /* Adjusted offset for smaller cards (70 * 0.8 = 56) */
+  }
+  .stack .card-img.up-card { /* Corrected selector */
+     top: 0;
   }
 
   .hand, .opp-hand, .stack-row {
-    min-height: 100px;
-    padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+    padding: 0.5rem 0.5rem 0.8rem 0.5rem; /* Added extra bottom padding for smaller screens */
   }
 
   /* Ensure consistent heights in compact mode */
   .player .opp-hand, .computer-player .opp-hand,
   .player .stack-row, .computer-player .stack-row {
-    min-height: 100px;
+  }
+
+  .player, #my-area {
+    padding: 0.8rem 0.8rem 1.2rem 0.8rem; /* Keep some base bottom padding here */
+    gap: 0.4rem; /* Also adjust gap here */
   }
 }
 
@@ -1087,24 +564,27 @@ main {
   
   #other-players, #my-area, #center {
     min-width: 0;
-    max-width: none;
+    max-width: 95%; /* Allow slightly wider on mobile */
     width: 100%;
     flex: 1 0 auto;
     margin: 0 auto;
+    order: 0; /* Reset order for column layout */
+    align-self: center; /* Ensure centering in column layout too */
   }
   
   #center {
-    margin: 2rem auto; /* Increased vertical margin to create more space */
-    order: 2; /* Move center element between players */
+    margin: 1rem auto; /* Vertical margin */
+    order: 2; /* Keep center between players */
+    flex-direction: row; /* Ensure piles stay side-by-side */
+    align-items: center; /* Center piles internally on mobile */
   }
   
   #other-players {
-    order: 1;
+    order: 1; /* Opponent first */
   }
   
   #my-area {
-    order: 3;
-    max-width: 100%; /* Full width in column layout */
+    order: 3; /* Player last */
   }
 }
 
@@ -1144,12 +624,8 @@ main {
     margin-bottom: 1.2rem;
   }
   #my-area {
-    margin-top: 1.2rem;
-  }
-
-  /* Adjust spacer for mobile */
-  .computer-player::after {
-    height: 140px; /* Increased for stacked buttons on mobile */
+    order: 3; /* Player last */
+    margin-top: 1.2rem; /* Add margin back for spacing */
   }
 }
 
@@ -1165,128 +641,4 @@ main {
   .player, #my-area {
     padding: 1rem; /* Further reduce padding */
   }
-}
-
-/* ====== EMERGENCY FIX FOR COMPUTER CARDS ====== */
-#computer-player-fix {
-  margin-top: 45px !important; /* Force extra margin at top of computer cards */
-  display: block !important;
-  position: relative !important;
-  z-index: 9999 !important;
-}
-
-/* Make sure card img heights are consistent across all containers */
-.card-img, img.card-img {
-  height: 87px !important;
-  width: 63px !important;
-}
-
-/* FINAL EMERGENCY FIX - Override all previous styles */
-/* Computer player card positioning */
-.computer-player .opp-hand {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 35px 0 15px 0 !important;
-  min-height: 160px !important;
-  position: static !important;
-  flex-wrap: nowrap !important;
-  gap: 5px !important;
-}
-
-/* Fix computer player card containers */
-.computer-player .opp-card-container {
-  position: static !important;
-  transform: none !important;
-  height: 87px !important;
-  width: 63px !important;
-  margin: 0 5px !important;
-  display: block !important;
-}
-
-/* Fix computer player card images */
-.computer-player .opp-card-container .card-img {
-  position: static !important;
-  display: block !important;
-  height: 87px !important;
-  width: 63px !important;
-  top: auto !important;
-  left: auto !important;
-  transform: none !important;
-}
-
-/* Fix label positioning and size */
-#my-area .row-label:first-of-type {
-  font-size: 1.3rem !important;
-  margin: 0.7rem 0 0.8rem 0 !important;
-  order: 0 !important;
-  color: var(--name) !important;
-}
-
-#my-area .row-label:last-of-type {
-  font-size: 1.3rem !important;
-  margin: 1.5rem 0 0.8rem 0 !important;
-  order: 2.5 !important;
-  color: var(--name) !important;
-}
-
-/* Fix conflicting ::after rules */
-.row-label::after {
-  display: none !important;
-}
-
-/* Fix element ordering */
-#my-area .hand {
-  order: 1 !important;
-}
-
-#my-area .button-container {
-  order: 2 !important;
-}
-
-#my-area .stack-row {
-  order: 3 !important;
-}
-
-/* Fix stacking issues */
-.computer-player .opp-card-container {
-  z-index: 1 !important;
-}
-
-/* === Section wrapper for label + row === */
-.player-section {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;   /* labels flush left */
-  gap: 0.3rem;               /* space between label and row */
-  margin-bottom: 0.8rem;     /* space between sections */
-}
-
-/* === Label styling === */
-.row-label {
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.95rem;
-  color: var(--name);
-}
-
-/* === Card-row containers === */
-.hand,
-.opp-hand,
-.stack-row {
-  display: flex;
-  flex-wrap: wrap;  /* allow wrapping on narrow screens */
-  gap: 0.5rem;      /* space between cards */
-}
-
-/* === Ensure no absolute positioning on labels === */
-.row-label {
-  position: static !important;
-  order: 0 !important;
-}
-
-/* === Tidy up default margins on #my-area and opponent panels === */
-#my-area .player-section:first-child,
-#other-players .player-section:first-child {
-  margin-top: 0;
 }

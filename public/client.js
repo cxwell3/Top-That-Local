@@ -26,15 +26,27 @@ console.log('Top That! client.js version 20250421 loaded');
 
 socket.on('connect', () => {
   console.log('✅ Socket connected');
-  // Clear game state on reconnect
-  myId = null;
-  currentRoom = null;
-  nameIn.value = '';
-  nameIn.disabled = false;
-  joinBtn.disabled = false;
-  notice.classList.add('hidden');
-  lobby.classList.remove('hidden');
-  table.classList.add('hidden');
+
+  // Attempt to rejoin if session data exists
+  const storedId = sessionStorage.getItem('myId');
+  const storedRoom = sessionStorage.getItem('currentRoom');
+
+  if (storedId && storedRoom) {
+    console.log(`Attempting to rejoin room ${storedRoom} as ${storedId}`);
+    socket.emit('rejoin', storedId, storedRoom);
+  } else {
+    // Clear game state if not rejoining
+    myId = null;
+    currentRoom = null;
+    sessionStorage.removeItem('myId');
+    sessionStorage.removeItem('currentRoom');
+    nameIn.value = '';
+    nameIn.disabled = false;
+    joinBtn.disabled = false;
+    notice.classList.add('hidden');
+    lobby.classList.remove('hidden');
+    table.classList.add('hidden');
+  }
 });
 
 socket.on('connect_error', (err) => {
@@ -47,9 +59,11 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); // Prevent browser from reloading
     socket.emit('adminReset');
     console.log('🛑 Sent adminReset');
-    // Clear client state
+    // Clear client state and session storage
     myId = null;
     currentRoom = null;
+    sessionStorage.removeItem('myId');
+    sessionStorage.removeItem('currentRoom');
     nameIn.value = '';
     notice.classList.add('hidden');
   }
@@ -66,6 +80,7 @@ const myName = $('my-name'), myHand = $('my-hand'), myStacks = $('my-stacks');
 const other = $('other-players');
 const playPile = $('play-pile'), drawPile = $('draw-pile');
 const joinComputerBtn = $('join-computer');
+const computerCountInput = $('computer-count'); // Get the new input field
 
 /* ---------- helpers ---------- */
 function code(c) {
@@ -111,7 +126,7 @@ function cardImg(card, sel = false) {
 /**
  * Wraps a row element with a label, then appends to the parent.
  * @param {Element} parent    The container to append into (e.g. your #my-area or each .player panel)
- * @param {string} labelText  The text for the label (e.g. "Hand:" or "Up / Down:")
+ * @param {string} labelText  The text for the label (e.g. "Hand" or "Up / Down")
  * @param {Element} rowEl     The row element (e.g. .hand or .stack-row)
  */
 function renderSection(parent, labelText, rowEl) {
@@ -144,7 +159,7 @@ function showCardEvent(cardValue, type) {
     banner.className = '';
   }
   banner.style.display = 'block';
-  setTimeout(() => banner.style.display = 'none', 2000);
+  setTimeout(() => banner.style.display = 'none', 1750);
 }
 
 function showTookPileBanner(panel) {
@@ -158,10 +173,8 @@ function showTookPileBanner(panel) {
   panel.insertBefore(banner, panel.firstChild);
   setTimeout(() => {
     banner.remove();
-  }, 2000);
+  }, 1750);
 }
-
-notice.onclick = () => notice.classList.add('hidden');
 
 /* ---------- join ---------- */
 joinBtn.onclick = () => {
@@ -173,21 +186,47 @@ joinBtn.onclick = () => {
 joinComputerBtn.onclick = () => {
   const n = nameIn.value.trim();
   if (!n) return alert('Enter a name');
-  socket.emit('join', n, true);
+  const numComputers = parseInt(computerCountInput.value, 10); // Read the value
+  // Basic validation (should also be handled by input attributes)
+  if (isNaN(numComputers) || numComputers < 1 || numComputers > 3) {
+    alert('Please select between 1 and 3 computer opponents.');
+    return;
+  }
+  socket.emit('join', n, true, numComputers); // Send the count to the server
 };
 
 /* ---------- lobby ---------- */
-socket.on('lobby', list => {
-  lobby.textContent = `Waiting for players (${list.length}/2) — share this link!`;
+socket.on('lobby', data => { // Expect an object now
+  const { players, maxPlayers, roomId } = data;
+  const lobbyText = `Room: ${roomId} - Waiting for players (${players.length}/${maxPlayers}) — Share link to invite others!`;
+  lobby.textContent = lobbyText;
   lobby.classList.remove('hidden');
   table.classList.add('hidden');
   // Re-enable input fields when returning to lobby
   joinBtn.disabled = nameIn.disabled = false;
+
+  // Add click-to-copy functionality
+  lobby.style.cursor = 'pointer'; // Indicate it's clickable
+  lobby.onclick = () => {
+    navigator.clipboard.writeText(window.location.href)
+      .then(() => {
+        // Optional: Provide feedback to the user
+        const originalText = lobby.textContent;
+        lobby.textContent = 'Link Copied!';
+        setTimeout(() => { lobby.textContent = originalText; }, 1500);
+      })
+      .catch(err => {
+        console.error('Failed to copy link: ', err);
+        // Optional: Alert user if copy failed
+        alert('Could not copy link automatically. Please copy it manually.');
+      });
+  };
 });
 
 /* ---------- joined ---------- */
 socket.on('joined', d => {
   myId = d.id;
+  sessionStorage.setItem('myId', myId); // Store myId
   joinBtn.disabled = nameIn.disabled = true;
 });
 
@@ -224,7 +263,17 @@ socket.on('state', s => {
 
   s.players.forEach(p => {
     if (p.id === myId) {
-      myName.textContent = p.name;
+      // Ensure the #my-name element is correctly populated
+      const myArea = document.getElementById('my-area'); // Get the container first
+      if (myArea) {
+        myArea.innerHTML = ''; // Clear the area before adding new content
+        const myNameElement = document.createElement('h2'); // Create the name element
+        myNameElement.id = 'my-name';
+        myNameElement.textContent = p.name; // Set the name
+        myArea.appendChild(myNameElement); // Add it to the area
+      } else {
+        console.error("#my-area element not found!");
+      }
 
       // Build hand row
       const handRow = document.createElement('div');
@@ -271,8 +320,8 @@ socket.on('state', s => {
 
       // Render sections with labels
       if (myArea) {
-        renderSection(myArea, 'Hand:', handRow);
-        renderSection(myArea, 'Up / Down:', stackRow);
+        renderSection(myArea, 'Hand', handRow); // Use 'Hand' instead of 'Hand:'
+        renderSection(myArea, 'Up / Down', stackRow); // Use 'Up / Down' instead of 'Up / Down:'
       }
 
       return;
@@ -283,27 +332,21 @@ socket.on('state', s => {
       panel.dataset.playerId = p.id;
       if (p.id === s.turn) panel.classList.add('active');
       if (p.isComputer) panel.classList.add('computer-player');
-      panel.innerHTML = `<h3>${p.name}</h3>`;
 
-      // Hand row
+      // Create and append name header
+      const nameHeader = document.createElement('h3');
+      nameHeader.textContent = p.name;
+      panel.appendChild(nameHeader);
+
+      // Hand row - Render fanned cards instead of badge
       const hr = document.createElement('div');
       hr.className = 'opp-hand';
       if (p.handCount > 0) {
-        const cardContainer = document.createElement('div');
-        cardContainer.className = 'opp-card-container';
-        for (let i = 0; i < Math.min(p.handCount, 3); i++) {
-          const cardDiv = cardImg({ back: true }, false);
-          cardDiv.style.position = 'absolute';
-          cardDiv.style.left = `${i * 20}px`;
-          cardDiv.style.zIndex = i;
-          cardContainer.appendChild(cardDiv);
+        for (let i = 0; i < p.handCount; i++) {
+          const cardDivContainer = cardImg({ back: true }, false);
+          cardDivContainer.classList.add('opp-card-container'); // Add class for styling
+          hr.appendChild(cardDivContainer);
         }
-        const badge = document.createElement('div');
-        badge.className = 'card-count-badge';
-        if (p.isComputer) badge.classList.add('computer-badge');
-        badge.textContent = p.handCount;
-        cardContainer.appendChild(badge);
-        hr.appendChild(cardContainer);
       }
 
       // Stack row
@@ -333,8 +376,8 @@ socket.on('state', s => {
       }
 
       // Render sections with labels
-      renderSection(panel, 'Hand:', hr);
-      renderSection(panel, 'Up / Down:', sr);
+      renderSection(panel, 'Hand', hr); // Use 'Hand' instead of 'Hand:'
+      renderSection(panel, 'Up / Down', sr); // Use 'Up / Down' instead of 'Up / Down:'
 
       other.appendChild(panel);
     }
@@ -378,28 +421,157 @@ socket.on('state', s => {
   }
 
   // Update play pile with count
-  playPile.innerHTML = '';
-  const playCount = $('play-count');
+  const centerDiv = document.getElementById('center'); // Get the center container
+  // Clear only pile containers from center if they exist
+  centerDiv.querySelectorAll('.pile-container').forEach(el => el.remove());
+
+  const playPileContainer = document.createElement('div');
+  playPileContainer.className = 'pile-container';
+
+  const playLabel = document.createElement('div');
+  playLabel.className = 'pile-label';
+  playLabel.textContent = 'Discard';
+  playPileContainer.appendChild(playLabel);
+
+  const playPileDiv = document.createElement('div');
+  playPileDiv.id = 'play-pile'; // Keep the ID on the inner div if needed elsewhere
+  playPileDiv.className = 'pile';
+  playPileContainer.appendChild(playPileDiv);
+
+  const playCountSpan = document.createElement('span');
+  playCountSpan.id = 'play-count'; // Keep the ID on the span
+  playCountSpan.className = 'pile-count';
+  playPileContainer.appendChild(playCountSpan);
+
   if (s.playPile.length) {
     const topCard = s.playPile.at(-1);
-    playPile.appendChild(cardImg(topCard));
+    playPileDiv.appendChild(cardImg(topCard)); // Add card image to the pile div
     // Show event banner for wilds and four of a kind
     if ([2, 5, 10].includes(topCard.value) || (s.playPile.length >= 4 && s.playPile.slice(-4).every(c => c.value === topCard.value))) {
       showCardEvent(topCard.value, s.playPile.length >= 4 ? 'four' : undefined);
     }
-    playCount.textContent = s.playPile.length;
+    playCountSpan.textContent = s.playPile.length; // Set count text
+    // Add playable class if it's player's turn (for taking pile)
+    if (s.turn === myId) {
+      playPileDiv.classList.add('playable-pile');
+    }
   } else {
-    playCount.textContent = '';
+    playCountSpan.textContent = '0'; // Show 0 when empty
   }
+  // Append the play pile container to the center div
+  centerDiv.appendChild(playPileContainer);
 
   // Update draw pile with count
-  drawPile.innerHTML = '';
-  const drawCount = $('draw-count');
+  const drawPileContainer = document.createElement('div');
+  drawPileContainer.className = 'pile-container';
+
+  const drawLabel = document.createElement('div');
+  drawLabel.className = 'pile-label';
+  drawLabel.textContent = 'Deck';
+  drawPileContainer.appendChild(drawLabel);
+
+  const drawPileDiv = document.createElement('div');
+  drawPileDiv.id = 'draw-pile'; // Keep the ID on the inner div
+  drawPileDiv.className = 'pile small'; // Add 'small' class for deck styling
+  drawPileContainer.appendChild(drawPileDiv);
+
+  const drawCountSpan = document.createElement('span');
+  drawCountSpan.id = 'draw-count'; // Keep the ID on the span
+  drawCountSpan.className = 'pile-count';
+  drawPileContainer.appendChild(drawCountSpan);
+
   if (s.deckCount) {
-    drawPile.appendChild(cardImg({ back: true }));
-    drawCount.textContent = s.deckCount;
+    drawPileDiv.appendChild(cardImg({ back: true })); // Add card back image
+    drawCountSpan.textContent = s.deckCount; // Set count text
+    // Add playable class if it's player's turn (for drawing)
+    // Note: Drawing isn't an explicit action, but pile is interactive
+    if (s.turn === myId) {
+       drawPileDiv.classList.add('playable-pile');
+    }
   } else {
-    drawCount.textContent = '';
+    drawPileDiv.classList.remove('small'); // Remove small class if empty
+    drawPileDiv.style.backgroundColor = 'transparent'; // Make empty deck invisible
+    drawPileDiv.style.border = 'none';
+    drawPileDiv.style.boxShadow = 'none';
+    drawCountSpan.textContent = '0'; // Show 0 when empty
+  }
+  // Append the draw pile container to the center div
+  centerDiv.appendChild(drawPileContainer);
+
+  // Move event banner logic here to ensure it's appended after piles
+  const eventBanner = document.getElementById('event-banner');
+  if (eventBanner && !centerDiv.contains(eventBanner)) {
+      centerDiv.appendChild(eventBanner);
+  }
+
+  // Determine playability for hover effects
+  const isMyTurn = s.turn === myId;
+  const canPlayHand = isMyTurn && myHandCount > 0;
+  const canPlayUp = isMyTurn && myHandCount === 0 && myUpCount > 0;
+  const canPlayDown = isMyTurn && myHandCount === 0 && myUpCount === 0 && myDownCount > 0;
+
+  // Update my hand cards with playability
+  const myHandDiv = document.getElementById('my-hand');
+  if (myHandDiv) {
+    Array.from(myHandDiv.children).forEach(container => {
+      const img = container.querySelector('.card-img');
+      if (img) {
+        if (canPlayHand) {
+          container.classList.add('playable-card-container');
+          img.style.cursor = 'pointer';
+          // Ensure click handlers are only active when playable
+          img.onclick = () => img.classList.toggle('selected');
+          img.ondblclick = () => {
+            img.classList.add('selected');
+            playSelectedCards();
+          };
+        } else {
+          container.classList.remove('playable-card-container');
+          img.style.cursor = 'default';
+          img.onclick = null;
+          img.ondblclick = null;
+        }
+      }
+    });
+  }
+
+  // Update my stack cards with playability
+  const myStacksDiv = document.getElementById('my-stacks');
+  if (myStacksDiv) {
+    Array.from(myStacksDiv.children).forEach(stack => {
+      const upCardImg = stack.querySelector('.up-card');
+      const downCardImg = stack.querySelector('.down-card');
+
+      if (canPlayUp && upCardImg) {
+        stack.classList.add('playable-stack');
+        upCardImg.style.cursor = 'pointer';
+        upCardImg.onclick = () => upCardImg.classList.toggle('selected');
+         upCardImg.ondblclick = () => {
+            upCardImg.classList.add('selected');
+            playSelectedCards(); // Use same function, it reads dataset.idx
+          };
+      } else if (canPlayDown && downCardImg && !upCardImg) { // Only playable if no up card exists
+         stack.classList.add('playable-stack'); // Use same class for hover
+         downCardImg.style.cursor = 'pointer';
+         downCardImg.onclick = () => downCardImg.classList.toggle('selected');
+         downCardImg.ondblclick = () => {
+            downCardImg.classList.add('selected');
+            playSelectedCards(); // Use same function
+          };
+      } else {
+        stack.classList.remove('playable-stack');
+        if (upCardImg) {
+           upCardImg.style.cursor = 'default';
+           upCardImg.onclick = null;
+           upCardImg.ondblclick = null;
+        }
+        if (downCardImg) {
+           downCardImg.style.cursor = 'default';
+           downCardImg.onclick = null;
+           downCardImg.ondblclick = null;
+        }
+      }
+    });
   }
 
   // Update the card event handling for better touch support
@@ -467,13 +639,28 @@ function playSelectedCards() {
 socket.on('gameRoom', roomId => {
   console.log('[DEBUG] Received gameRoom event with roomId:', roomId);
   currentRoom = roomId;
+  sessionStorage.setItem('currentRoom', currentRoom); // Store currentRoom
   // Update page URL with room ID
   const url = new URL(window.location);
   url.searchParams.set('room', roomId);
   window.history.pushState({}, '', url);
   console.log('[DEBUG] Updated URL to:', url.toString());
-  // Update lobby text to show room info
-  lobby.textContent = `Game Room: ${roomId} - Waiting for players (1/2) — Share this link!`;
+  // Update lobby text to show room info and make it copyable
+  const lobbyText = `Game Room: ${roomId} - Waiting for players (1/2) — Share this link!`; // Update player count later
+  lobby.textContent = lobbyText;
+  lobby.style.cursor = 'pointer'; // Ensure cursor is pointer here too
+  lobby.onclick = () => { // Ensure copy works here too
+    navigator.clipboard.writeText(window.location.href)
+      .then(() => {
+        const originalText = lobby.textContent;
+        lobby.textContent = 'Link Copied!';
+        setTimeout(() => { lobby.textContent = originalText; }, 1500);
+      })
+      .catch(err => {
+        console.error('Failed to copy link: ', err);
+        alert('Could not copy link automatically. Please copy it manually.');
+      });
+  };
 });
 
 // Check for room ID in URL when page loads
