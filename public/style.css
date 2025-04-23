@@ -149,6 +149,21 @@ header button:disabled {
 }
 .hidden { display: none !important; }
 
+/* Position the take pile notice below the deck */
+#take-pile-notice {
+  position: absolute;
+  bottom: -25px; /* Adjust as needed to position below the deck */
+  left: 25%; /* Position roughly under the left (deck) pile */
+  transform: translateX(-50%);
+  width: auto; /* Allow width to adjust */
+  max-width: 150px; /* Prevent it getting too wide */
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  z-index: 50;
+  /* Inherits .notice styles for background, color, border etc. */
+}
+
+/* Remove absolute positioning from the opponent "took pile" banner */
 .took-pile-banner {
   background: #ffd36b;
   color: #222;
@@ -156,14 +171,14 @@ header button:disabled {
   font-size: 1.05rem;
   border-radius: 8px;
   padding: 0.3rem 1.1rem;
-  margin-top: 0.5rem; /* Add margin above it */
   text-align: center;
   box-shadow: 0 2px 8px #0002;
-  position: relative; /* Keep relative positioning */
+  position: relative; /* Changed from absolute */
   z-index: 30;
   animation: tookPileFadeIn 0.2s, tookPileFadeOut 0.4s 1.6s forwards;
-  order: 2.5; /* Try to position it after #center if they share a flex container */
+  margin-top: 0.5rem; /* Add some space above it within the player panel */
 }
+
 @keyframes tookPileFadeIn {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -216,6 +231,7 @@ main {
 }
 
 #center {
+  position: relative; /* Needed for absolute positioning of #event-banner */
   flex: 0 0 auto; /* Don't grow or shrink */
   min-width: 170px;
   margin: 0 1rem;
@@ -247,6 +263,45 @@ main {
   letter-spacing: 0.5px; /* Added letter spacing */
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); /* Added shadow */
   text-align: center; /* Explicitly center text */
+  width: 100%; /* Make label take full width of its container */
+}
+
+#event-banner {
+  position: absolute; /* Position relative to the nearest positioned ancestor (#center needs position: relative) */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-size: 2.5rem; /* Larger text */
+  font-weight: bold;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  z-index: 100; /* Ensure it's above cards */
+  opacity: 0; /* Start hidden */
+  animation: eventFade 1.75s ease-out;
+  pointer-events: none; /* Don't block clicks */
+  text-align: center;
+  white-space: nowrap;
+}
+
+@keyframes eventFade {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+}
+
+#event-banner.reset {
+  background: linear-gradient(135deg, #4facfe, #00f2fe); /* Blue gradient */
+}
+
+#event-banner.copy {
+  background: linear-gradient(135deg, #fccb90, #d57eeb); /* Purple/Orange gradient */
+}
+
+#event-banner.burn {
+  background: linear-gradient(135deg, #ff0844, #ffb199); /* Red/Orange gradient */
 }
 
 #other-players, #my-area {
@@ -534,11 +589,6 @@ main {
     padding: 0.5rem 0.5rem 0.8rem 0.5rem; /* Added extra bottom padding for smaller screens */
   }
 
-  /* Ensure consistent heights in compact mode */
-  .player .opp-hand, .computer-player .opp-hand,
-  .player .stack-row, .computer-player .stack-row {
-  }
-
   .player, #my-area {
     padding: 0.8rem 0.8rem 1.2rem 0.8rem; /* Keep some base bottom padding here */
     gap: 0.4rem; /* Also adjust gap here */
@@ -567,13 +617,14 @@ main {
     max-width: 95%; /* Allow slightly wider on mobile */
     width: 100%;
     flex: 1 0 auto;
-    margin: 0 auto;
+    margin: 0 auto; /* Center horizontally */
     order: 0; /* Reset order for column layout */
     align-self: center; /* Ensure centering in column layout too */
   }
   
   #center {
-    margin: 1rem auto; /* Vertical margin */
+    margin-top: 1.2rem; /* Add equal top margin */
+    margin-bottom: 1.2rem; /* Add equal bottom margin */
     order: 2; /* Keep center between players */
     flex-direction: row; /* Ensure piles stay side-by-side */
     align-items: center; /* Center piles internally on mobile */

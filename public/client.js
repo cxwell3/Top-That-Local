@@ -141,25 +141,38 @@ function renderSection(parent, labelText, rowEl) {
 
 function showCardEvent(cardValue, type) {
   const banner = document.getElementById('event-banner');
-  const center = document.getElementById('center');
-  if (banner && center && !center.contains(banner)) {
-    center.appendChild(banner);
-  }
+  if (!banner) return; // Exit if banner doesn't exist
+
+  let text = '';
+  let className = 'event';
+
   if (cardValue === 2) {
-    banner.textContent = 'RESET!';
-    banner.className = 'event reset';
+    text = 'RESET!';
+    className += ' reset';
   } else if (cardValue === 5 && type === 'five') {
-    banner.textContent = 'COPY!';
-    banner.className = 'event copy';
+    text = 'COPY!';
+    className += ' copy';
   } else if (cardValue === 10 || type === 'four') {
-    banner.textContent = 'BURN!';
-    banner.className = 'event burn';
+    text = 'BURN!';
+    className += ' burn';
   } else {
-    banner.textContent = '';
-    banner.className = '';
+    return; // Don't show banner for non-special events
   }
-  banner.style.display = 'block';
-  setTimeout(() => banner.style.display = 'none', 1750);
+
+  banner.textContent = text;
+  banner.className = className;
+
+  // Add a delay before showing the banner
+  const showDelay = 400; // milliseconds
+  const duration = 1750; // milliseconds
+
+  setTimeout(() => {
+    banner.style.display = 'block'; // Make visible after delay
+    // Hide the banner after its duration
+    setTimeout(() => {
+        banner.style.display = 'none';
+    }, duration);
+  }, showDelay);
 }
 
 function showTookPileBanner(panel) {
@@ -232,15 +245,40 @@ socket.on('joined', d => {
 
 /* ---------- notices ---------- */
 socket.on('notice', msg => {
-  if (!msg) return notice.classList.add('hidden');
-  notice.textContent = msg.replace('Take Pile', 'take pile'); // Fix capitalization
-  notice.classList.remove('hidden');
+  const takePileNotice = $('take-pile-notice');
+  const generalNotice = $('notice-banner'); // Assuming this is your general notice banner ID
+
+  // Clear both notices first
+  if (takePileNotice) takePileNotice.classList.add('hidden');
+  if (generalNotice) generalNotice.classList.add('hidden');
+
+  if (!msg) return; // No message, do nothing
+
+  // Check if it's the specific "Take Pile" message
+  if (msg.startsWith('No valid moves')) {
+    if (takePileNotice) {
+      takePileNotice.textContent = msg;
+      takePileNotice.classList.remove('hidden');
+    }
+  } else {
+    // Otherwise, use the general notice banner
+    if (generalNotice) {
+      generalNotice.textContent = msg.replace('Take Pile', 'take pile'); // Keep capitalization fix
+      generalNotice.classList.remove('hidden');
+    }
+  }
 });
 
 /* ---------- error handling ---------- */
 socket.on('err', msg => {
-  notice.textContent = `Error: ${msg.replace('Take Pile', 'take pile')}`; // Fix capitalization
-  notice.classList.remove('hidden');
+  const generalNotice = $('notice-banner'); // Use general notice for errors too
+  if (generalNotice) {
+    generalNotice.textContent = `Error: ${msg.replace('Take Pile', 'take pile')}`; // Fix capitalization
+    generalNotice.classList.remove('hidden');
+  }
+  // Ensure take pile notice is hidden on error
+  const takePileNotice = $('take-pile-notice');
+  if (takePileNotice) takePileNotice.classList.add('hidden');
 });
 
 /* ---------- state ---------- */
@@ -254,6 +292,12 @@ socket.on('state', s => {
   // --- MAIN PLAYER AREA ---
   const myArea = document.getElementById('my-area');
   if (myArea) myArea.innerHTML = '';
+  // Add active class if it's my turn
+  if (s.turn === myId && myArea) {
+    myArea.classList.add('active');
+  } else if (myArea) {
+    myArea.classList.remove('active'); // Ensure it's removed otherwise
+  }
 
   let shouldShowHandButtons = false;
   let shouldShowStackButtons = false;
@@ -420,50 +464,18 @@ socket.on('state', s => {
     }
   }
 
-  // Update play pile with count
+  // --- CENTER AREA (DECK, DISCARD, NOTICES) ---
   const centerDiv = document.getElementById('center'); // Get the center container
-  // Clear only pile containers from center if they exist
-  centerDiv.querySelectorAll('.pile-container').forEach(el => el.remove());
-
-  const playPileContainer = document.createElement('div');
-  playPileContainer.className = 'pile-container';
-
-  const playLabel = document.createElement('div');
-  playLabel.className = 'pile-label';
-  playLabel.textContent = 'Discard';
-  playPileContainer.appendChild(playLabel);
-
-  const playPileDiv = document.createElement('div');
-  playPileDiv.id = 'play-pile'; // Keep the ID on the inner div if needed elsewhere
-  playPileDiv.className = 'pile';
-  playPileContainer.appendChild(playPileDiv);
-
-  const playCountSpan = document.createElement('span');
-  playCountSpan.id = 'play-count'; // Keep the ID on the span
-  playCountSpan.className = 'pile-count';
-  playPileContainer.appendChild(playCountSpan);
-
-  if (s.playPile.length) {
-    const topCard = s.playPile.at(-1);
-    playPileDiv.appendChild(cardImg(topCard)); // Add card image to the pile div
-    // Show event banner for wilds and four of a kind
-    if ([2, 5, 10].includes(topCard.value) || (s.playPile.length >= 4 && s.playPile.slice(-4).every(c => c.value === topCard.value))) {
-      showCardEvent(topCard.value, s.playPile.length >= 4 ? 'four' : undefined);
-    }
-    playCountSpan.textContent = s.playPile.length; // Set count text
-    // Add playable class if it's player's turn (for taking pile)
-    if (s.turn === myId) {
-      playPileDiv.classList.add('playable-pile');
-    }
-  } else {
-    playCountSpan.textContent = '0'; // Show 0 when empty
+  if (centerDiv) centerDiv.innerHTML = '';
+  else {
+    console.error("#center element not found!");
+    return; // Stop processing if center div is missing
   }
-  // Append the play pile container to the center div
-  centerDiv.appendChild(playPileContainer);
 
-  // Update draw pile with count
+  // --- Render Draw Pile FIRST ---
   const drawPileContainer = document.createElement('div');
-  drawPileContainer.className = 'pile-container';
+  drawPileContainer.className = 'center-pile-container'; // Use the specific class
+  drawPileContainer.id = 'deck-pile-container'; // Assign ID
 
   const drawLabel = document.createElement('div');
   drawLabel.className = 'pile-label';
@@ -483,26 +495,65 @@ socket.on('state', s => {
   if (s.deckCount) {
     drawPileDiv.appendChild(cardImg({ back: true })); // Add card back image
     drawCountSpan.textContent = s.deckCount; // Set count text
-    // Add playable class if it's player's turn (for drawing)
-    // Note: Drawing isn't an explicit action, but pile is interactive
     if (s.turn === myId) {
        drawPileDiv.classList.add('playable-pile');
     }
   } else {
-    drawPileDiv.classList.remove('small'); // Remove small class if empty
-    drawPileDiv.style.backgroundColor = 'transparent'; // Make empty deck invisible
+    drawPileDiv.classList.remove('small');
+    drawPileDiv.style.backgroundColor = 'transparent';
     drawPileDiv.style.border = 'none';
     drawPileDiv.style.boxShadow = 'none';
-    drawCountSpan.textContent = '0'; // Show 0 when empty
+    drawCountSpan.textContent = '0';
   }
-  // Append the draw pile container to the center div
-  centerDiv.appendChild(drawPileContainer);
+  centerDiv.appendChild(drawPileContainer); // Append Draw Pile
 
-  // Move event banner logic here to ensure it's appended after piles
-  const eventBanner = document.getElementById('event-banner');
-  if (eventBanner && !centerDiv.contains(eventBanner)) {
-      centerDiv.appendChild(eventBanner);
+  // --- Render Discard Pile SECOND ---
+  const playPileContainer = document.createElement('div');
+  playPileContainer.className = 'center-pile-container'; // Use the specific class
+  playPileContainer.id = 'discard-pile-container'; // Assign ID
+
+  const playLabel = document.createElement('div');
+  playLabel.className = 'pile-label';
+  playLabel.textContent = 'Discard';
+  playPileContainer.appendChild(playLabel);
+
+  const playPileDiv = document.createElement('div');
+  playPileDiv.id = 'play-pile';
+  playPileDiv.className = 'pile';
+  playPileContainer.appendChild(playPileDiv);
+
+  const playCountSpan = document.createElement('span');
+  playCountSpan.id = 'play-count';
+  playCountSpan.className = 'pile-count';
+  playPileContainer.appendChild(playCountSpan);
+
+  if (s.playPile.length) {
+    const topCard = s.playPile.at(-1);
+    playPileDiv.appendChild(cardImg(topCard));
+    if ([2, 5, 10].includes(topCard.value) || (s.playPile.length >= 4 && s.playPile.slice(-4).every(c => c.value === topCard.value))) {
+      // showCardEvent(topCard.value, s.playPile.length >= 4 ? 'four' : undefined);
+      // Triggering the event banner is now handled by the 'specialEffect' socket event listener below
+    }
+    playCountSpan.textContent = s.playPile.length;
+    if (s.turn === myId) {
+      playPileDiv.classList.add('playable-pile');
+    }
+  } else {
+    playCountSpan.textContent = '0';
   }
+  centerDiv.appendChild(playPileContainer); // Append Discard Pile
+
+  // --- Append Take Pile Notice (will be positioned by CSS) ---
+  const takePileNoticeElement = document.createElement('div');
+  takePileNoticeElement.id = 'take-pile-notice';
+  takePileNoticeElement.className = 'notice hidden'; // Start hidden
+  centerDiv.appendChild(takePileNoticeElement);
+
+  // --- Append Event Banner (will be positioned by CSS) ---
+  const eventBanner = document.createElement('div');
+  eventBanner.id = 'event-banner';
+  eventBanner.style.display = 'none'; // Start hidden
+  centerDiv.appendChild(eventBanner);
 
   // Determine playability for hover effects
   const isMyTurn = s.turn === myId;
