@@ -76,9 +76,7 @@ const $ = id => document.getElementById(id);
 /* ---------- refs ---------- */
 const nameIn = $('name'), joinBtn = $('join');
 const lobby = $('lobby-banner'), notice = $('notice-banner'), table = $('table');
-const myName = $('my-name'), myHand = $('my-hand'), myStacks = $('my-stacks');
 const other = $('other-players');
-const playPile = $('play-pile'), drawPile = $('draw-pile');
 const joinComputerBtn = $('join-computer');
 const computerCountInput = $('computer-count'); // Get the new input field
 
@@ -137,42 +135,53 @@ function renderSection(parent, labelText, rowEl) {
   label.textContent = labelText;
   section.append(label, rowEl);
   parent.appendChild(section);
+  return section;
 }
 
 function showCardEvent(cardValue, type) {
   const banner = document.getElementById('event-banner');
-  if (!banner) return; // Exit if banner doesn't exist
+  if (!banner) {
+    console.error("#event-banner not found in showCardEvent!");
+    return;
+  }
 
   let text = '';
-  let className = 'event';
+  let className = ''; // Start with no specific class
 
   if (cardValue === 2) {
     text = 'RESET!';
-    className += ' reset';
+    className = 'reset';
   } else if (cardValue === 5 && type === 'five') {
     text = 'COPY!';
-    className += ' copy';
+    className = 'copy';
   } else if (cardValue === 10 || type === 'four') {
     text = 'BURN!';
-    className += ' burn';
+    className = 'burn';
   } else {
-    return; // Don't show banner for non-special events
+    // If not a special event, ensure banner is hidden
+    banner.className = ''; // Clear classes
+    banner.textContent = ''; // Clear text
+    return;
   }
 
+  // --- Display Logic --- 
+  console.log(`[Banner] Showing: ${text} (Value: ${cardValue}, Type: ${type})`); // DEBUG
   banner.textContent = text;
-  banner.className = className;
+  banner.className = ''; // Clear previous classes first
+  // Force reflow before adding class to ensure transition triggers
+  void banner.offsetWidth;
+  banner.className = `event-banner-visible ${className}`; // Use visibility class + specific type class
 
-  // Add a delay before showing the banner
-  const showDelay = 400; // milliseconds
-  const duration = 1750; // milliseconds
-
+  // Automatically hide after a delay
   setTimeout(() => {
-    banner.style.display = 'block'; // Make visible after delay
-    // Hide the banner after its duration
-    setTimeout(() => {
-        banner.style.display = 'none';
-    }, duration);
-  }, showDelay);
+    // Check if the banner still has the visible class before removing it
+    if (banner.classList.contains('event-banner-visible')) {
+        console.log(`[Banner] Hiding: ${text}`); // DEBUG
+        banner.classList.remove('event-banner-visible');
+        // Optionally clear text after fade out
+        // setTimeout(() => { banner.textContent = ''; }, 300); // Match transition duration
+    }
+  }, 2000); // Hide after 2 seconds
 }
 
 function showTookPileBanner(panel) {
@@ -191,12 +200,15 @@ function showTookPileBanner(panel) {
 
 /* ---------- join ---------- */
 joinBtn.onclick = () => {
+  console.log("[DEBUG] Join Game button clicked."); // ADDED
   const n = nameIn.value.trim();
   if (!n) return alert('Enter a name');
+  console.log(`[DEBUG] Emitting 'join' for player: ${n}, vsComputer: false`); // ADDED
   socket.emit('join', n, false);
 };
 
 joinComputerBtn.onclick = () => {
+  console.log("[DEBUG] Play vs Computer button clicked."); // ADDED
   const n = nameIn.value.trim();
   if (!n) return alert('Enter a name');
   const numComputers = parseInt(computerCountInput.value, 10); // Read the value
@@ -205,6 +217,7 @@ joinComputerBtn.onclick = () => {
     alert('Please select between 1 and 3 computer opponents.');
     return;
   }
+  console.log(`[DEBUG] Emitting 'join' for player: ${n}, vsComputer: true, count: ${numComputers}`); // ADDED
   socket.emit('join', n, true, numComputers); // Send the count to the server
 };
 
@@ -245,79 +258,44 @@ socket.on('joined', d => {
 
 /* ---------- notices ---------- */
 socket.on('notice', msg => {
-  const takePileNotice = $('take-pile-notice');
-  const generalNotice = $('notice-banner'); // Assuming this is your general notice banner ID
-
-  // Clear both notices first
-  if (takePileNotice) takePileNotice.classList.add('hidden');
-  if (generalNotice) generalNotice.classList.add('hidden');
-
-  if (!msg) return; // No message, do nothing
-
-  // Check if it's the specific "Take Pile" message
-  if (msg.startsWith('No valid moves')) {
-    if (takePileNotice) {
-      takePileNotice.textContent = msg;
-      takePileNotice.classList.remove('hidden');
-    }
-  } else {
-    // Otherwise, use the general notice banner
-    if (generalNotice) {
-      generalNotice.textContent = msg.replace('Take Pile', 'take pile'); // Keep capitalization fix
-      generalNotice.classList.remove('hidden');
-    }
-  }
+  if (!msg) return notice.classList.add('hidden');
+  notice.textContent = msg.replace('Take Pile', 'take pile'); // Fix capitalization
+  notice.classList.remove('hidden');
 });
 
 /* ---------- error handling ---------- */
 socket.on('err', msg => {
-  const generalNotice = $('notice-banner'); // Use general notice for errors too
-  if (generalNotice) {
-    generalNotice.textContent = `Error: ${msg.replace('Take Pile', 'take pile')}`; // Fix capitalization
-    generalNotice.classList.remove('hidden');
-  }
-  // Ensure take pile notice is hidden on error
-  const takePileNotice = $('take-pile-notice');
-  if (takePileNotice) takePileNotice.classList.add('hidden');
+  notice.textContent = `Error: ${msg.replace('Take Pile', 'take pile')}`; // Fix capitalization
+  notice.classList.remove('hidden');
 });
 
 /* ---------- state ---------- */
 socket.on('state', s => {
-  lobby.classList.add('hidden');
+  // Always show the game table and hide the lobby when state is received
   table.classList.remove('hidden');
+  lobby.classList.add('hidden');
 
-  // Clear other players panel before rendering
-  other.innerHTML = '';
-
-  // --- MAIN PLAYER AREA ---
+  // --- Clear Areas ---
+  const otherPlayersContainer = $('other-players');
+  if (otherPlayersContainer) otherPlayersContainer.innerHTML = '';
   const myArea = document.getElementById('my-area');
   if (myArea) myArea.innerHTML = '';
-  // Add active class if it's my turn
-  if (s.turn === myId && myArea) {
-    myArea.classList.add('active');
-  } else if (myArea) {
-    myArea.classList.remove('active'); // Ensure it's removed otherwise
-  }
 
-  let shouldShowHandButtons = false;
-  let shouldShowStackButtons = false;
   let myHandCount = 0;
   let myUpCount = 0;
   let myDownCount = 0;
+  let isMyTurn = s.turn === myId; // Determine if it's my turn
 
+  // --- Render Player Panels ---
   s.players.forEach(p => {
     if (p.id === myId) {
-      // Ensure the #my-name element is correctly populated
-      const myArea = document.getElementById('my-area'); // Get the container first
-      if (myArea) {
-        myArea.innerHTML = ''; // Clear the area before adding new content
-        const myNameElement = document.createElement('h2'); // Create the name element
-        myNameElement.id = 'my-name';
-        myNameElement.textContent = p.name; // Set the name
-        myArea.appendChild(myNameElement); // Add it to the area
-      } else {
-        console.error("#my-area element not found!");
-      }
+      // --- MY PLAYER PANEL ---
+      if (!myArea) return;
+      // Create and append name header
+      const myNameElement = document.createElement('h2');
+      myNameElement.id = 'my-name';
+      myNameElement.textContent = p.name;
+      myArea.appendChild(myNameElement);
 
       // Build hand row
       const handRow = document.createElement('div');
@@ -325,9 +303,9 @@ socket.on('state', s => {
       handRow.className = 'hand';
       myHandCount = p.hand.length;
       p.hand.forEach((c, i) => {
-        const el = cardImg(c, s.turn === myId);
+        const el = cardImg(c, isMyTurn); // Pass isMyTurn to cardImg
         const cardElement = el.querySelector('.card-img');
-        cardElement.dataset.idx = i;
+        if (cardElement) cardElement.dataset.idx = i;
         handRow.appendChild(el);
       });
 
@@ -341,13 +319,16 @@ socket.on('state', s => {
         p.up.forEach((c, i) => {
           const col = document.createElement('div');
           col.className = 'stack';
-          const isClickable = s.turn === myId && p.hand.length === 0;
+          const isClickable = isMyTurn && p.hand.length === 0;
           const downCard = cardImg({ back: true }, false);
-          downCard.querySelector('.card-img').classList.add('down-card');
+          const downCardImg = downCard.querySelector('.card-img');
+          if (downCardImg) downCardImg.classList.add('down-card');
           const upCard = cardImg(c, isClickable);
-          upCard.querySelector('.card-img').classList.add('up-card');
           const upCardElement = upCard.querySelector('.card-img');
-          upCardElement.dataset.idx = i + 1000;
+          if (upCardElement) {
+             upCardElement.classList.add('up-card');
+             upCardElement.dataset.idx = i + 1000;
+          }
           col.append(downCard, upCard);
           stackRow.appendChild(col);
         });
@@ -355,20 +336,59 @@ socket.on('state', s => {
         p.down.forEach((c, i) => {
           const col = document.createElement('div');
           col.className = 'stack';
-          const downCard = cardImg(c, s.turn === myId && p.hand.length === 0 && p.up.length === 0 && !c.back);
-          downCard.querySelector('.card-img').classList.add('down-card');
+          const isClickable = isMyTurn && p.hand.length === 0 && p.up.length === 0 && !c.back;
+          const downCard = cardImg(c, isClickable);
+          const downCardImg = downCard.querySelector('.card-img');
+          if (downCardImg) {
+            downCardImg.classList.add('down-card');
+            downCardImg.dataset.idx = i + 2000; // Use a different range for down cards
+          }
           col.appendChild(downCard);
           stackRow.appendChild(col);
         });
       }
 
       // Render sections with labels
-      if (myArea) {
-        renderSection(myArea, 'Hand', handRow); // Use 'Hand' instead of 'Hand:'
-        renderSection(myArea, 'Up / Down', stackRow); // Use 'Up / Down' instead of 'Up / Down:'
-      }
+      const handSection = renderSection(myArea, 'Hand', handRow);
+      const upDownSection = renderSection(myArea, 'Up / Down', stackRow);
 
-      return;
+      // Add active class if it's my turn
+      if (isMyTurn) myArea.classList.add('active');
+      else myArea.classList.remove('active');
+
+      // --- Ensure Buttons Exist and are below the cards being played ---
+      let btnContainer = document.getElementById('dynamic-btn-container');
+      if (!btnContainer) {
+        btnContainer = document.createElement('div');
+        btnContainer.className = 'button-container';
+        btnContainer.id = 'dynamic-btn-container';
+        const playBtnDyn = document.createElement('button');
+        playBtnDyn.id = 'play';
+        playBtnDyn.textContent = 'Play Selected';
+        playBtnDyn.onclick = playSelectedCards;
+        const takeBtnDyn = document.createElement('button');
+        takeBtnDyn.id = 'take';
+        takeBtnDyn.textContent = 'Take Pile';
+        takeBtnDyn.onclick = () => socket.emit('takePile');
+        btnContainer.appendChild(playBtnDyn);
+        btnContainer.appendChild(takeBtnDyn);
+      }
+      // Place buttons below the cards being played
+      if (myHandCount > 0) {
+        if (handSection && handSection.nextSibling !== btnContainer) {
+          myArea.insertBefore(btnContainer, handSection.nextSibling);
+        }
+      } else {
+        if (upDownSection && upDownSection.nextSibling !== btnContainer) {
+          myArea.insertBefore(btnContainer, upDownSection.nextSibling);
+        }
+      }
+      // Set Button Disabled State
+      const playBtn = document.getElementById('play');
+      const takeBtn = document.getElementById('take');
+      if (playBtn) playBtn.disabled = !isMyTurn;
+      if (takeBtn) takeBtn.disabled = !isMyTurn;
+
     } else {
       // --- OPPONENT PANEL ---
       const panel = document.createElement('div');
@@ -377,23 +397,20 @@ socket.on('state', s => {
       if (p.id === s.turn) panel.classList.add('active');
       if (p.isComputer) panel.classList.add('computer-player');
 
-      // Create and append name header
       const nameHeader = document.createElement('h3');
       nameHeader.textContent = p.name;
       panel.appendChild(nameHeader);
 
-      // Hand row - Render fanned cards instead of badge
       const hr = document.createElement('div');
       hr.className = 'opp-hand';
       if (p.handCount > 0) {
         for (let i = 0; i < p.handCount; i++) {
           const cardDivContainer = cardImg({ back: true }, false);
-          cardDivContainer.classList.add('opp-card-container'); // Add class for styling
+          cardDivContainer.classList.add('opp-card-container');
           hr.appendChild(cardDivContainer);
         }
       }
 
-      // Stack row
       const sr = document.createElement('div');
       sr.className = 'stack-row';
       if (p.up && p.up.length > 0) {
@@ -401,9 +418,11 @@ socket.on('state', s => {
           const col = document.createElement('div');
           col.className = 'stack';
           const downCard = cardImg({ back: true }, false);
-          downCard.querySelector('.card-img').classList.add('down-card');
+          const downCardImg = downCard.querySelector('.card-img');
+          if (downCardImg) downCardImg.classList.add('down-card');
           const upCard = cardImg(c, false);
-          upCard.querySelector('.card-img').classList.add('up-card');
+          const upCardImg = upCard.querySelector('.card-img');
+          if (upCardImg) upCardImg.classList.add('up-card');
           col.appendChild(downCard);
           col.appendChild(upCard);
           sr.appendChild(col);
@@ -413,91 +432,51 @@ socket.on('state', s => {
           const col = document.createElement('div');
           col.className = 'stack';
           const downCard = cardImg({ back: true }, false);
-          downCard.querySelector('.card-img').classList.add('down-card');
+          const downCardImg = downCard.querySelector('.card-img');
+          if (downCardImg) downCardImg.classList.add('down-card');
           col.appendChild(downCard);
           sr.appendChild(col);
         });
       }
 
-      // Render sections with labels
-      renderSection(panel, 'Hand', hr); // Use 'Hand' instead of 'Hand:'
-      renderSection(panel, 'Up / Down', sr); // Use 'Up / Down' instead of 'Up / Down:'
+      renderSection(panel, 'Hand', hr);
+      renderSection(panel, 'Up / Down', sr);
 
-      other.appendChild(panel);
+      if (otherPlayersContainer) {
+          otherPlayersContainer.appendChild(panel);
+      } else {
+          console.error("Cannot append opponent panel, #other-players container missing!");
+      }
     }
-  });
+  }); // End of player rendering loop
 
-  // Decide where to show the button container
-  if (myHandCount > 0) {
-    shouldShowHandButtons = true;
-  } else if (myUpCount > 0 || myDownCount > 0) {
-    shouldShowStackButtons = true;
-  }
+  // Update play pile with count
+  const centerDiv = document.getElementById('center');
+  centerDiv.innerHTML = '';
 
-  // Create the button container
-  const btnContainer = document.createElement('div');
-  btnContainer.className = 'button-container';
-  btnContainer.id = 'dynamic-btn-container';
-  const playBtnDyn = document.createElement('button');
-  playBtnDyn.id = 'play';
-  playBtnDyn.textContent = 'Play Selected';
-  playBtnDyn.disabled = s.turn !== myId;
-  playBtnDyn.onclick = playSelectedCards;
-  const takeBtnDyn = document.createElement('button');
-  takeBtnDyn.id = 'take';
-  takeBtnDyn.textContent = 'Take Pile';
-  takeBtnDyn.disabled = s.turn !== myId;
-  takeBtnDyn.onclick = () => socket.emit('takePile');
-  btnContainer.appendChild(playBtnDyn);
-  btnContainer.appendChild(takeBtnDyn);
+  // --- Deck/Discard in a single bordered wrapper, deck on left, discard on right ---
+  const pilesWrapper = document.createElement('div');
+  pilesWrapper.className = 'center-piles-wrapper';
 
-  // Insert the button container in the correct place
-  if (shouldShowHandButtons && myArea) {
-    const handRow = myArea.querySelector('#my-hand');
-    if (handRow && handRow.parentNode) {
-      handRow.parentNode.appendChild(btnContainer);
-    }
-  } else if (shouldShowStackButtons && myArea) {
-    const stackRow = myArea.querySelector('#my-stacks');
-    if (stackRow && stackRow.parentNode) {
-      stackRow.parentNode.appendChild(btnContainer);
-    }
-  }
-
-  // --- CENTER AREA (DECK, DISCARD, NOTICES) ---
-  const centerDiv = document.getElementById('center'); // Get the center container
-  if (centerDiv) centerDiv.innerHTML = '';
-  else {
-    console.error("#center element not found!");
-    return; // Stop processing if center div is missing
-  }
-
-  // --- Render Draw Pile FIRST ---
+  // Deck pile (left)
   const drawPileContainer = document.createElement('div');
-  drawPileContainer.className = 'center-pile-container'; // Use the specific class
-  drawPileContainer.id = 'deck-pile-container'; // Assign ID
-
+  drawPileContainer.className = 'center-pile-container';
   const drawLabel = document.createElement('div');
   drawLabel.className = 'pile-label';
   drawLabel.textContent = 'Deck';
   drawPileContainer.appendChild(drawLabel);
-
   const drawPileDiv = document.createElement('div');
-  drawPileDiv.id = 'draw-pile'; // Keep the ID on the inner div
-  drawPileDiv.className = 'pile small'; // Add 'small' class for deck styling
+  drawPileDiv.id = 'draw-pile';
+  drawPileDiv.className = 'pile small';
   drawPileContainer.appendChild(drawPileDiv);
-
   const drawCountSpan = document.createElement('span');
-  drawCountSpan.id = 'draw-count'; // Keep the ID on the span
+  drawCountSpan.id = 'draw-count';
   drawCountSpan.className = 'pile-count';
   drawPileContainer.appendChild(drawCountSpan);
-
   if (s.deckCount) {
-    drawPileDiv.appendChild(cardImg({ back: true })); // Add card back image
-    drawCountSpan.textContent = s.deckCount; // Set count text
-    if (s.turn === myId) {
-       drawPileDiv.classList.add('playable-pile');
-    }
+    drawPileDiv.appendChild(cardImg({ back: true }));
+    drawCountSpan.textContent = s.deckCount;
+    if (isMyTurn) drawPileDiv.classList.add('playable-pile');
   } else {
     drawPileDiv.classList.remove('small');
     drawPileDiv.style.backgroundColor = 'transparent';
@@ -505,63 +484,50 @@ socket.on('state', s => {
     drawPileDiv.style.boxShadow = 'none';
     drawCountSpan.textContent = '0';
   }
-  centerDiv.appendChild(drawPileContainer); // Append Draw Pile
+  pilesWrapper.appendChild(drawPileContainer);
 
-  // --- Render Discard Pile SECOND ---
+  // Discard pile (right)
   const playPileContainer = document.createElement('div');
-  playPileContainer.className = 'center-pile-container'; // Use the specific class
-  playPileContainer.id = 'discard-pile-container'; // Assign ID
-
+  playPileContainer.className = 'center-pile-container';
   const playLabel = document.createElement('div');
   playLabel.className = 'pile-label';
   playLabel.textContent = 'Discard';
   playPileContainer.appendChild(playLabel);
-
   const playPileDiv = document.createElement('div');
   playPileDiv.id = 'play-pile';
   playPileDiv.className = 'pile';
   playPileContainer.appendChild(playPileDiv);
-
   const playCountSpan = document.createElement('span');
   playCountSpan.id = 'play-count';
   playCountSpan.className = 'pile-count';
   playPileContainer.appendChild(playCountSpan);
-
   if (s.playPile.length) {
     const topCard = s.playPile.at(-1);
     playPileDiv.appendChild(cardImg(topCard));
-    if ([2, 5, 10].includes(topCard.value) || (s.playPile.length >= 4 && s.playPile.slice(-4).every(c => c.value === topCard.value))) {
-      // showCardEvent(topCard.value, s.playPile.length >= 4 ? 'four' : undefined);
-      // Triggering the event banner is now handled by the 'specialEffect' socket event listener below
-    }
     playCountSpan.textContent = s.playPile.length;
-    if (s.turn === myId) {
-      playPileDiv.classList.add('playable-pile');
-    }
+    if (isMyTurn) playPileDiv.classList.add('playable-pile');
   } else {
     playCountSpan.textContent = '0';
   }
-  centerDiv.appendChild(playPileContainer); // Append Discard Pile
+  pilesWrapper.appendChild(playPileContainer);
 
-  // --- Append Take Pile Notice (will be positioned by CSS) ---
-  const takePileNoticeElement = document.createElement('div');
-  takePileNoticeElement.id = 'take-pile-notice';
-  takePileNoticeElement.className = 'notice hidden'; // Start hidden
-  centerDiv.appendChild(takePileNoticeElement);
+  centerDiv.appendChild(pilesWrapper);
 
-  // --- Append Event Banner (will be positioned by CSS) ---
-  const eventBanner = document.createElement('div');
-  eventBanner.id = 'event-banner';
-  eventBanner.style.display = 'none'; // Start hidden
-  centerDiv.appendChild(eventBanner);
+  let eventBanner = document.getElementById('event-banner');
+  if (!eventBanner) {
+      eventBanner = document.createElement('div');
+      eventBanner.id = 'event-banner';
+      if (centerDiv) {
+          centerDiv.insertBefore(eventBanner, centerDiv.firstChild);
+      } else {
+          console.error("#center not found, cannot append event banner");
+      }
+  }
 
-  // Determine playability for hover effects
-  const isMyTurn = s.turn === myId;
   const canPlayHand = isMyTurn && myHandCount > 0;
   const canPlayUp = isMyTurn && myHandCount === 0 && myUpCount > 0;
   const canPlayDown = isMyTurn && myHandCount === 0 && myUpCount === 0 && myDownCount > 0;
 
-  // Update my hand cards with playability
   const myHandDiv = document.getElementById('my-hand');
   if (myHandDiv) {
     Array.from(myHandDiv.children).forEach(container => {
@@ -570,7 +536,6 @@ socket.on('state', s => {
         if (canPlayHand) {
           container.classList.add('playable-card-container');
           img.style.cursor = 'pointer';
-          // Ensure click handlers are only active when playable
           img.onclick = () => img.classList.toggle('selected');
           img.ondblclick = () => {
             img.classList.add('selected');
@@ -586,7 +551,6 @@ socket.on('state', s => {
     });
   }
 
-  // Update my stack cards with playability
   const myStacksDiv = document.getElementById('my-stacks');
   if (myStacksDiv) {
     Array.from(myStacksDiv.children).forEach(stack => {
@@ -599,15 +563,15 @@ socket.on('state', s => {
         upCardImg.onclick = () => upCardImg.classList.toggle('selected');
          upCardImg.ondblclick = () => {
             upCardImg.classList.add('selected');
-            playSelectedCards(); // Use same function, it reads dataset.idx
+            playSelectedCards();
           };
-      } else if (canPlayDown && downCardImg && !upCardImg) { // Only playable if no up card exists
-         stack.classList.add('playable-stack'); // Use same class for hover
+      } else if (canPlayDown && downCardImg && !upCardImg) {
+         stack.classList.add('playable-stack');
          downCardImg.style.cursor = 'pointer';
          downCardImg.onclick = () => downCardImg.classList.toggle('selected');
          downCardImg.ondblclick = () => {
             downCardImg.classList.add('selected');
-            playSelectedCards(); // Use same function
+            playSelectedCards();
           };
       } else {
         stack.classList.remove('playable-stack');
@@ -625,16 +589,29 @@ socket.on('state', s => {
     });
   }
 
-  // Update the card event handling for better touch support
-  if (s.turn === myId) {
-    // Add touch event handlers to the document
+  if (isMyTurn) {
     document.addEventListener('touchstart', handleTouchStart, { passive: true });
     document.addEventListener('touchend', handleTouchEnd, { passive: true });
   } else {
-    // Remove touch handlers when not player's turn
     document.removeEventListener('touchstart', handleTouchStart);
     document.removeEventListener('touchend', handleTouchEnd);
   }
+});
+
+// Listen for specialEffect socket event
+socket.on('specialEffect', ({ value, type }) => {
+  showCardEvent(value, type);
+});
+
+// Listen for opponentTookPile socket event
+socket.on('opponentTookPile', ({ playerId }) => {
+  const playerPanels = document.querySelectorAll('#other-players .player');
+  playerPanels.forEach(panel => {
+    const nameHeader = panel.querySelector('h3');
+    if (panel.dataset.playerId === playerId || (nameHeader && nameHeader.dataset.playerId === playerId)) {
+      showTookPileBanner(panel);
+    }
+  });
 });
 
 // Touch event handling for mobile devices
@@ -658,7 +635,6 @@ function handleTouchEnd(e) {
   const card = e.target.closest('.card-img');
   
   if (card && card === touchedCard && e.timeStamp - e.target._touchStartTime < 500) {
-    // Short tap - toggle selection
     card.classList.toggle('selected');
   }
   touchedCard = null;
@@ -673,7 +649,6 @@ function playCards(indexes) {
 
 // Helper function to play selected cards
 function playSelectedCards() {
-  // Use the new DOM structure: find the hand row by id
   const handRow = document.querySelector('#my-hand');
   if (!handRow) return;
   const selected = Array.from(handRow.children)
@@ -691,16 +666,14 @@ socket.on('gameRoom', roomId => {
   console.log('[DEBUG] Received gameRoom event with roomId:', roomId);
   currentRoom = roomId;
   sessionStorage.setItem('currentRoom', currentRoom); // Store currentRoom
-  // Update page URL with room ID
   const url = new URL(window.location);
   url.searchParams.set('room', roomId);
   window.history.pushState({}, '', url);
   console.log('[DEBUG] Updated URL to:', url.toString());
-  // Update lobby text to show room info and make it copyable
-  const lobbyText = `Game Room: ${roomId} - Waiting for players (1/2) — Share this link!`; // Update player count later
+  const lobbyText = `Game Room: ${roomId} - Waiting for players (1/2) — Share this link!`;
   lobby.textContent = lobbyText;
-  lobby.style.cursor = 'pointer'; // Ensure cursor is pointer here too
-  lobby.onclick = () => { // Ensure copy works here too
+  lobby.style.cursor = 'pointer';
+  lobby.onclick = () => {
     navigator.clipboard.writeText(window.location.href)
       .then(() => {
         const originalText = lobby.textContent;
@@ -714,7 +687,6 @@ socket.on('gameRoom', roomId => {
   };
 });
 
-// Check for room ID in URL when page loads
 window.addEventListener('load', () => {
   const params = new URLSearchParams(window.location.search);
   const roomId = params.get('room');
@@ -723,28 +695,10 @@ window.addEventListener('load', () => {
   }
 });
 
-// Move the event banner into the #center element for correct positioning
 document.addEventListener('DOMContentLoaded', () => {
   const banner = document.getElementById('event-banner');
   const center = document.getElementById('center');
   if (banner && center && !center.contains(banner)) {
     center.appendChild(banner);
   }
-});
-
-// Listen for specialEffect socket event
-socket.on('specialEffect', ({ value, type }) => {
-  showCardEvent(value, type);
-});
-
-// Listen for opponentTookPile socket event
-socket.on('opponentTookPile', ({ playerId }) => {
-  // Find the opponent's panel
-  const playerPanels = document.querySelectorAll('#other-players .player');
-  playerPanels.forEach(panel => {
-    const nameHeader = panel.querySelector('h3');
-    if (panel.dataset.playerId === playerId || (nameHeader && nameHeader.dataset.playerId === playerId)) {
-      showTookPileBanner(panel);
-    }
-  });
 });

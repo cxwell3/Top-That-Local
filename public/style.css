@@ -1,14 +1,14 @@
 /* ========== Color Variables & Root Styles ========== */
 :root {
-  --bg: #0a4a33; /* Slightly darker, richer green */
-  --bg-gradient: linear-gradient(180deg, #0f5c40 0%, #0a4a33 100%); /* Subtle gradient */
-  --accent: #ffb74d; /* Slightly softer orange */
+  --bg: #178a4c; /* Lighter, single green background */
+  --header-bg: #1b2e3c; /* Deep blue for header */
+  --accent: #ffb74d;
   --accent2: #2f80ed;
   --name: #ffd36b;
   --text: #f5f5f5;
   --mute: #cfd8d1;
   --panelBorder: #ffffff22;
-  --active-border: #16f0ff;  /* Even brighter, more noticeable active border color */
+  --active-border: #16f0ff;
 }
 
 /* ========== Base Styles ========== */
@@ -19,7 +19,7 @@ html, body {
   color: var(--text);
 }
 body {
-  background: var(--bg-gradient); /* Use gradient */
+  background: var(--bg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -39,7 +39,7 @@ header {
   flex-wrap: wrap;
   padding: 0.8rem 1.5rem; /* Increased padding */
   border-bottom: 2px solid var(--panelBorder);
-  background-color: rgba(0, 0, 0, 0.1); /* Subtle header background */
+  background: var(--header-bg);
 }
 
 .brand {
@@ -149,21 +149,6 @@ header button:disabled {
 }
 .hidden { display: none !important; }
 
-/* Position the take pile notice below the deck */
-#take-pile-notice {
-  position: absolute;
-  bottom: -25px; /* Adjust as needed to position below the deck */
-  left: 25%; /* Position roughly under the left (deck) pile */
-  transform: translateX(-50%);
-  width: auto; /* Allow width to adjust */
-  max-width: 150px; /* Prevent it getting too wide */
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-  z-index: 50;
-  /* Inherits .notice styles for background, color, border etc. */
-}
-
-/* Remove absolute positioning from the opponent "took pile" banner */
 .took-pile-banner {
   background: #ffd36b;
   color: #222;
@@ -171,14 +156,14 @@ header button:disabled {
   font-size: 1.05rem;
   border-radius: 8px;
   padding: 0.3rem 1.1rem;
+  margin-top: 0.5rem; /* Add margin above it */
   text-align: center;
   box-shadow: 0 2px 8px #0002;
-  position: relative; /* Changed from absolute */
+  position: relative; /* Keep relative positioning */
   z-index: 30;
   animation: tookPileFadeIn 0.2s, tookPileFadeOut 0.4s 1.6s forwards;
-  margin-top: 0.5rem; /* Add some space above it within the player panel */
+  order: 2.5; /* Try to position it after #center if they share a flex container */
 }
-
 @keyframes tookPileFadeIn {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -201,16 +186,6 @@ main {
   overflow: visible;
 }
 
-.horizontal-layout {
-  display: flex;
-  flex-direction: row;
-  align-items: center; /* Reverted from stretch */
-  justify-content: center;
-  gap: 1.5rem;
-  width: 100%;
-  flex-wrap: nowrap;
-}
-
 #table {
   display: flex;
   flex-direction: column;
@@ -231,123 +206,133 @@ main {
 }
 
 #center {
-  position: relative; /* Needed for absolute positioning of #event-banner */
-  flex: 0 0 auto; /* Don't grow or shrink */
-  min-width: 170px;
-  margin: 0 1rem;
-  z-index: 10;
   display: flex;
-  flex-direction: row; /* Piles side-by-side */
+  flex-direction: row;
   justify-content: center;
-  align-items: center; /* Center piles internally */
-  align-self: center; /* Ensure it aligns itself centrally if needed */
-  padding: 1rem 0; /* Adjusted padding */
-  gap: 2.5rem; /* Increased gap between piles */
-  order: 2; /* Center column */
+  align-items: center;
+  gap: 2.5rem;
+  background: none;
+  border: none;
+  box-shadow: none;
 }
 
-/* New styles for center pile containers and labels */
+.center-piles-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 2.5rem;
+  border: 2.5px solid #fff !important; /* Bold white border for center piles */
+  border-radius: 12px;
+  padding: 1.2rem 2.2rem;
+  background: none;
+  align-items: center;
+  justify-content: center;
+}
+
 .center-pile-container {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
 }
 
-.pile-label {
-  font-weight: 700; /* Bolder */
-  text-transform: uppercase;
-  font-size: 1rem; /* Larger */
-  color: var(--accent); /* Use accent color */
-  margin-bottom: 0.3rem; /* Increased margin */
-  letter-spacing: 0.5px; /* Added letter spacing */
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); /* Added shadow */
-  text-align: center; /* Explicitly center text */
-  width: 100%; /* Make label take full width of its container */
+/* ========== Game Board Layout ========== */
+.game-board {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: stretch;
+  gap: 2.5rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 500px;
 }
 
-#event-banner {
-  position: absolute; /* Position relative to the nearest positioned ancestor (#center needs position: relative) */
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  font-size: 2.5rem; /* Larger text */
-  font-weight: bold;
-  color: white;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-  z-index: 100; /* Ensure it's above cards */
-  opacity: 0; /* Start hidden */
-  animation: eventFade 1.75s ease-out;
-  pointer-events: none; /* Don't block clicks */
-  text-align: center;
-  white-space: nowrap;
-}
-
-@keyframes eventFade {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-  80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-}
-
-#event-banner.reset {
-  background: linear-gradient(135deg, #4facfe, #00f2fe); /* Blue gradient */
-}
-
-#event-banner.copy {
-  background: linear-gradient(135deg, #fccb90, #d57eeb); /* Purple/Orange gradient */
-}
-
-#event-banner.burn {
-  background: linear-gradient(135deg, #ff0844, #ffb199); /* Red/Orange gradient */
-}
-
-#other-players, #my-area {
-  flex: 1 1 350px; /* Allow grow/shrink, base width 350px */
-  min-width: 320px;
-  margin: 0;
-  z-index: 20;
-  width: auto;
-  display: flex; /* Use flex for internal alignment */
-  flex-direction: column; /* Stack elements vertically */
-  align-items: center; /* Center content horizontally */
-}
-
-#other-players {
-  order: 3; /* Right column */
-}
-
-#my-area {
-  order: 1; /* Left column */
-}
-
-/* ========== Player Panels (Unified Styles) ========== */
-.player, #my-area {
-  background: rgba(0, 0, 0, 0.15);
-  border: 2px solid var(--panelBorder);
+/* Consolidated player panel styles */
+.player-area, .player, #my-area {
+  background: none !important;
+  border: 2.5px solid #fff !important; /* Bold white border */
   border-radius: 12px;
-  padding: 1rem 1rem 1.5rem 1rem; /* Keep some base bottom padding */
-  margin: 0; /* Let the parent layout handle margins */
+  box-shadow: none !important;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem; /* Increased gap slightly */
+  justify-content: flex-start;
+  padding: 1.2rem 1rem 3.5rem 1rem; /* Extra bottom padding for cards/buttons */
+  margin: 0;
+  position: relative;
+  overflow: visible !important; /* Ensure nothing is cut off */
+  min-height: 600px; /* More space for hand and up/down cards */
   width: 100%;
   box-sizing: border-box;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  position: relative;
+  gap: 0.5rem;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  overflow: visible; /* REMOVED hidden, set to visible */
 }
 
-.player.active, #my-area.active {
-  border-color: var(--active-border);
-  box-shadow: 0 0 15px 3px rgba(22, 240, 255, 0.25); /* Adjusted glow */
+/* Remove all other borders from player panels */
+.player-area *, .player *, #my-area * {
+  border: none !important;
 }
 
-/* Player Name Headers */
+.player-area.active, .player.active, #my-area.active {
+  border-color: var(--active-border) !important;
+  box-shadow: 0 0 15px 3px rgba(22, 240, 255, 0.25);
+}
+
+/* Ensure hand and stacks are inside borders */
+#my-area .hand, #my-area .stack-row,
+.player-area .hand, .player-area .stack-row {
+  margin: 0 auto;
+  width: 98%;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
+.hand, .opp-hand, .stack-row {
+  overflow: visible !important;
+}
+
+.player {
+  background: none !important;
+}
+
+#my-area .button-container {
+  margin-top: 1.2rem;
+  margin-bottom: 0;
+  align-self: center;
+  display: flex;
+}
+
+/* Hide button container in .player-area (CPU side) by default */
+.player-area .button-container {
+  display: none !important;
+}
+
+/* Responsive tweaks for game board */
+@media (max-width: 900px) {
+  .game-board {
+    flex-direction: column;
+    gap: 1.2rem;
+    min-height: 0;
+  }
+  .center-area {
+    min-width: 120px;
+    max-width: 100vw;
+    min-height: 120px;
+    margin: 0 auto;
+  }
+  .player-area {
+    min-width: 0;
+    max-width: 100vw;
+    min-height: 220px;
+  }
+}
+
+/* ========== Player Name Headers ========== */
 .player h3, #my-name {
   margin: 0 0 0.8rem 0; /* Consistent margin */
   font-size: 1.45rem; /* Increased size */
@@ -385,37 +370,87 @@ main {
 }
 
 /* ========== Card Row Containers (Hand, Stacks) ========== */
-.hand,
-.opp-hand,
+#my-hand, .hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  overflow: visible;
+  min-height: 100px;
+  justify-content: center;
+  align-items: flex-end;
+}
+#my-hand > div, .hand > div {
+  margin-left: 0 !important;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.2s, z-index 0.2s;
+}
+#my-hand > div.playable-card-container:hover,
+#my-hand > div.playable-card-container:focus-within {
+  transform: translateY(-22px) scale(1.08);
+  z-index: 10;
+}
+#my-hand .card-img.selected {
+  transform: translateY(-32px) scale(1.08);
+  z-index: 15;
+  border: 2px solid var(--accent);
+}
+
+.opp-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0px;
+  overflow: visible;
+  min-height: 90px;
+  justify-content: center;
+  align-items: flex-end;
+}
+.opp-hand > div {
+  margin-left: -36px !important;
+  position: relative;
+  z-index: 1;
+  transition: none;
+}
+.opp-hand > div:first-child {
+  margin-left: 0 !important;
+}
+
 .stack-row {
   display: flex;
-  flex-wrap: wrap; /* Allow wrapping */
-  gap: 8px; /* Consistent gap between cards/stacks */
+  gap: 32px; /* More space between stacks for clarity */
+  overflow: visible;
+  min-height: 120px;
+  align-items: flex-start; /* Align stacks to the top so cards are right below label */
   justify-content: center;
-  align-items: center; /* Vertically center items in the row */
-  width: 100%;
-  padding: 0.5rem 0.5rem 1rem 0.5rem; /* Added extra bottom padding */
-  box-sizing: border-box;
+  margin-top: 0.2rem;
 }
 
-/* Specifics for opponent hand */
-.opp-hand {
-  align-items: center; /* Ensure back cards are centered */
+.stack {
+  position: relative;
+  width: 63px;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* Start from the top */
 }
 
-/* Container for opponent's hand cards */
-.opp-hand > div { /* Targets the container div */
-  position: relative; /* Needed for overlap */
-  transition: margin-left 0.2s ease-out; /* Smooth transition */
-}
-.opp-hand > div:not(:first-child) {
-  margin-left: -45px; /* Overlap cards, same as player hand */
+.stack .card-img.down-card {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
 }
 
-/* Specifics for stack row */
-.stack-row {
-  align-items: flex-end; /* Align stacks from the bottom */
-  gap: 10px; /* Slightly larger gap for stacks */
+.stack .card-img.up-card {
+  position: absolute;
+  top: 28px; /* Overlap the up card below the down card */
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
 }
 
 /* ========== Card Images & Containers ========== */
@@ -468,7 +503,7 @@ main {
 }
 .stack .card-img.down-card {
   z-index: 1;
-  top: 70px; /* Offset down card more for ~80% overlap */
+  top: 55px; /* REDUCED offset (was 70px) */
 }
 .stack .card-img.up-card {
   z-index: 2;
@@ -491,24 +526,56 @@ main {
   z-index: 3; /* Ensure hovered stack is above others */
 }
 
+/* ========== Event Banner ========== */
+#event-banner {
+  position: absolute; /* Position relative to #center */
+  top: 50%; /* Center vertically */
+  left: 50%; /* Center horizontally */
+  transform: translate(-50%, -50%); /* Fine-tune centering */
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1.8rem; /* Larger text */
+  font-weight: bold;
+  color: white;
+  text-align: center;
+  z-index: 100; /* Above piles */
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  pointer-events: none; /* Don't block clicks */
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+#event-banner.event-banner-visible {
+  opacity: 1;
+}
+
+#event-banner.reset {
+  background-color: rgba(76, 175, 80, 0.85); /* Green */
+}
+
+#event-banner.copy {
+  background-color: rgba(33, 150, 243, 0.85); /* Blue */
+}
+
+#event-banner.burn {
+  background-color: rgba(244, 67, 54, 0.85); /* Red */
+}
+
 /* ========== Buttons ========== */
 .button-container {
-  position: relative;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0.5rem 0 0 0;
+  margin: 0.5rem auto 0 auto;
   display: flex;
   gap: 1rem;
-  z-index: 20;
-  background: rgba(11, 81, 55, 0.98); /* Slightly more opaque */
-  padding: 0.5rem 0.9rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border: none;
-  margin: 0.8rem auto;
-  max-width: 360px; /* Further reduced width */
+  max-width: 360px;
 }
 
 .button-container button {
   padding: 0.6rem 1.3rem;
-  min-width: 120px; /* Further reduced width */
+  min-width: 120px;
   border-radius: 6px;
 }
 
@@ -536,7 +603,6 @@ main {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-}
 
 /* Play Options */
 .play-options {
@@ -579,7 +645,7 @@ main {
     height: 70px;
   }
   .stack .card-img.down-card { /* Corrected selector */
-    top: 56px; /* Adjusted offset for smaller cards (70 * 0.8 = 56) */
+    top: 45px; /* REDUCED offset for smaller cards (was 56px) */
   }
   .stack .card-img.up-card { /* Corrected selector */
      top: 0;
@@ -596,35 +662,24 @@ main {
 }
 
 @media (max-width: 1200px) {
-  .horizontal-layout {
-    gap: 1rem; /* Reduce gap on medium screens */
-  }
-  
   #other-players, #my-area {
     min-width: 300px;
   }
 }
 
 @media (max-width: 1000px) {
-  .horizontal-layout {
-    flex-direction: column;
-    align-items: center;
-    gap: 1.2rem;
-  }
-  
   #other-players, #my-area, #center {
     min-width: 0;
     max-width: 95%; /* Allow slightly wider on mobile */
     width: 100%;
     flex: 1 0 auto;
-    margin: 0 auto; /* Center horizontally */
+    margin: 0 auto;
     order: 0; /* Reset order for column layout */
     align-self: center; /* Ensure centering in column layout too */
   }
   
   #center {
-    margin-top: 1.2rem; /* Add equal top margin */
-    margin-bottom: 1.2rem; /* Add equal bottom margin */
+    margin: 1rem auto; /* Vertical margin */
     order: 2; /* Keep center between players */
     flex-direction: row; /* Ensure piles stay side-by-side */
     align-items: center; /* Center piles internally on mobile */
@@ -683,10 +738,6 @@ main {
 @media (max-width: 480px) {
   #center {
     min-width: 150px; /* Even smaller minimum width */
-  }
-  
-  .horizontal-layout {
-    gap: 0.5rem; /* Minimal gap on very small screens */
   }
   
   .player, #my-area {

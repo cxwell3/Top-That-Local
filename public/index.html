@@ -91,29 +91,21 @@
       <input type="number" id="computer-count" name="computer-count" min="1" max="3" value="1">
     </div>
   </header>
-
   <div id="lobby-banner" class="banner hidden">Waiting for players…</div>
+  <div id="notice-banner" class="notice hidden"></div>
   <main id="table" class="hidden">
-    <div class="horizontal-layout">
-      <section id="my-area">
+    <div class="game-board">
+      <section id="my-area" class="player-area">
         <h2 id="my-name"></h2>
         <!-- Hand, Stacks, Buttons rendered by client.js -->
       </section>
-      <div id="center">
-        <div class="center-pile-container" id="deck-pile-container">
-          <!-- Deck pile label and cards rendered by client.js -->
-          <div id="deck-pile"></div>
-        </div>
-        <div class="center-pile-container" id="discard-pile-container">
-          <!-- Discard pile label and cards rendered by client.js -->
-          <div id="discard-pile"></div>
-        </div>
-        <div id="take-pile-notice" class="notice hidden"></div> <!-- Dedicated notice for taking pile -->
+      <div id="center" class="center-area">
+        <!-- Deck and Discard piles rendered by client.js -->
         <div id="event-banner" style="display: none;"></div>
       </div>
-      <div id="other-players">
+      <section id="other-players" class="player-area">
         <!-- Opponent panels rendered by client.js -->
-      </div>
+      </section>
     </div>
   </main>
 </body>
