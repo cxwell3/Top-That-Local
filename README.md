@@ -120,3 +120,15 @@ Dev / Quality‑of‑Life Additions
     Added Ctrl + R debug hook that explicitly calls game.reset() and logs socket IDs on connect.
 
     Style, client, and index files are treated as “authoritative copies”; every change sent as complete files to avoid partial merges.
+
+    Duplicate player fix
+    
+     I reviewed your codebase and found the likely cause of the duplicate computer player display: in public/client.js, when rendering the list of other players in the socket.on('state', ...) handler, the #other-players container is not cleared before new player panels are appended. This causes the UI to accumulate duplicate panels for the computer player (and possibly other players) on each state update.
+
+To fix this, I will update client.js so that #other-players is cleared at the start of each state update before rendering the new list of players.
+client.js+3-0
+
+Checked client.js, no problems found
+
+The fix has been applied and there are no errors in client.js. The UI will now correctly clear and re-render the list of other players, preventing duplicate computer player panels from appearing. Your issue should be resolved.
+

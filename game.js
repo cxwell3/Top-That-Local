@@ -19,11 +19,11 @@ export class Game {
   }
 
   addComputerPlayer() {
-    if (this.started) {
-      return;
-    }
-    
-    this.players.push({ 
+    console.log('🔔 addComputerPlayer called – players:', this.players.map(p=>p.id));    // Do nothing if game already started or a computer player already exists
+    if (this.started) return;
+    if (this.players.some(p => p.isComputer)) return;
+
+    this.players.push({
       id: 'computer',
       name: 'Dennis L.', // Always use this name for the computer player
       isComputer: true,
@@ -157,7 +157,6 @@ export class Game {
     const p = this.byId(sock.id);
     if (!p || this.turn !== p.id) return;
     this.givePile(p, 'You picked up the pile');
-    // Emit to all other players that this player took the pile
     if (p.sock && !p.isComputer) {
       this.players.forEach(other => {
         if (other.id !== p.id && other.sock) {
@@ -167,7 +166,6 @@ export class Game {
     }
     this.pushState();
 
-    // After human player's turn, trigger computer's turn if it's next
     if (this.turn === 'computer') {
       this.computerTurn();
     }
@@ -187,13 +185,11 @@ export class Game {
     const vals = [2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A'];
     this.deck = [];
     for (let d = 0; d < Math.ceil(this.players.length / 4); d++) {
-      suits.forEach(s => vals.forEach(v => this.deck.push({ value: v, suit: s })));
-    }
+      suits.forEach(s => vals.forEach(v => this.deck.push({ value: v, suit: s })));        }
     this.shuffle(this.deck);
   }
 
   deal() {
-    // Deal 3 cards to each player's hand, up, and down positions
     for (let i = 0; i < 3; i++) {
       this.players.forEach(p => {
         p.down.push(this.draw());
@@ -201,12 +197,8 @@ export class Game {
         p.hand.push(this.draw());
       });
     }
-    
-    // Sort hands after dealing
     this.players.forEach(p => {
       this.sortHand(p);
-      
-      // For computer player, ensure cards are properly initialized
       if (p.isComputer) {
         console.log('🤖 Computer player cards:', {
           hand: p.hand.length,
@@ -258,11 +250,9 @@ export class Game {
       this.io.emit('specialEffect', { value: 10, type: cards.length === 4 ? 'four' : 'ten' });
       return;
     }
-
     if (v === 2) {
       this.io.emit('specialEffect', { value: 2, type: 'two' });
     }
-
     if (v === 5 && this.lastRealCard) {
       this.playPile.push({ ...this.lastRealCard, copied: true });
       this.io.emit('specialEffect', { value: 5, type: 'five' });
@@ -312,12 +302,9 @@ export class Game {
 
   pushState() {
     const p = this.byId(this.turn);
-    // Only show 'No valid moves' to the current human player
     if (p && p.sock && !p.isComputer && !this.hasMove(p)) {
       p.sock.emit('notice', 'No valid moves. You must Take Pile.');
     }
-
-    // For human players, send state through their socket
     this.players.forEach(t => {
       if (t.sock) {
         t.sock.emit('state', {

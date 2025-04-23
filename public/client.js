@@ -450,12 +450,8 @@ function playSelectedCards() {
   }
 }
 
-// Wrap playBtn and takeBtn event handler assignments in DOMContentLoaded
-document.addEventListener('DOMContentLoaded', () => {
-  // Assign event handlers only after DOM is loaded
-  if (playBtn) playBtn.onclick = playSelectedCards;
-  if (takeBtn) takeBtn.onclick = () => socket.emit('takePile');
-});
+// Modify play button to use the helper function
+playBtn.onclick = playSelectedCards;
 
 /* ---------- play ---------- */
 takeBtn.onclick = () => socket.emit('takePile');
