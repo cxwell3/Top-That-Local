@@ -265,109 +265,33 @@ function createServer() {
   return httpServer;
 }
 
-// Track retry attempts to avoid infinite loop
-let retryCount = 0;
-const MAX_RETRIES = 3;
+const server = createServer();
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Top That! server listening on :${PORT}`);
+});
 
-function startServer() {
-  const server = createServer();
-  
-  // Add proper error handling with retry limit
-  server.on('error', (error) => {
-    if (error.code === 'EADDRINUSE') {
-      if (retryCount < MAX_RETRIES) {
-        retryCount++;
-        console.error(`Port 3000 is already in use. Retry attempt ${retryCount} of ${MAX_RETRIES}...`);
-        
-        // Use dynamic import for child_process (ES module compatible)
-        import('child_process').then(({ exec }) => {
-          exec('npx kill-port 3000', (err) => {
-            if (err) {
-              console.error('Failed to kill process on port 3000:', err);
-            } else {
-              console.log('Killed process on port 3000');
-            }
-            
-            // Wait a bit longer before retry
-            setTimeout(() => {
-              try {
-                startServer();
-              } catch (e) {
-                console.error('Error during server restart:', e);
-                process.exit(1);
-              }
-            }, 2000);
-          });
-        }).catch(err => {
-          console.error('Failed to import child_process:', err);
-          process.exit(1);
-        });
-      } else {
-        console.error(`Failed to start server after ${MAX_RETRIES} attempts. Port 3000 is in use.`);
-        process.exit(1);
-      }
-    } else {
-      console.error('Server error:', error);
-      process.exit(1);
-    }
+// Graceful shutdown for SIGTERM/SIGINT
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed successfully.');
+    process.exit(0);
   });
-  
-  // Clear existing listeners before adding new ones to avoid memory leak
-  const existingSIGTERMListeners = process.listeners('SIGTERM').length;
-  const existingSIGINTListeners = process.listeners('SIGINT').length;
-  
-  if (existingSIGTERMListeners > 0) {
-    console.log(`Removing ${existingSIGTERMListeners} existing SIGTERM listeners`);
-    process.removeAllListeners('SIGTERM');
-  }
-  
-  if (existingSIGINTListeners > 0) {
-    console.log(`Removing ${existingSIGINTListeners} existing SIGINT listeners`);
-    process.removeAllListeners('SIGINT');
-  }
-  
-  // Add graceful shutdown handling
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM received. Shutting down gracefully...');
-    server.close(() => {
-      console.log('Server closed successfully.');
-      process.exit(0);
-    });
-    
-    // Force exit after timeout
-    setTimeout(() => {
-      console.log('Forced shutdown after timeout');
-      process.exit(1);
-    }, 5000);
-  });
-  
-  process.on('SIGINT', () => {
-    console.log('SIGINT received. Shutting down gracefully...');
-    server.close(() => {
-      console.log('Server closed successfully.');
-      process.exit(0);
-    });
-    
-    // Force exit after timeout
-    setTimeout(() => {
-      console.log('Forced shutdown after timeout');
-      process.exit(1);
-    }, 5000);
-  });
-  
-  // Set a timeout - if server doesn't start within 5 seconds, exit
-  const startTimeout = setTimeout(() => {
-    console.error('Server start timed out');
+  setTimeout(() => {
+    console.log('Forced shutdown after timeout');
     process.exit(1);
   }, 5000);
-  
-  server.listen(3000, () => {
-    // Clear the timeout since server started successfully
-    clearTimeout(startTimeout);
-    console.log('Top That! server listening on :3000');
-    // Reset retry count on successful start
-    retryCount = 0;
-  });
-}
+});
 
-startServer();
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed successfully.');
+    process.exit(0);
+  });
+  setTimeout(() => {
+    console.log('Forced shutdown after timeout');
+    process.exit(1);
+  }, 5000);
+});

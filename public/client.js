@@ -259,8 +259,9 @@ socket.on('joined', d => {
 /* ---------- notices ---------- */
 socket.on('notice', msg => {
   if (!msg) return notice.classList.add('hidden');
-  notice.textContent = msg.replace('Take Pile', 'take pile'); // Fix capitalization
+  notice.textContent = msg.replace('Take Pile', 'take pile');
   notice.classList.remove('hidden');
+  notice.style.display = 'block';
 });
 
 /* ---------- error handling ---------- */
@@ -373,7 +374,7 @@ socket.on('state', s => {
         btnContainer.appendChild(playBtnDyn);
         btnContainer.appendChild(takeBtnDyn);
       }
-      // Place buttons below the cards being played
+      // Always insert the button container, even if no cards
       if (myHandCount > 0) {
         if (handSection && handSection.nextSibling !== btnContainer) {
           myArea.insertBefore(btnContainer, handSection.nextSibling);
@@ -383,6 +384,8 @@ socket.on('state', s => {
           myArea.insertBefore(btnContainer, upDownSection.nextSibling);
         }
       }
+      // Always show the button container for the player
+      btnContainer.style.display = 'flex';
       // Set Button Disabled State
       const playBtn = document.getElementById('play');
       const takeBtn = document.getElementById('take');
@@ -509,9 +512,22 @@ socket.on('state', s => {
   } else {
     playCountSpan.textContent = '0';
   }
-  pilesWrapper.appendChild(playPileContainer);
 
+  pilesWrapper.appendChild(playPileContainer);
   centerDiv.appendChild(pilesWrapper);
+
+  // Place the notice banner horizontally below the entire center border (deck/discard)
+  const noticeBanner = document.getElementById('notice-banner');
+  if (noticeBanner) {
+    noticeBanner.style.position = 'relative';
+    noticeBanner.style.transform = 'none';
+    noticeBanner.style.margin = '1rem auto 0 auto';
+    noticeBanner.style.maxWidth = '400px';
+    noticeBanner.style.left = 'unset';
+    noticeBanner.style.bottom = 'unset';
+    noticeBanner.style.display = 'block';
+    centerDiv.appendChild(noticeBanner);
+  }
 
   let eventBanner = document.getElementById('event-banner');
   if (!eventBanner) {

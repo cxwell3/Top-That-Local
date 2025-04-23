@@ -127,11 +127,13 @@ header button:disabled {
   color: #fff;
 }
 .notice {
-  position: fixed; /* Position relative to viewport */
-  bottom: 10px; /* Distance from bottom */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%); /* Fine-tune centering */
-  background: rgba(0, 0, 0, 0.7); /* Darker background for visibility */
+  /* Remove fixed positioning for in-game notice */
+  position: static !important;
+  bottom: unset;
+  left: unset;
+  transform: none;
+  margin: 1rem auto 0 auto;
+  background: rgba(0, 0, 0, 0.7);
   color: var(--accent);
   border: 1px solid var(--panelBorder);
   border-radius: 6px;
@@ -140,12 +142,12 @@ header button:disabled {
   font-size: 0.9rem;
   cursor: default;
   user-select: none;
-  z-index: 150; /* Ensure it's above most elements */
-  width: auto; /* Adjust width based on content */
-  max-width: 80%; /* Limit maximum width */
-  padding: 0.5rem 1rem; /* Add some padding */
+  z-index: 150;
+  width: auto;
+  max-width: 80%;
+  padding: 0.5rem 1rem;
   text-align: center;
-  margin: 0; /* Reset margin */
+  display: block;
 }
 .hidden { display: none !important; }
 
@@ -304,12 +306,16 @@ main {
   margin-top: 1.2rem;
   margin-bottom: 0;
   align-self: center;
-  display: flex;
+  display: flex !important;
 }
 
 /* Hide button container in .player-area (CPU side) by default */
 .player-area .button-container {
   display: none !important;
+}
+
+#my-area .button-container {
+  display: flex !important;
 }
 
 /* Responsive tweaks for game board */
