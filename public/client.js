@@ -108,6 +108,22 @@ function cardImg(card, sel = false) {
   return container;
 }
 
+/**
+ * Wraps a row element with a label, then appends to the parent.
+ * @param {Element} parent    The container to append into (e.g. your #my-area or each .player panel)
+ * @param {string} labelText  The text for the label (e.g. "Hand:" or "Up / Down:")
+ * @param {Element} rowEl     The row element (e.g. .hand or .stack-row)
+ */
+function renderSection(parent, labelText, rowEl) {
+  const section = document.createElement('div');
+  section.className = 'player-section';
+  const label = document.createElement('div');
+  label.className = 'row-label';
+  label.textContent = labelText;
+  section.append(label, rowEl);
+  parent.appendChild(section);
+}
+
 function showCardEvent(cardValue, type) {
   const banner = document.getElementById('event-banner');
   const center = document.getElementById('center');
@@ -196,11 +212,9 @@ socket.on('state', s => {
   // Clear other players panel before rendering
   other.innerHTML = '';
 
-  const myTurn = s.turn === myId;
-
-  // Remove any existing dynamic button container
-  const oldBtn = document.getElementById('dynamic-btn-container');
-  if (oldBtn && oldBtn.parentNode) oldBtn.parentNode.removeChild(oldBtn);
+  // --- MAIN PLAYER AREA ---
+  const myArea = document.getElementById('my-area');
+  if (myArea) myArea.innerHTML = '';
 
   let shouldShowHandButtons = false;
   let shouldShowStackButtons = false;
@@ -211,69 +225,59 @@ socket.on('state', s => {
   s.players.forEach(p => {
     if (p.id === myId) {
       myName.textContent = p.name;
-      myHand.innerHTML = '';
-      myStacks.innerHTML = '';
-      // Remove any existing labels before inserting new ones
-      if (myHand.previousElementSibling && myHand.previousElementSibling.classList.contains('row-label')) {
-        myHand.previousElementSibling.remove();
-      }
-      if (myStacks.previousElementSibling && myStacks.previousElementSibling.classList.contains('row-label')) {
-        myStacks.previousElementSibling.remove();
-      }
-      // Add label above hand
-      const handLabel = document.createElement('div');
-      handLabel.className = 'row-label';
-      handLabel.textContent = 'Hand:';
-      myHand.parentNode.insertBefore(handLabel, myHand);
-      // Add label above stacks
-      const upDownLabel = document.createElement('div');
-      upDownLabel.className = 'row-label';
-      upDownLabel.textContent = 'Up / Down:';
-      myStacks.parentNode.insertBefore(upDownLabel, myStacks);
-      const handFragment = document.createDocumentFragment();
-      const stackFragment = document.createDocumentFragment();
+
+      // Build hand row
+      const handRow = document.createElement('div');
+      handRow.id = 'my-hand';
+      handRow.className = 'hand';
       myHandCount = p.hand.length;
-      myUpCount = p.up.length;
-      myDownCount = p.down ? p.down.length : 0;
       p.hand.forEach((c, i) => {
-        const el = cardImg(c, myTurn);
+        const el = cardImg(c, s.turn === myId);
         const cardElement = el.querySelector('.card-img');
         cardElement.dataset.idx = i;
-        handFragment.appendChild(el);
+        handRow.appendChild(el);
       });
-      // Only render up stacks if up cards remain
+
+      // Build stack row
+      const stackRow = document.createElement('div');
+      stackRow.id = 'my-stacks';
+      stackRow.className = 'stack-row';
+      myUpCount = p.up.length;
+      myDownCount = p.down ? p.down.length : 0;
       if (p.up.length > 0) {
         p.up.forEach((c, i) => {
           const col = document.createElement('div');
           col.className = 'stack';
-          const isClickable = myTurn && p.hand.length === 0;
-          // Down card (always face down)
+          const isClickable = s.turn === myId && p.hand.length === 0;
           const downCard = cardImg({ back: true }, false);
           downCard.querySelector('.card-img').classList.add('down-card');
-          // Up card
           const upCard = cardImg(c, isClickable);
           upCard.querySelector('.card-img').classList.add('up-card');
           const upCardElement = upCard.querySelector('.card-img');
           upCardElement.dataset.idx = i + 1000;
           col.append(downCard, upCard);
-          stackFragment.appendChild(col);
+          stackRow.appendChild(col);
         });
       } else if (p.down && p.down.length > 0) {
-        // Only render down cards by themselves if no up cards remain
         p.down.forEach((c, i) => {
           const col = document.createElement('div');
           col.className = 'stack';
-          const downCard = cardImg(c, myTurn && p.hand.length === 0 && p.up.length === 0 && !c.back);
+          const downCard = cardImg(c, s.turn === myId && p.hand.length === 0 && p.up.length === 0 && !c.back);
           downCard.querySelector('.card-img').classList.add('down-card');
           col.appendChild(downCard);
-          stackFragment.appendChild(col);
+          stackRow.appendChild(col);
         });
       }
-      myHand.appendChild(handFragment);
-      myStacks.appendChild(stackFragment);
+
+      // Render sections with labels
+      if (myArea) {
+        renderSection(myArea, 'Hand:', handRow);
+        renderSection(myArea, 'Up / Down:', stackRow);
+      }
+
       return;
     } else {
-      // Other players panel setup with improved computer handling
+      // --- OPPONENT PANEL ---
       const panel = document.createElement('div');
       panel.className = 'player';
       panel.dataset.playerId = p.id;
@@ -281,17 +285,7 @@ socket.on('state', s => {
       if (p.isComputer) panel.classList.add('computer-player');
       panel.innerHTML = `<h3>${p.name}</h3>`;
 
-      // Hand section
-      const handSection = document.createElement('div');
-      handSection.className = 'player-section';
-      // Remove any existing label before inserting
-      if (handSection.firstChild && handSection.firstChild.classList && handSection.firstChild.classList.contains('row-label')) {
-        handSection.firstChild.remove();
-      }
-      const handLabel = document.createElement('div');
-      handLabel.className = 'row-label';
-      handLabel.textContent = 'Hand:';
-      handSection.appendChild(handLabel);
+      // Hand row
       const hr = document.createElement('div');
       hr.className = 'opp-hand';
       if (p.handCount > 0) {
@@ -311,32 +305,16 @@ socket.on('state', s => {
         cardContainer.appendChild(badge);
         hr.appendChild(cardContainer);
       }
-      handSection.appendChild(hr);
-      panel.appendChild(handSection);
 
-      // Up/Down section (centered, stacked like main player)
-      const upDownSection = document.createElement('div');
-      upDownSection.className = 'player-section';
-      // Remove any existing label before inserting
-      if (upDownSection.firstChild && upDownSection.firstChild.classList && upDownSection.firstChild.classList.contains('row-label')) {
-        upDownSection.firstChild.remove();
-      }
-      const upDownLabel = document.createElement('div');
-      upDownLabel.className = 'row-label';
-      upDownLabel.textContent = 'Up / Down:';
-      upDownSection.appendChild(upDownLabel);
+      // Stack row
       const sr = document.createElement('div');
       sr.className = 'stack-row';
-
       if (p.up && p.up.length > 0) {
-        // Only render up stacks if up cards remain
         p.up.forEach((c, i) => {
           const col = document.createElement('div');
           col.className = 'stack';
-          // Down card (always face down)
           const downCard = cardImg({ back: true }, false);
           downCard.querySelector('.card-img').classList.add('down-card');
-          // Up card (face up)
           const upCard = cardImg(c, false);
           upCard.querySelector('.card-img').classList.add('up-card');
           col.appendChild(downCard);
@@ -344,7 +322,6 @@ socket.on('state', s => {
           sr.appendChild(col);
         });
       } else if (p.down && p.down.length > 0) {
-        // Only render down cards by themselves if no up cards remain
         p.down.forEach((c, i) => {
           const col = document.createElement('div');
           col.className = 'stack';
@@ -355,8 +332,10 @@ socket.on('state', s => {
         });
       }
 
-      upDownSection.appendChild(sr);
-      panel.appendChild(upDownSection);
+      // Render sections with labels
+      renderSection(panel, 'Hand:', hr);
+      renderSection(panel, 'Up / Down:', sr);
+
       other.appendChild(panel);
     }
   });
@@ -372,13 +351,11 @@ socket.on('state', s => {
   const btnContainer = document.createElement('div');
   btnContainer.className = 'button-container';
   btnContainer.id = 'dynamic-btn-container';
-  // Play button
   const playBtnDyn = document.createElement('button');
   playBtnDyn.id = 'play';
   playBtnDyn.textContent = 'Play Selected';
   playBtnDyn.disabled = s.turn !== myId;
   playBtnDyn.onclick = playSelectedCards;
-  // Take Pile button
   const takeBtnDyn = document.createElement('button');
   takeBtnDyn.id = 'take';
   takeBtnDyn.textContent = 'Take Pile';
@@ -388,10 +365,16 @@ socket.on('state', s => {
   btnContainer.appendChild(takeBtnDyn);
 
   // Insert the button container in the correct place
-  if (shouldShowHandButtons) {
-    myHand.parentNode.insertBefore(btnContainer, myHand.nextSibling);
-  } else if (shouldShowStackButtons) {
-    myStacks.parentNode.insertBefore(btnContainer, myStacks.nextSibling);
+  if (shouldShowHandButtons && myArea) {
+    const handRow = myArea.querySelector('#my-hand');
+    if (handRow && handRow.parentNode) {
+      handRow.parentNode.appendChild(btnContainer);
+    }
+  } else if (shouldShowStackButtons && myArea) {
+    const stackRow = myArea.querySelector('#my-stacks');
+    if (stackRow && stackRow.parentNode) {
+      stackRow.parentNode.appendChild(btnContainer);
+    }
   }
 
   // Update play pile with count
@@ -420,7 +403,7 @@ socket.on('state', s => {
   }
 
   // Update the card event handling for better touch support
-  if (myTurn) {
+  if (s.turn === myId) {
     // Add touch event handlers to the document
     document.addEventListener('touchstart', handleTouchStart, { passive: true });
     document.addEventListener('touchend', handleTouchEnd, { passive: true });
@@ -467,10 +450,12 @@ function playCards(indexes) {
 
 // Helper function to play selected cards
 function playSelectedCards() {
-  const selected = Array.from(myHand.children)
+  // Use the new DOM structure: find the hand row by id
+  const handRow = document.querySelector('#my-hand');
+  if (!handRow) return;
+  const selected = Array.from(handRow.children)
     .filter(c => c.querySelector('.card-img')?.classList.contains('selected'))
     .map(c => parseInt(c.querySelector('.card-img').dataset.idx));
-  
   if (selected.length > 0) {
     socket.emit('playCards', selected);
   }

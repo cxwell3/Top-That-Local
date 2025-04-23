@@ -1252,3 +1252,41 @@ main {
 .computer-player .opp-card-container {
   z-index: 1 !important;
 }
+
+/* === Section wrapper for label + row === */
+.player-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;   /* labels flush left */
+  gap: 0.3rem;               /* space between label and row */
+  margin-bottom: 0.8rem;     /* space between sections */
+}
+
+/* === Label styling === */
+.row-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  color: var(--name);
+}
+
+/* === Card-row containers === */
+.hand,
+.opp-hand,
+.stack-row {
+  display: flex;
+  flex-wrap: wrap;  /* allow wrapping on narrow screens */
+  gap: 0.5rem;      /* space between cards */
+}
+
+/* === Ensure no absolute positioning on labels === */
+.row-label {
+  position: static !important;
+  order: 0 !important;
+}
+
+/* === Tidy up default margins on #my-area and opponent panels === */
+#my-area .player-section:first-child,
+#other-players .player-section:first-child {
+  margin-top: 0;
+}
