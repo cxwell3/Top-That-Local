@@ -63,7 +63,6 @@ const $ = id => document.getElementById(id);
 const nameIn = $('name'), joinBtn = $('join');
 const lobby = $('lobby-banner'), notice = $('notice-banner'), table = $('table');
 const myName = $('my-name'), myHand = $('my-hand'), myStacks = $('my-stacks');
-const playBtn = $('play'), takeBtn = $('take');
 const other = $('other-players');
 const playPile = $('play-pile'), drawPile = $('draw-pile');
 const joinComputerBtn = $('join-computer');
@@ -214,6 +213,23 @@ socket.on('state', s => {
       myName.textContent = p.name;
       myHand.innerHTML = '';
       myStacks.innerHTML = '';
+      // Remove any existing labels before inserting new ones
+      if (myHand.previousElementSibling && myHand.previousElementSibling.classList.contains('row-label')) {
+        myHand.previousElementSibling.remove();
+      }
+      if (myStacks.previousElementSibling && myStacks.previousElementSibling.classList.contains('row-label')) {
+        myStacks.previousElementSibling.remove();
+      }
+      // Add label above hand
+      const handLabel = document.createElement('div');
+      handLabel.className = 'row-label';
+      handLabel.textContent = 'Hand:';
+      myHand.parentNode.insertBefore(handLabel, myHand);
+      // Add label above stacks
+      const upDownLabel = document.createElement('div');
+      upDownLabel.className = 'row-label';
+      upDownLabel.textContent = 'Up / Down:';
+      myStacks.parentNode.insertBefore(upDownLabel, myStacks);
       const handFragment = document.createDocumentFragment();
       const stackFragment = document.createDocumentFragment();
       myHandCount = p.hand.length;
@@ -268,7 +284,12 @@ socket.on('state', s => {
       // Hand section
       const handSection = document.createElement('div');
       handSection.className = 'player-section';
+      // Remove any existing label before inserting
+      if (handSection.firstChild && handSection.firstChild.classList && handSection.firstChild.classList.contains('row-label')) {
+        handSection.firstChild.remove();
+      }
       const handLabel = document.createElement('div');
+      handLabel.className = 'row-label';
       handLabel.textContent = 'Hand:';
       handSection.appendChild(handLabel);
       const hr = document.createElement('div');
@@ -296,7 +317,12 @@ socket.on('state', s => {
       // Up/Down section (centered, stacked like main player)
       const upDownSection = document.createElement('div');
       upDownSection.className = 'player-section';
+      // Remove any existing label before inserting
+      if (upDownSection.firstChild && upDownSection.firstChild.classList && upDownSection.firstChild.classList.contains('row-label')) {
+        upDownSection.firstChild.remove();
+      }
       const upDownLabel = document.createElement('div');
+      upDownLabel.className = 'row-label';
       upDownLabel.textContent = 'Up / Down:';
       upDownSection.appendChild(upDownLabel);
       const sr = document.createElement('div');
@@ -450,11 +476,7 @@ function playSelectedCards() {
   }
 }
 
-// Modify play button to use the helper function
-playBtn.onclick = playSelectedCards;
-
 /* ---------- play ---------- */
-takeBtn.onclick = () => socket.emit('takePile');
 
 /* ---------- game room ---------- */
 socket.on('gameRoom', roomId => {
