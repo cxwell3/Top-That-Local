@@ -609,6 +609,7 @@ main {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
 
 /* Play Options */
 .play-options {

@@ -146,7 +146,7 @@ function showCardEvent(cardValue, type) {
   }
 
   let text = '';
-  let className = ''; // Start with no specific class
+  let className = '';
 
   if (cardValue === 2) {
     text = 'RESET!';
@@ -158,30 +158,27 @@ function showCardEvent(cardValue, type) {
     text = 'BURN!';
     className = 'burn';
   } else {
-    // If not a special event, ensure banner is hidden
-    banner.className = ''; // Clear classes
-    banner.textContent = ''; // Clear text
+    // If not a special event, hide banner
+    banner.className = '';
+    banner.textContent = '';
     return;
   }
 
-  // --- Display Logic --- 
-  console.log(`[Banner] Showing: ${text} (Value: ${cardValue}, Type: ${type})`); // DEBUG
+  // Show the banner with fade-in
   banner.textContent = text;
-  banner.className = ''; // Clear previous classes first
-  // Force reflow before adding class to ensure transition triggers
+  banner.className = '';
   void banner.offsetWidth;
-  banner.className = `event-banner-visible ${className}`; // Use visibility class + specific type class
+  banner.className = `event-banner-visible ${className}`;
 
-  // Automatically hide after a delay
-  setTimeout(() => {
-    // Check if the banner still has the visible class before removing it
+  // Keep the banner visible for 3 seconds, then fade out
+  clearTimeout(banner._hideTimeout);
+  banner._hideTimeout = setTimeout(() => {
     if (banner.classList.contains('event-banner-visible')) {
-        console.log(`[Banner] Hiding: ${text}`); // DEBUG
-        banner.classList.remove('event-banner-visible');
-        // Optionally clear text after fade out
-        // setTimeout(() => { banner.textContent = ''; }, 300); // Match transition duration
+      banner.classList.remove('event-banner-visible');
+      // Optionally clear text after fade out
+      setTimeout(() => { banner.textContent = ''; }, 400);
     }
-  }, 2000); // Hide after 2 seconds
+  }, 3000);
 }
 
 function showTookPileBanner(panel) {
@@ -455,7 +452,15 @@ socket.on('state', s => {
 
   // Update play pile with count
   const centerDiv = document.getElementById('center');
+  // --- Preserve event banner ---
+  let eventBanner = document.getElementById('event-banner');
+  if (eventBanner && eventBanner.parentNode === centerDiv) {
+    centerDiv.removeChild(eventBanner);
+  }
   centerDiv.innerHTML = '';
+  if (eventBanner) {
+    centerDiv.insertBefore(eventBanner, centerDiv.firstChild);
+  }
 
   // --- Deck/Discard in a single bordered wrapper, deck on left, discard on right ---
   const pilesWrapper = document.createElement('div');
@@ -527,17 +532,6 @@ socket.on('state', s => {
     noticeBanner.style.bottom = 'unset';
     noticeBanner.style.display = 'block';
     centerDiv.appendChild(noticeBanner);
-  }
-
-  let eventBanner = document.getElementById('event-banner');
-  if (!eventBanner) {
-      eventBanner = document.createElement('div');
-      eventBanner.id = 'event-banner';
-      if (centerDiv) {
-          centerDiv.insertBefore(eventBanner, centerDiv.firstChild);
-      } else {
-          console.error("#center not found, cannot append event banner");
-      }
   }
 
   const canPlayHand = isMyTurn && myHandCount > 0;
@@ -712,9 +706,18 @@ window.addEventListener('load', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  const banner = document.getElementById('event-banner');
-  const center = document.getElementById('center');
-  if (banner && center && !center.contains(banner)) {
-    center.appendChild(banner);
+  let eventBanner = document.getElementById('event-banner');
+  if (!eventBanner) {
+    eventBanner = document.createElement('div');
+    eventBanner.id = 'event-banner';
+    eventBanner.className = '';
+    const center = document.getElementById('center');
+    if (center) {
+      center.insertBefore(eventBanner, center.firstChild);
+    } else {
+      document.body.appendChild(eventBanner);
+    }
+  } else {
+    eventBanner.style.display = '';
   }
 });
