@@ -100,7 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lobbyFormContent) lobbyFormContent.classList.remove('hidden');
     if (waitingStateDiv) waitingStateDiv.classList.add('hidden');
     if (table) table.classList.add('hidden');
-    if (nameIn) nameIn.disabled = false;
+    if (nameIn) {
+      nameIn.value = 'Player 1';
+      nameIn.placeholder = 'Player 1';
+      nameIn.readOnly = true;
+      nameIn.disabled = false;
+    }
     if (joinBtn) joinBtn.disabled = false;
     if (joinComputerBtn) joinComputerBtn.disabled = false;
     if (computerCountInput) computerCountInput.disabled = false;
@@ -121,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   }
 
-  function showWaitingState(roomId, playersLength, maxPlayers) {
+  function showWaitingState(roomId, playersLength, maxPlayers, playersList) {
     console.log('[Debug] showWaitingState called'); // Added log
     if (lobbyContainer) lobbyContainer.classList.remove('hidden');
     if (lobbyFormContent) lobbyFormContent.classList.add('hidden');
@@ -240,10 +245,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ---------- Validation ---------- */
   function validateName() {
+    if (nameIn && nameIn.readOnly && nameIn.value === 'Player 1') {
+      clearNameError();
+      return 'Player 1';
+    }
     const n = nameIn.value.trim();
     if (!n) {
-      if(nameIn) nameIn.classList.add('input-error'); // Added null check
-      if(nameError) nameError.classList.remove('hidden'); // Added null check
+      if(nameIn) nameIn.classList.add('input-error');
+      if(nameError) nameError.classList.remove('hidden');
       return false;
     }
     clearNameError();
@@ -256,8 +265,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (nameIn) {
-    nameIn.value = 'Player 1'; // Pre-fill name for convenience, but do not auto-join
-    nameIn.addEventListener('input', clearNameError);
+    nameIn.value = 'Player 1'; // Always pre-fill as Player 1
+    nameIn.placeholder = 'Player 1';
+    nameIn.disabled = false; // Allow editing so the value is submitted
+    nameIn.readOnly = true; // Prevent user from changing, but value is included in form
   }
 
   /* ---------- Socket Event Handlers ---------- */
@@ -277,7 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
       currentRoom = null;
       sessionStorage.removeItem('myId');
       sessionStorage.removeItem('currentRoom');
-      if (nameIn) nameIn.value = '';
       console.log('[Debug Connect] Calling showLobbyForm()...');
       showLobbyForm(); // This should now run after DOM is ready
       console.log('[Debug Connect] ...showLobbyForm() called.');
@@ -315,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   socket.on('state', s => {
-    console.log('🎲 Game state update');
+    console.log('[Debug] Received state event:', s); // Debug log for state event
     if (s.started) {
       showGameTable();
       renderGameState(s);
@@ -389,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const name = validateName();
       if (name) {
         const numComputers = parseInt(computerCountInput.value, 10) || 1;
-        console.log(`Attempting to join as ${name} (vs ${numComputers} Computer)`);
+        console.log(`[Debug] Emitting join event: name=${name}, vsComputer=true, numComputers=${numComputers}`);
         socket.emit('join', name, true, numComputers);
       }
     };
@@ -611,7 +621,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Intercept playSelectedCards in tutorial mode
+  function snapCard(cardElement) {
+    if (!cardElement) return;
+    cardElement.classList.remove('snap-anim');
+    // Force reflow to restart animation
+    void cardElement.offsetWidth;
+    cardElement.classList.add('snap-anim');
+    setTimeout(() => cardElement.classList.remove('snap-anim'), 300);
+  }
+
+  // Patch playSelectedCards to use tutorial logic and snap effect
   const realPlaySelectedCards = playSelectedCards;
   function playSelectedCardsTutorial() {
     if (!tutorialActive) return realPlaySelectedCards();
@@ -619,20 +638,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedCards.length === 0) return;
     const indexes = Array.from(selectedCards).map(img => parseInt(img.dataset.idx));
     const step = tutorialSteps[tutorialStep];
-    if (step.expect && !indexes.every(idx => step.expect.includes(idx)) || indexes.length !== step.expect.length) {
+    if (step.expect && (!indexes.every(idx => step.expect.includes(idx)) || indexes.length !== step.expect.length)) {
       showError('Please play the highlighted card(s) for this step.');
       return;
     }
+    // Snap animation for all selected cards
+    selectedCards.forEach(img => snapCard(img));
     // Simulate the play: remove the card from hand and advance
-    // (In a real tutorial, update the fake game state. Here, just advance step.)
     tutorialStep = Math.min(tutorialSteps.length - 1, tutorialStep + 1);
     showTutorialStep();
-    // Optionally, update the fake game state to remove the played card
-    // For now, just re-inject the same state for demo
     injectTutorialGameState();
   }
-  // Patch playSelectedCards to use tutorial logic
   window.playSelectedCards = playSelectedCardsTutorial;
+
+  // Enhance snap effect for main game as well
+  const origPlaySelectedCards = playSelectedCards;
+  function playSelectedCardsWithSnap() {
+    const selectedCards = document.querySelectorAll('.card-img.selected');
+    selectedCards.forEach(img => snapCard(img));
+    origPlaySelectedCards();
+  }
+  window.playSelectedCards = playSelectedCardsWithSnap;
 
   if (copyLinkBtn) {
     copyLinkBtn.onclick = () => {
