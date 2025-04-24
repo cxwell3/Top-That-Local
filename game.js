@@ -73,15 +73,30 @@ export class Game {
     const p = this.findPlayerById(sock.id); // Use findPlayerById
     if (!p || p.disconnected || (this.turn !== p.id && p.id !== 'computer')) return;
 
-    // Check if trying to play down cards while up cards remain
-    if (idxs.some(i => i === 2000) && p.up.length > 0) {
+    // Prevent playing up and down cards together
+    const isUpPlay = idxs.some(i => i >= 1000 && i < 2000);
+    const isDownPlay = idxs.some(i => i >= 2000);
+    if (isUpPlay && isDownPlay) {
+      sock.emit('err', 'You cannot play up and down cards together');
+      return;
+    }
+
+    // Enforce: all up cards must be played before down cards
+    if (isDownPlay && p.up.length > 0) {
       sock.emit('err', 'You must play all face-up cards before playing face-down cards');
       return;
     }
 
-    // Check if trying to play up cards while hand cards remain
-    if (idxs.some(i => i >= 1000 && i < 2000) && p.hand.length > 0) {
+    // Enforce: all hand cards must be played before up cards
+    if (isUpPlay && p.hand.length > 0) {
       sock.emit('err', 'You must play all hand cards before playing face-up cards');
+      return;
+    }
+
+    // If player has picked up the pile while in up/down phase, they must play all hand cards before returning to up/down
+    // (This is already enforced by the above, but let's make it explicit)
+    if ((isUpPlay || isDownPlay) && p.hand.length > 0) {
+      sock.emit('err', 'You must play all hand cards before playing up or down cards');
       return;
     }
 
@@ -233,10 +248,21 @@ export class Game {
   }
 
   deal() {
+    // Deal all down cards first
     for (let i = 0; i < 3; i++) {
       this.players.forEach(p => {
         p.down.push(this.draw());
+      });
+    }
+    // Then all up cards
+    for (let i = 0; i < 3; i++) {
+      this.players.forEach(p => {
         p.up.push(this.draw());
+      });
+    }
+    // Then all hand cards
+    for (let i = 0; i < 3; i++) {
+      this.players.forEach(p => {
         p.hand.push(this.draw());
       });
     }

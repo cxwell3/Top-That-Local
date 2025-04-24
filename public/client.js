@@ -1,723 +1,1041 @@
-const socket = io({
-  reconnectionDelayMax: 10000,
-  reconnection: true,
-  reconnectionDelay: 1000,
-});
+// Wrap the main logic in DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM fully loaded and parsed'); // New log
 
-console.log('Top That! client.js version 20250421 loaded');
+  const socket = io({
+    reconnectionDelayMax: 10000,
+    reconnection: true,
+    reconnectionDelay: 1000,
+  });
 
-// Add a visible version banner to the page for Render debugging
-(function() {
-  const versionBanner = document.createElement('div');
-  versionBanner.textContent = 'Top That! client.js version 20250421';
-  versionBanner.style.position = 'fixed';
-  versionBanner.style.bottom = '0';
-  versionBanner.style.right = '0';
-  versionBanner.style.background = '#ff9e0b';
-  versionBanner.style.color = '#000';
-  versionBanner.style.fontWeight = 'bold';
-  versionBanner.style.padding = '4px 12px';
-  versionBanner.style.zIndex = '9999';
-  versionBanner.style.fontSize = '1rem';
-  versionBanner.style.borderTopLeftRadius = '8px';
-  versionBanner.style.boxShadow = '0 0 8px #0006';
-  document.body.appendChild(versionBanner);
-})();
+  console.log('Top That! client.js version 20250424_lobby_modal loaded');
 
-socket.on('connect', () => {
-  console.log('✅ Socket connected');
+  /* ---------- DOM Refs ---------- */
+  const $ = id => document.getElementById(id);
 
-  // Attempt to rejoin if session data exists
-  const storedId = sessionStorage.getItem('myId');
-  const storedRoom = sessionStorage.getItem('currentRoom');
+  // Lobby elements
+  const lobbyContainer = $('lobby-container');
+  const lobbyFormCard = $('lobby-form-card');
+  const lobbyFormContent = $('lobby-form-content');
+  const waitingStateDiv = $('waiting-state');
+  const nameIn = $('name');
+  const nameError = $('name-error');
+  const joinBtn = $('join');
+  const joinComputerBtn = $('join-computer');
+  const tutorialBtn = $('tutorial-btn');
+  const computerCountInput = $('computer-count');
+  const copyLinkBtn = $('copy-link-button');
+  const shareLinkMessage = $('share-link-message');
 
-  if (storedId && storedRoom) {
-    console.log(`Attempting to rejoin room ${storedRoom} as ${storedId}`);
-    socket.emit('rejoin', storedId, storedRoom);
-  } else {
-    // Clear game state if not rejoining
-    myId = null;
-    currentRoom = null;
-    sessionStorage.removeItem('myId');
-    sessionStorage.removeItem('currentRoom');
-    nameIn.value = '';
-    nameIn.disabled = false;
-    joinBtn.disabled = false;
-    notice.classList.add('hidden');
-    lobby.classList.remove('hidden');
-    table.classList.add('hidden');
+  // Modal elements
+  const modalOverlay = $('modal-overlay');
+  const rulesModal = $('rules-modal');
+  const rulesButton = $('rules-button');
+  const rulesModalCloseButton = rulesModal ? rulesModal.querySelector('.modal-close-button') : null;
+
+  // Game elements
+  const notice = $('notice-banner');
+  const table = $('table');
+  const other = $('other-players');
+  const myArea = $('my-area');
+
+  // Add a dev/test restart button
+  function addRestartButton() {
+    if (document.getElementById('dev-restart-btn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'dev-restart-btn';
+    btn.textContent = 'Restart Game (Dev)';
+    btn.className = 'btn btn-tertiary';
+    btn.style.position = 'fixed';
+    btn.style.bottom = '24px';
+    btn.style.right = '24px';
+    btn.style.zIndex = 2000;
+    btn.onclick = () => {
+      socket.emit('adminReset');
+      // Skip reconnect logic: just reload page
+      window.location.reload();
+    };
+    document.body.appendChild(btn);
   }
-});
 
-socket.on('connect_error', (err) => {
-  console.error('❌ Socket connection failed:', err.message);
-});
+  addRestartButton();
 
-// 🛑 Dev shortcut: Ctrl + R = admin reset (with reload prevention)
-document.addEventListener('keydown', e => {
-  if (e.key === 'r' && e.ctrlKey) {
-    e.preventDefault(); // Prevent browser from reloading
-    socket.emit('adminReset');
-    console.log('🛑 Sent adminReset');
-    // Clear client state and session storage
-    myId = null;
-    currentRoom = null;
-    sessionStorage.removeItem('myId');
-    sessionStorage.removeItem('currentRoom');
-    nameIn.value = '';
-    notice.classList.add('hidden');
+  // Global state
+  let myId = null;
+  let currentRoom = null;
+  let activeModal = null; // Keep track of the currently open modal
+
+  /* ---------- UI State Functions ---------- */
+
+  function showOverlay() {
+    console.log('[Debug] showOverlay called'); // Re-added log
+    if (modalOverlay) modalOverlay.classList.remove('hidden');
+    else console.error('[Debug Error] modalOverlay is null in showOverlay'); // Added check
   }
-});
+  function hideOverlay() {
+    console.log('[Debug] hideOverlay called'); // Re-added log
+    if (modalOverlay && !activeModal) {
+      modalOverlay.classList.add('hidden');
+    } else if (!modalOverlay) {
+       console.error('[Debug Error] modalOverlay is null in hideOverlay'); // Added check
+    }
+  }
 
-let myId = null;
-let currentRoom = null;
-const $ = id => document.getElementById(id);
+  function showLobbyForm() {
+    console.log('[Debug] showLobbyForm called'); // Re-added log
 
-/* ---------- refs ---------- */
-const nameIn = $('name'), joinBtn = $('join');
-const lobby = $('lobby-banner'), notice = $('notice-banner'), table = $('table');
-const other = $('other-players');
-const joinComputerBtn = $('join-computer');
-const computerCountInput = $('computer-count'); // Get the new input field
+    // Log initial state & check elements
+    console.log('[Debug] Before changes:');
+    if (modalOverlay) console.log(`  - modalOverlay classes: ${modalOverlay.className}`);
+    else console.error('[Debug Error] modalOverlay is null in showLobbyForm (start)');
+    if (lobbyContainer) console.log(`  - lobbyContainer classes: ${lobbyContainer.className}`);
+    else console.error('[Debug Error] lobbyContainer is null in showLobbyForm (start)');
+    const lobbyCardInitial = $('lobby-form-card');
+    if (lobbyCardInitial) console.log(`  - lobby-form-card opacity: ${lobbyCardInitial.style.opacity}`);
+    else console.error('[Debug Error] lobby-form-card is null in showLobbyForm (start)');
 
-/* ---------- helpers ---------- */
-function code(c) {
-  if (!c) return '';
-  const v = c.value === 10 ? '0' : String(c.value).toUpperCase();
-  const s = { hearts: 'H', diamonds: 'D', clubs: 'C', spades: 'S' }[c.suit];
-  return v + s;
-}
 
-function cardImg(card, sel = false) {
-  const container = document.createElement('div');
-  container.style.position = 'relative';
-  container.style.height = '100%';
+    if (modalOverlay) modalOverlay.classList.add('hidden'); // Force hide overlay
+    if (lobbyContainer) lobbyContainer.classList.remove('hidden');
+    if (lobbyFormContent) lobbyFormContent.classList.remove('hidden');
+    if (waitingStateDiv) waitingStateDiv.classList.add('hidden');
+    if (table) table.classList.add('hidden');
+    if (nameIn) nameIn.disabled = false;
+    if (joinBtn) joinBtn.disabled = false;
+    if (joinComputerBtn) joinComputerBtn.disabled = false;
+    if (computerCountInput) computerCountInput.disabled = false;
+    clearNameError(); // Check inside this function if errors persist
 
-  const img = new Image();
-  img.className = 'card-img';
-  img.src = card.back
-    ? 'https://deckofcardsapi.com/static/img/back.png'
-    : `https://deckofcardsapi.com/static/img/${code(card)}.png`;
+    const lobbyCard = $('lobby-form-card');
+    if (lobbyCard) {
+        lobbyCard.style.opacity = '1'; // Set opacity directly
+    } else {
+        console.error('[Debug Error] lobby-form-card is null in showLobbyForm (setting opacity)');
+    }
 
-  // Always set up click handlers for selectable cards
-  if (sel) {
-    img.style.cursor = 'pointer';
-    img.onclick = () => img.classList.toggle('selected');
-    img.ondblclick = () => {
-      img.classList.add('selected');
-      playSelectedCards();
+    // Log final state
+    console.log('[Debug] After changes:');
+    if (modalOverlay) console.log(`  - modalOverlay classes: ${modalOverlay.className}`);
+    if (lobbyContainer) console.log(`  - lobbyContainer classes: ${lobbyContainer.className}`);
+    if (lobbyCard) console.log(`  - lobby-form-card opacity: ${lobbyCard.style.opacity}`);
+
+  }
+
+  function showWaitingState(roomId, playersLength, maxPlayers) {
+    console.log('[Debug] showWaitingState called'); // Added log
+    if (lobbyContainer) lobbyContainer.classList.remove('hidden');
+    if (lobbyFormContent) lobbyFormContent.classList.add('hidden');
+    if (waitingStateDiv) waitingStateDiv.classList.remove('hidden');
+    if (table) table.classList.add('hidden');
+
+    const waitingHeading = $('waiting-heading');
+    if (waitingHeading) {
+      waitingHeading.textContent = `Room: ${roomId} (${playersLength}/${maxPlayers})`;
+    }
+    if (shareLinkMessage) {
+      shareLinkMessage.textContent = `Share the link to invite others!`;
+    }
+    const url = new URL(window.location);
+    url.searchParams.set('room', roomId);
+    window.history.pushState({}, '', url);
+    hideOverlay(); // Ensure overlay is hidden
+  }
+
+  function showGameTable() {
+    console.log('[Debug] showGameTable called'); // Added log
+    if (lobbyContainer) lobbyContainer.classList.add('hidden');
+    if (table) table.classList.remove('hidden');
+    if (notice) notice.classList.add('hidden');
+    hideOverlay(); // Hide overlay when game starts
+    closeModal(); // Ensure any open modals are closed
+  }
+
+  /* ---------- Modal Handling ---------- */
+
+  function openModal(modalElement) {
+    console.log('[Debug] openModal called for:', modalElement ? modalElement.id : 'null'); // Re-added log
+    if (!modalElement) return;
+    closeModal();
+    showOverlay(); // Show overlay ONLY for actual modals (like rules)
+    modalElement.classList.remove('hidden');
+    activeModal = modalElement;
+    trapFocus(modalElement);
+  }
+
+  function closeModal() {
+    console.log('[Debug] closeModal called for:', activeModal ? activeModal.id : 'null'); // Re-added log
+    if (!activeModal) return;
+    activeModal.classList.add('hidden');
+    activeModal.removeEventListener('keydown', handleFocusTrap);
+    activeModal = null;
+    hideOverlay(); // Hide overlay if no other modal needs it
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+  }
+
+  // Basic Focus Trap
+  let focusableElements = null;
+  let firstFocusableElement = null;
+  let lastFocusableElement = null;
+
+  function trapFocus(modalElement) {
+    focusableElements = modalElement.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusableElements.length) return;
+    firstFocusableElement = focusableElements[0];
+    lastFocusableElement = focusableElements[focusableElements.length - 1];
+
+    // Focus the first element initially
+    setTimeout(() => {
+      firstFocusableElement.focus();
+    }, 0);
+
+    modalElement.addEventListener('keydown', handleFocusTrap);
+  }
+
+  function handleFocusTrap(e) {
+    if (e.key !== 'Tab' || !activeModal) return;
+
+    const currentFocusableElements = activeModal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (!currentFocusableElements.length) return;
+    const currentFirstFocusable = currentFocusableElements[0];
+    const currentLastFocusable = currentFocusableElements[currentFocusableElements.length - 1];
+
+    if (e.shiftKey) { // Shift + Tab
+      if (document.activeElement === currentFirstFocusable) {
+        currentLastFocusable.focus();
+        e.preventDefault();
+      }
+    } else { // Tab
+      if (document.activeElement === currentLastFocusable) {
+        currentFirstFocusable.focus();
+        e.preventDefault();
+      }
+    }
+  }
+
+  // Event listeners for rules modal
+  if (rulesButton) {
+    rulesButton.addEventListener('click', () => openModal(rulesModal));
+  }
+  if (rulesModalCloseButton) {
+    rulesModalCloseButton.addEventListener('click', closeModal);
+  }
+
+  // Close modal if overlay is clicked
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', closeModal);
+  }
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && activeModal) {
+      closeModal();
+    }
+  });
+
+  /* ---------- Validation ---------- */
+  function validateName() {
+    const n = nameIn.value.trim();
+    if (!n) {
+      if(nameIn) nameIn.classList.add('input-error'); // Added null check
+      if(nameError) nameError.classList.remove('hidden'); // Added null check
+      return false;
+    }
+    clearNameError();
+    return n;
+  }
+
+  function clearNameError() {
+    if (nameIn) nameIn.classList.remove('input-error');
+    if (nameError) nameError.classList.add('hidden');
+  }
+
+  if (nameIn) {
+    nameIn.addEventListener('input', clearNameError);
+  }
+
+  /* ---------- Socket Event Handlers ---------- */
+  socket.on('connect', () => {
+    console.log('✅ Socket connected');
+    console.log('[Debug Connect] Checking sessionStorage...');
+    const storedId = sessionStorage.getItem('myId');
+    const storedRoom = sessionStorage.getItem('currentRoom');
+    console.log(`[Debug Connect] storedId: ${storedId}, storedRoom: ${storedRoom}`);
+
+    if (storedId && storedRoom) {
+      console.log(`[Debug Connect] Attempting rejoin for room ${storedRoom} as ${storedId}`);
+      socket.emit('rejoin', storedId, storedRoom);
+    } else {
+      console.log('[Debug Connect] No session found, preparing to show lobby.');
+      myId = null;
+      currentRoom = null;
+      sessionStorage.removeItem('myId');
+      sessionStorage.removeItem('currentRoom');
+      if (nameIn) nameIn.value = '';
+      console.log('[Debug Connect] Calling showLobbyForm()...');
+      showLobbyForm(); // This should now run after DOM is ready
+      console.log('[Debug Connect] ...showLobbyForm() called.');
+    }
+  });
+
+  socket.on('connect_error', (err) => {
+    console.error('❌ Socket connection failed:', err.message);
+    showError('Connection failed. Please refresh.');
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log(`🔌 Socket disconnected: ${reason}`);
+    showError('Disconnected. Attempting to reconnect...');
+  });
+
+  socket.on('joined', d => {
+    myId = d.id;
+    sessionStorage.setItem('myId', myId);
+    console.log(`✅ Joined/Rejoined as ${myId}`);
+  });
+
+  socket.on('gameRoom', roomId => {
+    console.log(`🚪 Entered game room: ${roomId}`);
+    currentRoom = roomId;
+    sessionStorage.setItem('currentRoom', currentRoom);
+  });
+
+  socket.on('lobby', data => {
+    console.log('🛋️ Lobby update:', data);
+    const { players, maxPlayers, roomId } = data;
+    currentRoom = roomId;
+    sessionStorage.setItem('currentRoom', currentRoom);
+    showWaitingState(roomId, players.length, maxPlayers);
+  });
+
+  socket.on('state', s => {
+    console.log('🎲 Game state update');
+    showGameTable();
+    renderGameState(s);
+  });
+
+  socket.on('notice', msg => {
+    if (!notice) return;
+    if (!msg) {
+      notice.classList.add('hidden');
+      return;
+    }
+    notice.textContent = msg.replace('Take Pile', 'take pile');
+    notice.classList.remove('hidden');
+    setTimeout(() => {
+      if (notice.textContent === msg.replace('Take Pile', 'take pile')) {
+        notice.classList.add('hidden');
+      }
+    }, 4000);
+  });
+
+  socket.on('err', msg => {
+    console.error(`❌ Server Error: ${msg}`);
+    showError(msg); // Display the error message to the user
+
+    // Specific handling for "Game room no longer exists" error during rejoin
+    if (msg.includes('Game room no longer exists')) {
+      console.log('Handling \'Game room no longer exists\' error: Resetting state.');
+      myId = null;
+      currentRoom = null;
+      sessionStorage.removeItem('myId');
+      sessionStorage.removeItem('currentRoom');
+      // Clear the room parameter from the URL
+      const url = new URL(window.location);
+      url.searchParams.delete('room');
+      window.history.pushState({}, '', url);
+      // Show the lobby form
+      showLobbyForm();
+    }
+  });
+
+  socket.on('specialEffect', ({ value, type }) => {
+    showCardEvent(value, type);
+  });
+
+  socket.on('opponentTookPile', ({ playerId }) => {
+    const playerPanel = document.querySelector(`.player[data-player-id="${playerId}"]`);
+    if (playerPanel) {
+      showTookPileBanner(playerPanel);
+    }
+  });
+
+  /* ---------- Event Listeners ---------- */
+  if (joinBtn) {
+    joinBtn.onclick = () => {
+      const name = validateName();
+      if (name) {
+        console.log(`Attempting to join as ${name} (vs Human)`);
+        socket.emit('join', name, false);
+      }
     };
   }
 
-  container.appendChild(img);
-
-  if (card.copied) {
-    const badge = document.createElement('div');
-    badge.className = 'copy-badge';
-    badge.textContent = `Copied ${card.value}`;
-    container.appendChild(badge);
+  if (joinComputerBtn) {
+    joinComputerBtn.onclick = () => {
+      const name = validateName();
+      if (name) {
+        const numComputers = parseInt(computerCountInput.value, 10) || 1;
+        console.log(`Attempting to join as ${name} (vs ${numComputers} Computer)`);
+        socket.emit('join', name, true, numComputers);
+      }
+    };
   }
 
-  return container;
-}
-
-/**
- * Wraps a row element with a label, then appends to the parent.
- * @param {Element} parent    The container to append into (e.g. your #my-area or each .player panel)
- * @param {string} labelText  The text for the label (e.g. "Hand" or "Up / Down")
- * @param {Element} rowEl     The row element (e.g. .hand or .stack-row)
- */
-function renderSection(parent, labelText, rowEl) {
-  const section = document.createElement('div');
-  section.className = 'player-section';
-  const label = document.createElement('div');
-  label.className = 'row-label';
-  label.textContent = labelText;
-  section.append(label, rowEl);
-  parent.appendChild(section);
-  return section;
-}
-
-function showCardEvent(cardValue, type) {
-  const banner = document.getElementById('event-banner');
-  if (!banner) {
-    console.error("#event-banner not found in showCardEvent!");
-    return;
+  if (tutorialBtn) {
+    tutorialBtn.onclick = () => {
+      if (lobbyContainer) lobbyContainer.classList.add('hidden');
+      if (table) table.classList.remove('hidden');
+      injectTutorialGameState();
+      startTutorial();
+    };
   }
 
-  let text = '';
-  let className = '';
-
-  if (cardValue === 2) {
-    text = 'RESET!';
-    className = 'reset';
-  } else if (cardValue === 5 && type === 'five') {
-    text = 'COPY!';
-    className = 'copy';
-  } else if (cardValue === 10 || type === 'four') {
-    text = 'BURN!';
-    className = 'burn';
-  } else {
-    // If not a special event, hide banner
-    banner.className = '';
-    banner.textContent = '';
-    return;
+  // Inject a fake game state for tutorial mode
+  function injectTutorialGameState() {
+    // Simulate a real game start: 3 hand, 3 up, 3 down for player and opponent
+    const tutorialState = {
+      deckCount: 40,
+      playPile: [{ value: 4, suit: 'hearts' }],
+      discardCount: 0,
+      turn: 'tutorial-player',
+      players: [
+        {
+          id: 'tutorial-player',
+          name: 'You',
+          isComputer: false,
+          disconnected: false,
+          hand: [
+            { value: 7, suit: 'diamonds' },
+            { value: 2, suit: 'spades' },
+            { value: 9, suit: 'clubs' }
+          ],
+          handCount: 3,
+          up: [
+            { value: 5, suit: 'clubs' },
+            { value: 10, suit: 'hearts' },
+            { value: 8, suit: 'spades' }
+          ],
+          down: [
+            { back: true },
+            { back: true },
+            { back: true }
+          ],
+          downCount: 3
+        },
+        {
+          id: 'tutorial-opponent',
+          name: 'CPU',
+          isComputer: true,
+          disconnected: false,
+          hand: [],
+          handCount: 3,
+          up: [
+            { value: 6, suit: 'hearts' },
+            { value: 3, suit: 'spades' },
+            { value: 'K', suit: 'clubs' }
+          ],
+          down: [
+            { back: true },
+            { back: true },
+            { back: true }
+          ],
+          downCount: 3
+        }
+      ]
+    };
+    myId = 'tutorial-player';
+    renderGameState(tutorialState);
   }
 
-  // Show the banner with fade-in
-  banner.textContent = text;
-  banner.className = '';
-  void banner.offsetWidth;
-  banner.className = `event-banner-visible ${className}`;
-
-  // Keep the banner visible for 3 seconds, then fade out
-  clearTimeout(banner._hideTimeout);
-  banner._hideTimeout = setTimeout(() => {
-    if (banner.classList.contains('event-banner-visible')) {
-      banner.classList.remove('event-banner-visible');
-      // Optionally clear text after fade out
-      setTimeout(() => { banner.textContent = ''; }, 400);
+  // --- Tutorial Logic ---
+  const tutorialSteps = [
+    {
+      message: 'Welcome to Top That! Let\'s learn the basics. Click Next to continue.',
+      highlight: null,
+      restrict: null,
+      expect: null
+    },
+    {
+      message: 'This is your hand. Play any card higher than the top card of the discard pile (highlighted).',
+      highlight: 'hand',
+      restrict: 'hand',
+      expect: [0, 2] // allow 7 or 9 (indexes in hand)
+    },
+    {
+      message: 'Try to play a 2. It resets the pile and lets you play anything next!',
+      highlight: 'special2',
+      restrict: '2',
+      expect: [1] // only index 1 (the 2)
+    },
+    {
+      message: 'Try to play a 10. It burns the pile!',
+      highlight: 'special10',
+      restrict: '10',
+      expect: null // up card, will allow in next step
+    },
+    {
+      message: 'Try to play a 5. It copies the previous card\'s value!',
+      highlight: 'special5',
+      restrict: '5',
+      expect: null // up card, will allow in next step
+    },
+    {
+      message: 'Great job! You\'ve learned the basics. Play a full game to master the rest!',
+      highlight: null,
+      restrict: null,
+      expect: null
     }
-  }, 3000);
-}
+  ];
+  let tutorialStep = 0;
+  let tutorialActive = false;
 
-function showTookPileBanner(panel) {
-  // Remove any existing banner
-  const oldBanner = panel.querySelector('.took-pile-banner');
-  if (oldBanner) oldBanner.remove();
-  // Create and show the banner
-  const banner = document.createElement('div');
-  banner.className = 'took-pile-banner';
-  banner.textContent = 'Took the pile!';
-  panel.insertBefore(banner, panel.firstChild);
-  setTimeout(() => {
-    banner.remove();
-  }, 1750);
-}
-
-/* ---------- join ---------- */
-joinBtn.onclick = () => {
-  console.log("[DEBUG] Join Game button clicked."); // ADDED
-  const n = nameIn.value.trim();
-  if (!n) return alert('Enter a name');
-  console.log(`[DEBUG] Emitting 'join' for player: ${n}, vsComputer: false`); // ADDED
-  socket.emit('join', n, false);
-};
-
-joinComputerBtn.onclick = () => {
-  console.log("[DEBUG] Play vs Computer button clicked."); // ADDED
-  const n = nameIn.value.trim();
-  if (!n) return alert('Enter a name');
-  const numComputers = parseInt(computerCountInput.value, 10); // Read the value
-  // Basic validation (should also be handled by input attributes)
-  if (isNaN(numComputers) || numComputers < 1 || numComputers > 3) {
-    alert('Please select between 1 and 3 computer opponents.');
-    return;
+  function startTutorial() {
+    tutorialActive = true;
+    tutorialStep = 0;
+    showTutorialStep();
   }
-  console.log(`[DEBUG] Emitting 'join' for player: ${n}, vsComputer: true, count: ${numComputers}`); // ADDED
-  socket.emit('join', n, true, numComputers); // Send the count to the server
-};
 
-/* ---------- lobby ---------- */
-socket.on('lobby', data => { // Expect an object now
-  const { players, maxPlayers, roomId } = data;
-  const lobbyText = `Room: ${roomId} - Waiting for players (${players.length}/${maxPlayers}) — Share link to invite others!`;
-  lobby.textContent = lobbyText;
-  lobby.classList.remove('hidden');
-  table.classList.add('hidden');
-  // Re-enable input fields when returning to lobby
-  joinBtn.disabled = nameIn.disabled = false;
+  function showTutorialStep() {
+    showTutorialBanner(tutorialSteps[tutorialStep].message, tutorialStep > 0, tutorialStep < tutorialSteps.length - 1);
+    highlightTutorialCards(tutorialSteps[tutorialStep].highlight);
+  }
 
-  // Add click-to-copy functionality
-  lobby.style.cursor = 'pointer'; // Indicate it's clickable
-  lobby.onclick = () => {
-    navigator.clipboard.writeText(window.location.href)
-      .then(() => {
-        // Optional: Provide feedback to the user
-        const originalText = lobby.textContent;
-        lobby.textContent = 'Link Copied!';
-        setTimeout(() => { lobby.textContent = originalText; }, 1500);
-      })
-      .catch(err => {
-        console.error('Failed to copy link: ', err);
-        // Optional: Alert user if copy failed
-        alert('Could not copy link automatically. Please copy it manually.');
+  function showTutorialBanner(msg, showBack, showNext) {
+    let banner = document.getElementById('tutorial-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'tutorial-banner';
+      banner.className = 'banner';
+      banner.style.position = 'fixed';
+      banner.style.top = '90px';
+      banner.style.left = '50%';
+      banner.style.transform = 'translateX(-50%)';
+      banner.style.zIndex = 2000;
+      banner.style.background = '#ffd36b';
+      banner.style.color = '#222';
+      banner.style.fontWeight = 'bold';
+      banner.style.fontSize = '1.2rem';
+      banner.style.padding = '1rem 2rem';
+      banner.style.borderRadius = '10px';
+      document.body.appendChild(banner);
+    }
+    banner.innerHTML = '';
+    if (showBack) {
+      const backBtn = document.createElement('button');
+      backBtn.textContent = 'Back';
+      backBtn.className = 'btn btn-tertiary';
+      backBtn.style.marginRight = '1rem';
+      backBtn.onclick = () => {
+        tutorialStep = Math.max(0, tutorialStep - 1);
+        showTutorialStep();
+      };
+      banner.appendChild(backBtn);
+    }
+    const msgSpan = document.createElement('span');
+    msgSpan.textContent = msg;
+    banner.appendChild(msgSpan);
+    if (showNext) {
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next';
+      nextBtn.className = 'btn btn-primary';
+      nextBtn.style.marginLeft = '1rem';
+      nextBtn.onclick = () => {
+        tutorialStep = Math.min(tutorialSteps.length - 1, tutorialStep + 1);
+        showTutorialStep();
+      };
+      banner.appendChild(nextBtn);
+    }
+  }
+
+  function highlightTutorialCards(type) {
+    // Remove previous highlights
+    document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+    if (!type) return;
+    if (type === 'hand') {
+      document.querySelectorAll('#my-hand .card-img').forEach(el => el.classList.add('tutorial-highlight'));
+    }
+    // Special card highlights (2, 5, 10)
+    if (type === 'special2') {
+      document.querySelectorAll('#my-hand .card-img').forEach(el => {
+        if (el.src.includes('/2')) el.classList.add('tutorial-highlight');
       });
-  };
-});
-
-/* ---------- joined ---------- */
-socket.on('joined', d => {
-  myId = d.id;
-  sessionStorage.setItem('myId', myId); // Store myId
-  joinBtn.disabled = nameIn.disabled = true;
-});
-
-/* ---------- notices ---------- */
-socket.on('notice', msg => {
-  if (!msg) return notice.classList.add('hidden');
-  notice.textContent = msg.replace('Take Pile', 'take pile');
-  notice.classList.remove('hidden');
-  notice.style.display = 'block';
-});
-
-/* ---------- error handling ---------- */
-socket.on('err', msg => {
-  notice.textContent = `Error: ${msg.replace('Take Pile', 'take pile')}`; // Fix capitalization
-  notice.classList.remove('hidden');
-});
-
-/* ---------- state ---------- */
-socket.on('state', s => {
-  // Always show the game table and hide the lobby when state is received
-  table.classList.remove('hidden');
-  lobby.classList.add('hidden');
-
-  // --- Clear Areas ---
-  const otherPlayersContainer = $('other-players');
-  if (otherPlayersContainer) otherPlayersContainer.innerHTML = '';
-  const myArea = document.getElementById('my-area');
-  if (myArea) myArea.innerHTML = '';
-
-  let myHandCount = 0;
-  let myUpCount = 0;
-  let myDownCount = 0;
-  let isMyTurn = s.turn === myId; // Determine if it's my turn
-
-  // --- Render Player Panels ---
-  s.players.forEach(p => {
-    if (p.id === myId) {
-      // --- MY PLAYER PANEL ---
-      if (!myArea) return;
-      // Create and append name header
-      const myNameElement = document.createElement('h2');
-      myNameElement.id = 'my-name';
-      myNameElement.textContent = p.name;
-      myArea.appendChild(myNameElement);
-
-      // Build hand row
-      const handRow = document.createElement('div');
-      handRow.id = 'my-hand';
-      handRow.className = 'hand';
-      myHandCount = p.hand.length;
-      p.hand.forEach((c, i) => {
-        const el = cardImg(c, isMyTurn); // Pass isMyTurn to cardImg
-        const cardElement = el.querySelector('.card-img');
-        if (cardElement) cardElement.dataset.idx = i;
-        handRow.appendChild(el);
+    }
+    if (type === 'special10') {
+      document.querySelectorAll('#my-hand .card-img').forEach(el => {
+        if (el.src.includes('/0')) el.classList.add('tutorial-highlight');
       });
+    }
+    if (type === 'special5') {
+      document.querySelectorAll('#my-hand .card-img').forEach(el => {
+        if (el.src.includes('/5')) el.classList.add('tutorial-highlight');
+      });
+    }
+  }
 
-      // Build stack row
-      const stackRow = document.createElement('div');
-      stackRow.id = 'my-stacks';
-      stackRow.className = 'stack-row';
-      myUpCount = p.up.length;
-      myDownCount = p.down ? p.down.length : 0;
-      if (p.up.length > 0) {
-        p.up.forEach((c, i) => {
-          const col = document.createElement('div');
-          col.className = 'stack';
-          const isClickable = isMyTurn && p.hand.length === 0;
-          const downCard = cardImg({ back: true }, false);
-          const downCardImg = downCard.querySelector('.card-img');
-          if (downCardImg) downCardImg.classList.add('down-card');
-          const upCard = cardImg(c, isClickable);
-          const upCardElement = upCard.querySelector('.card-img');
-          if (upCardElement) {
-             upCardElement.classList.add('up-card');
-             upCardElement.dataset.idx = i + 1000;
-          }
-          col.append(downCard, upCard);
-          stackRow.appendChild(col);
-        });
-      } else if (p.down && p.down.length > 0) {
-        p.down.forEach((c, i) => {
-          const col = document.createElement('div');
-          col.className = 'stack';
-          const isClickable = isMyTurn && p.hand.length === 0 && p.up.length === 0 && !c.back;
-          const downCard = cardImg(c, isClickable);
-          const downCardImg = downCard.querySelector('.card-img');
-          if (downCardImg) {
-            downCardImg.classList.add('down-card');
-            downCardImg.dataset.idx = i + 2000; // Use a different range for down cards
-          }
-          col.appendChild(downCard);
-          stackRow.appendChild(col);
-        });
-      }
-
-      // Render sections with labels
-      const handSection = renderSection(myArea, 'Hand', handRow);
-      const upDownSection = renderSection(myArea, 'Up / Down', stackRow);
-
-      // Add active class if it's my turn
-      if (isMyTurn) myArea.classList.add('active');
-      else myArea.classList.remove('active');
-
-      // --- Ensure Buttons Exist and are below the cards being played ---
-      let btnContainer = document.getElementById('dynamic-btn-container');
-      if (!btnContainer) {
-        btnContainer = document.createElement('div');
-        btnContainer.className = 'button-container';
-        btnContainer.id = 'dynamic-btn-container';
-        const playBtnDyn = document.createElement('button');
-        playBtnDyn.id = 'play';
-        playBtnDyn.textContent = 'Play Selected';
-        playBtnDyn.onclick = playSelectedCards;
-        const takeBtnDyn = document.createElement('button');
-        takeBtnDyn.id = 'take';
-        takeBtnDyn.textContent = 'Take Pile';
-        takeBtnDyn.onclick = () => socket.emit('takePile');
-        btnContainer.appendChild(playBtnDyn);
-        btnContainer.appendChild(takeBtnDyn);
-      }
-      // Always insert the button container, even if no cards
-      if (myHandCount > 0) {
-        if (handSection && handSection.nextSibling !== btnContainer) {
-          myArea.insertBefore(btnContainer, handSection.nextSibling);
-        }
-      } else {
-        if (upDownSection && upDownSection.nextSibling !== btnContainer) {
-          myArea.insertBefore(btnContainer, upDownSection.nextSibling);
-        }
-      }
-      // Always show the button container for the player
-      btnContainer.style.display = 'flex';
-      // Set Button Disabled State
-      const playBtn = document.getElementById('play');
-      const takeBtn = document.getElementById('take');
-      if (playBtn) playBtn.disabled = !isMyTurn;
-      if (takeBtn) takeBtn.disabled = !isMyTurn;
-
+  function showTutorialBanner() {
+    let banner = document.getElementById('tutorial-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'tutorial-banner';
+      banner.className = 'banner';
+      banner.style.position = 'fixed';
+      banner.style.top = '90px';
+      banner.style.left = '50%';
+      banner.style.transform = 'translateX(-50%)';
+      banner.style.zIndex = 2000;
+      banner.style.background = '#ffd36b';
+      banner.style.color = '#222';
+      banner.style.fontWeight = 'bold';
+      banner.style.fontSize = '1.2rem';
+      banner.style.padding = '1rem 2rem';
+      banner.style.borderRadius = '10px';
+      banner.textContent = 'Tutorial Mode: This is where your interactive tutorial will begin!';
+      document.body.appendChild(banner);
     } else {
-      // --- OPPONENT PANEL ---
-      const panel = document.createElement('div');
-      panel.className = 'player';
-      panel.dataset.playerId = p.id;
-      if (p.id === s.turn) panel.classList.add('active');
-      if (p.isComputer) panel.classList.add('computer-player');
-
-      const nameHeader = document.createElement('h3');
-      nameHeader.textContent = p.name;
-      panel.appendChild(nameHeader);
-
-      const hr = document.createElement('div');
-      hr.className = 'opp-hand';
-      if (p.handCount > 0) {
-        for (let i = 0; i < p.handCount; i++) {
-          const cardDivContainer = cardImg({ back: true }, false);
-          cardDivContainer.classList.add('opp-card-container');
-          hr.appendChild(cardDivContainer);
-        }
-      }
-
-      const sr = document.createElement('div');
-      sr.className = 'stack-row';
-      if (p.up && p.up.length > 0) {
-        p.up.forEach((c, i) => {
-          const col = document.createElement('div');
-          col.className = 'stack';
-          const downCard = cardImg({ back: true }, false);
-          const downCardImg = downCard.querySelector('.card-img');
-          if (downCardImg) downCardImg.classList.add('down-card');
-          const upCard = cardImg(c, false);
-          const upCardImg = upCard.querySelector('.card-img');
-          if (upCardImg) upCardImg.classList.add('up-card');
-          col.appendChild(downCard);
-          col.appendChild(upCard);
-          sr.appendChild(col);
-        });
-      } else if (p.down && p.down.length > 0) {
-        p.down.forEach((c, i) => {
-          const col = document.createElement('div');
-          col.className = 'stack';
-          const downCard = cardImg({ back: true }, false);
-          const downCardImg = downCard.querySelector('.card-img');
-          if (downCardImg) downCardImg.classList.add('down-card');
-          col.appendChild(downCard);
-          sr.appendChild(col);
-        });
-      }
-
-      renderSection(panel, 'Hand', hr);
-      renderSection(panel, 'Up / Down', sr);
-
-      if (otherPlayersContainer) {
-          otherPlayersContainer.appendChild(panel);
-      } else {
-          console.error("Cannot append opponent panel, #other-players container missing!");
-      }
+      banner.textContent = 'Tutorial Mode: This is where your interactive tutorial will begin!';
+      banner.classList.remove('hidden');
     }
-  }); // End of player rendering loop
-
-  // Update play pile with count
-  const centerDiv = document.getElementById('center');
-  // --- Preserve event banner ---
-  let eventBanner = document.getElementById('event-banner');
-  if (eventBanner && eventBanner.parentNode === centerDiv) {
-    centerDiv.removeChild(eventBanner);
-  }
-  centerDiv.innerHTML = '';
-  if (eventBanner) {
-    centerDiv.insertBefore(eventBanner, centerDiv.firstChild);
   }
 
-  // --- Deck/Discard in a single bordered wrapper, deck on left, discard on right ---
-  const pilesWrapper = document.createElement('div');
-  pilesWrapper.className = 'center-piles-wrapper';
-
-  // Deck pile (left)
-  const drawPileContainer = document.createElement('div');
-  drawPileContainer.className = 'center-pile-container';
-  const drawLabel = document.createElement('div');
-  drawLabel.className = 'pile-label';
-  drawLabel.textContent = 'Deck';
-  drawPileContainer.appendChild(drawLabel);
-  const drawPileDiv = document.createElement('div');
-  drawPileDiv.id = 'draw-pile';
-  drawPileDiv.className = 'pile small';
-  drawPileContainer.appendChild(drawPileDiv);
-  const drawCountSpan = document.createElement('span');
-  drawCountSpan.id = 'draw-count';
-  drawCountSpan.className = 'pile-count';
-  drawPileContainer.appendChild(drawCountSpan);
-  if (s.deckCount) {
-    drawPileDiv.appendChild(cardImg({ back: true }));
-    drawCountSpan.textContent = s.deckCount;
-    if (isMyTurn) drawPileDiv.classList.add('playable-pile');
-  } else {
-    drawPileDiv.classList.remove('small');
-    drawPileDiv.style.backgroundColor = 'transparent';
-    drawPileDiv.style.border = 'none';
-    drawPileDiv.style.boxShadow = 'none';
-    drawCountSpan.textContent = '0';
+  // Intercept playSelectedCards in tutorial mode
+  const realPlaySelectedCards = playSelectedCards;
+  function playSelectedCardsTutorial() {
+    if (!tutorialActive) return realPlaySelectedCards();
+    const selectedCards = document.querySelectorAll('.card-img.selected');
+    if (selectedCards.length === 0) return;
+    const indexes = Array.from(selectedCards).map(img => parseInt(img.dataset.idx));
+    const step = tutorialSteps[tutorialStep];
+    if (step.expect && !indexes.every(idx => step.expect.includes(idx)) || indexes.length !== step.expect.length) {
+      showError('Please play the highlighted card(s) for this step.');
+      return;
+    }
+    // Simulate the play: remove the card from hand and advance
+    // (In a real tutorial, update the fake game state. Here, just advance step.)
+    tutorialStep = Math.min(tutorialSteps.length - 1, tutorialStep + 1);
+    showTutorialStep();
+    // Optionally, update the fake game state to remove the played card
+    // For now, just re-inject the same state for demo
+    injectTutorialGameState();
   }
-  pilesWrapper.appendChild(drawPileContainer);
+  // Patch playSelectedCards to use tutorial logic
+  window.playSelectedCards = playSelectedCardsTutorial;
 
-  // Discard pile (right)
-  const playPileContainer = document.createElement('div');
-  playPileContainer.className = 'center-pile-container';
-  const playLabel = document.createElement('div');
-  playLabel.className = 'pile-label';
-  playLabel.textContent = 'Discard';
-  playPileContainer.appendChild(playLabel);
-  const playPileDiv = document.createElement('div');
-  playPileDiv.id = 'play-pile';
-  playPileDiv.className = 'pile';
-  playPileContainer.appendChild(playPileDiv);
-  const playCountSpan = document.createElement('span');
-  playCountSpan.id = 'play-count';
-  playCountSpan.className = 'pile-count';
-  playPileContainer.appendChild(playCountSpan);
-  if (s.playPile.length) {
-    const topCard = s.playPile.at(-1);
-    playPileDiv.appendChild(cardImg(topCard));
-    playCountSpan.textContent = s.playPile.length;
-    if (isMyTurn) playPileDiv.classList.add('playable-pile');
-  } else {
-    playCountSpan.textContent = '0';
+  if (copyLinkBtn) {
+    copyLinkBtn.onclick = () => {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          const originalText = copyLinkBtn.textContent;
+          copyLinkBtn.textContent = 'Copied!';
+          copyLinkBtn.disabled = true;
+          setTimeout(() => {
+            copyLinkBtn.textContent = originalText;
+            copyLinkBtn.disabled = false;
+          }, 1500);
+        })
+        .catch(err => {
+          console.error('Failed to copy link: ', err);
+          if(shareLinkMessage) shareLinkMessage.textContent = 'Could not copy link automatically.'; // Added null check
+        });
+    };
   }
 
-  pilesWrapper.appendChild(playPileContainer);
-  centerDiv.appendChild(pilesWrapper);
-
-  // Place the notice banner horizontally below the entire center border (deck/discard)
-  const noticeBanner = document.getElementById('notice-banner');
-  if (noticeBanner) {
-    noticeBanner.style.position = 'relative';
-    noticeBanner.style.transform = 'none';
-    noticeBanner.style.margin = '1rem auto 0 auto';
-    noticeBanner.style.maxWidth = '400px';
-    noticeBanner.style.left = 'unset';
-    noticeBanner.style.bottom = 'unset';
-    noticeBanner.style.display = 'block';
-    centerDiv.appendChild(noticeBanner);
-  }
-
-  const canPlayHand = isMyTurn && myHandCount > 0;
-  const canPlayUp = isMyTurn && myHandCount === 0 && myUpCount > 0;
-  const canPlayDown = isMyTurn && myHandCount === 0 && myUpCount === 0 && myDownCount > 0;
-
-  const myHandDiv = document.getElementById('my-hand');
-  if (myHandDiv) {
-    Array.from(myHandDiv.children).forEach(container => {
-      const img = container.querySelector('.card-img');
-      if (img) {
-        if (canPlayHand) {
-          container.classList.add('playable-card-container');
-          img.style.cursor = 'pointer';
-          img.onclick = () => img.classList.toggle('selected');
-          img.ondblclick = () => {
-            img.classList.add('selected');
-            playSelectedCards();
-          };
-        } else {
-          container.classList.remove('playable-card-container');
-          img.style.cursor = 'default';
-          img.onclick = null;
-          img.ondblclick = null;
-        }
-      }
-    });
-  }
-
-  const myStacksDiv = document.getElementById('my-stacks');
-  if (myStacksDiv) {
-    Array.from(myStacksDiv.children).forEach(stack => {
-      const upCardImg = stack.querySelector('.up-card');
-      const downCardImg = stack.querySelector('.down-card');
-
-      if (canPlayUp && upCardImg) {
-        stack.classList.add('playable-stack');
-        upCardImg.style.cursor = 'pointer';
-        upCardImg.onclick = () => upCardImg.classList.toggle('selected');
-         upCardImg.ondblclick = () => {
-            upCardImg.classList.add('selected');
-            playSelectedCards();
-          };
-      } else if (canPlayDown && downCardImg && !upCardImg) {
-         stack.classList.add('playable-stack');
-         downCardImg.style.cursor = 'pointer';
-         downCardImg.onclick = () => downCardImg.classList.toggle('selected');
-         downCardImg.ondblclick = () => {
-            downCardImg.classList.add('selected');
-            playSelectedCards();
-          };
-      } else {
-        stack.classList.remove('playable-stack');
-        if (upCardImg) {
-           upCardImg.style.cursor = 'default';
-           upCardImg.onclick = null;
-           upCardImg.ondblclick = null;
-        }
-        if (downCardImg) {
-           downCardImg.style.cursor = 'default';
-           downCardImg.onclick = null;
-           downCardImg.ondblclick = null;
-        }
-      }
-    });
-  }
-
-  if (isMyTurn) {
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true });
-  } else {
-    document.removeEventListener('touchstart', handleTouchStart);
-    document.removeEventListener('touchend', handleTouchEnd);
-  }
-});
-
-// Listen for specialEffect socket event
-socket.on('specialEffect', ({ value, type }) => {
-  showCardEvent(value, type);
-});
-
-// Listen for opponentTookPile socket event
-socket.on('opponentTookPile', ({ playerId }) => {
-  const playerPanels = document.querySelectorAll('#other-players .player');
-  playerPanels.forEach(panel => {
-    const nameHeader = panel.querySelector('h3');
-    if (panel.dataset.playerId === playerId || (nameHeader && nameHeader.dataset.playerId === playerId)) {
-      showTookPileBanner(panel);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      console.log('🛑 Sending adminReset');
+      socket.emit('adminReset');
+      myId = null;
+      currentRoom = null;
+      sessionStorage.removeItem('myId');
+      sessionStorage.removeItem('currentRoom');
+      window.history.pushState({}, '', window.location.pathname);
+      showLobbyForm();
     }
   });
-});
 
-// Touch event handling for mobile devices
-let touchTimeout;
-let touchedCard = null;
+  /* ---------- Helper Functions ---------- */
+  function showError(msg) {
+    if (!notice) return;
+    notice.textContent = `Error: ${msg.replace('Take Pile', 'take pile')}`;
+    notice.classList.remove('hidden');
+    notice.style.backgroundColor = 'var(--error-color)';
+    notice.style.color = 'white';
 
-function handleTouchStart(e) {
-  const card = e.target.closest('.card-img');
-  if (!card) return;
-  
-  touchedCard = card;
-  touchTimeout = setTimeout(() => {
-    if (touchedCard) {
-      touchedCard.classList.toggle('selected');
-    }
-  }, 500);
-}
-
-function handleTouchEnd(e) {
-  clearTimeout(touchTimeout);
-  const card = e.target.closest('.card-img');
-  
-  if (card && card === touchedCard && e.timeStamp - e.target._touchStartTime < 500) {
-    card.classList.toggle('selected');
+    setTimeout(() => {
+      notice.classList.add('hidden');
+      notice.style.backgroundColor = '';
+      notice.style.color = '';
+    }, 5000);
   }
-  touchedCard = null;
-}
 
-// Add playCards function
-function playCards(indexes) {
-  if (indexes && indexes.length > 0) {
+  function code(c) {
+    if (!c || typeof c.value === 'undefined' || c.value === null) return '';
+    const v = c.value === 10 ? '0' : String(c.value).toUpperCase() === 'A' ? 'ace' : String(c.value).toUpperCase();
+    const s = { hearts: 'H', diamonds: 'D', clubs: 'C', spades: 'S' }[c.suit];
+    if (!s) return '';
+    if (v === 'ace') return `A${s}`;
+    return v + s;
+  }
+
+  function cardImg(card, sel = false) {
+    const container = document.createElement('div');
+
+    const img = new Image();
+    img.className = 'card-img';
+    img.src = card.back
+      ? 'https://deckofcardsapi.com/static/img/back.png'
+      : `https://deckofcardsapi.com/static/img/${code(card)}.png`;
+    img.alt = card.back ? 'Card back' : `${card.value} of ${card.suit}`;
+
+    if (sel) {
+      img.style.cursor = 'pointer';
+      // Attach handlers directly on the image so click always registers
+      img.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isSelected = img.classList.toggle('selected');
+        container.classList.toggle('selected-container', isSelected);
+      });
+      img.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        if (!img.classList.contains('selected')) {
+          img.classList.add('selected');
+          container.classList.add('selected-container');
+        }
+        playSelectedCards();
+      });
+    } else {
+      img.style.cursor = 'default';
+    }
+
+    container.appendChild(img);
+
+    return container;
+  }
+
+  function renderSection(parent, labelText, rowEl) {
+    const section = document.createElement('div');
+    section.className = 'player-section';
+    const label = document.createElement('div');
+    label.className = 'row-label';
+    label.textContent = labelText;
+    section.append(label, rowEl);
+    parent.appendChild(section);
+    return section;
+  }
+
+  function showCardEvent(cardValue, type) {
+    const banner = document.getElementById('event-banner');
+    if (!banner) {
+      console.error("#event-banner not found in showCardEvent!");
+      return;
+    }
+
+    let text = '';
+    let className = '';
+
+    if (cardValue === 2) {
+      text = '♻️ RESET!';
+      className = 'reset';
+    } else if (cardValue === 5 && type === 'five') {
+      text = '🌀 COPY!';
+      className = 'copy';
+    } else if (cardValue === 10) {
+      text = '🔥 BURN!';
+      className = 'burn';
+    } else if (type === 'four') {
+      text = '4️⃣ FOUR!';
+      className = 'burn';
+    } else {
+      banner.className = '';
+      banner.textContent = '';
+      return;
+    }
+
+    banner.textContent = text;
+    banner.className = '';
+    void banner.offsetWidth;
+    banner.className = `event-banner-visible ${className}`;
+
+    clearTimeout(banner._hideTimeout);
+    banner._hideTimeout = setTimeout(() => {
+      if (banner.classList.contains('event-banner-visible')) {
+        banner.classList.remove('event-banner-visible');
+        setTimeout(() => { banner.textContent = ''; }, 400);
+      }
+    }, 3000);
+  }
+
+  function showTookPileBanner(panel) {
+    const oldBanner = panel.querySelector('.took-pile-banner');
+    if (oldBanner) oldBanner.remove();
+    const banner = document.createElement('div');
+    banner.className = 'took-pile-banner';
+    banner.textContent = 'Took the pile!';
+    panel.insertBefore(banner, panel.firstChild);
+    setTimeout(() => {
+      banner.remove();
+    }, 1750);
+  }
+
+  function playSelectedCards() {
+    const selectedCards = document.querySelectorAll('.card-img.selected');
+    if (selectedCards.length === 0) return;
+
+    const indexes = Array.from(selectedCards).map(img => parseInt(img.dataset.idx));
+
+    const isHandPlay = indexes.every(idx => idx < 1000);
+    const isUpPlay = indexes.every(idx => idx >= 1000 && idx < 2000);
+    const isDownPlay = indexes.every(idx => idx >= 2000);
+
+    if (!(isHandPlay || isUpPlay || isDownPlay)) {
+      showError("You can only play cards from one area (Hand, Up, or Down) at a time.");
+      selectedCards.forEach(img => img.classList.remove('selected'));
+      return;
+    }
+
+    if (isDownPlay && indexes.length > 1) {
+      showError("You can only play one face-down card at a time.");
+      selectedCards.forEach(img => img.classList.remove('selected'));
+      return;
+    }
+
+    console.log(`▶️ Emitting playCards with indexes: ${indexes}`);
     socket.emit('playCards', indexes);
   }
-}
 
-// Helper function to play selected cards
-function playSelectedCards() {
-  const handRow = document.querySelector('#my-hand');
-  if (!handRow) return;
-  const selected = Array.from(handRow.children)
-    .filter(c => c.querySelector('.card-img')?.classList.contains('selected'))
-    .map(c => parseInt(c.querySelector('.card-img').dataset.idx));
-  if (selected.length > 0) {
-    socket.emit('playCards', selected);
-  }
-}
+  function renderGameState(s) {
+    if (other) other.innerHTML = '';
+    if (myArea) myArea.innerHTML = '';
 
-/* ---------- play ---------- */
+    let myHandCount = 0;
+    let myUpCount = 0;
+    let myDownCount = 0;
+    let isMyTurn = s.turn === myId;
 
-/* ---------- game room ---------- */
-socket.on('gameRoom', roomId => {
-  console.log('[DEBUG] Received gameRoom event with roomId:', roomId);
-  currentRoom = roomId;
-  sessionStorage.setItem('currentRoom', currentRoom); // Store currentRoom
-  const url = new URL(window.location);
-  url.searchParams.set('room', roomId);
-  window.history.pushState({}, '', url);
-  console.log('[DEBUG] Updated URL to:', url.toString());
-  const lobbyText = `Game Room: ${roomId} - Waiting for players (1/2) — Share this link!`;
-  lobby.textContent = lobbyText;
-  lobby.style.cursor = 'pointer';
-  lobby.onclick = () => {
-    navigator.clipboard.writeText(window.location.href)
-      .then(() => {
-        const originalText = lobby.textContent;
-        lobby.textContent = 'Link Copied!';
-        setTimeout(() => { lobby.textContent = originalText; }, 1500);
-      })
-      .catch(err => {
-        console.error('Failed to copy link: ', err);
-        alert('Could not copy link automatically. Please copy it manually.');
-      });
-  };
-});
+    s.players.forEach(p => {
+      if (p.id === myId) {
+        if (!myArea) return;
+        myArea.classList.toggle('active', isMyTurn);
 
-window.addEventListener('load', () => {
-  const params = new URLSearchParams(window.location.search);
-  const roomId = params.get('room');
-  if (roomId) {
-    currentRoom = roomId;
-  }
-});
+        const myNameElement = document.createElement('h2');
+        myNameElement.id = 'my-name';
+        myNameElement.textContent = `${p.name} (You)`;
+        myArea.appendChild(myNameElement);
 
-document.addEventListener('DOMContentLoaded', () => {
-  let eventBanner = document.getElementById('event-banner');
-  if (!eventBanner) {
-    eventBanner = document.createElement('div');
-    eventBanner.id = 'event-banner';
-    eventBanner.className = '';
-    const center = document.getElementById('center');
-    if (center) {
-      center.insertBefore(eventBanner, center.firstChild);
-    } else {
-      document.body.appendChild(eventBanner);
+        const handRow = document.createElement('div');
+        handRow.id = 'my-hand';
+        handRow.className = 'hand';
+        myHandCount = p.hand.length;
+        p.hand.forEach((c, i) => {
+          const canInteract = isMyTurn;
+          const el = cardImg(c, canInteract);
+          const cardElement = el.querySelector('.card-img');
+          if (cardElement) {
+            cardElement.dataset.idx = i;
+            if (canInteract) {
+              el.classList.add('playable-card-container');
+            }
+          }
+          handRow.appendChild(el);
+        });
+        renderSection(myArea, `Hand (${myHandCount})`, handRow);
+
+        const stackRow = document.createElement('div');
+        stackRow.id = 'my-stacks';
+        stackRow.className = 'stack-row';
+        myUpCount = p.up.length;
+        myDownCount = p.down ? p.down.length : 0;
+        const canPlayStacks = isMyTurn && myHandCount === 0;
+
+        if (myUpCount > 0) {
+          p.up.forEach((c, i) => {
+            const col = document.createElement('div');
+            col.className = 'stack';
+            const canPlayThisStack = canPlayStacks;
+            const downCard = cardImg({ back: true }, false);
+            const downCardImg = downCard.querySelector('.card-img');
+            if (downCardImg) downCardImg.classList.add('down-card');
+
+            const upCard = cardImg(c, canPlayThisStack);
+            const upCardElement = upCard.querySelector('.card-img');
+            if (upCardElement) {
+              upCardElement.classList.add('up-card');
+              upCardElement.dataset.idx = i + 1000;
+              if (canPlayThisStack) col.classList.add('playable-stack');
+            }
+            col.append(downCard, upCard);
+            stackRow.appendChild(col);
+          });
+        } else if (myDownCount > 0) {
+          p.down.forEach((c, i) => {
+            const col = document.createElement('div');
+            col.className = 'stack';
+            const canPlayThisStack = canPlayStacks && myUpCount === 0 && i === 0;
+            const downCard = cardImg(c.back ? { back: true } : c, canPlayThisStack);
+            const downCardImg = downCard.querySelector('.card-img');
+            if (downCardImg) {
+              downCardImg.classList.add('down-card');
+              downCardImg.dataset.idx = i + 2000;
+              if (canPlayThisStack) col.classList.add('playable-stack');
+            }
+            col.appendChild(downCard);
+            stackRow.appendChild(col);
+          });
+        }
+        renderSection(myArea, `Up (${myUpCount}) / Down (${myDownCount})`, stackRow);
+
+        let btnContainer = document.getElementById('dynamic-btn-container');
+        if (!btnContainer) {
+          btnContainer = document.createElement('div');
+          btnContainer.className = 'button-container';
+          btnContainer.id = 'dynamic-btn-container';
+          const playBtnDyn = document.createElement('button');
+          playBtnDyn.id = 'play';
+          playBtnDyn.textContent = 'Play Selected';
+          playBtnDyn.onclick = playSelectedCards;
+          playBtnDyn.className = 'btn btn-primary';
+          const takeBtnDyn = document.createElement('button');
+          takeBtnDyn.id = 'take';
+          takeBtnDyn.textContent = 'Take Pile';
+          takeBtnDyn.onclick = () => socket.emit('takePile');
+          takeBtnDyn.className = 'btn btn-secondary';
+          btnContainer.appendChild(playBtnDyn);
+          btnContainer.appendChild(takeBtnDyn);
+          myArea.appendChild(btnContainer);
+        }
+        const playBtn = document.getElementById('play');
+        const takeBtn = document.getElementById('take');
+        if (playBtn) playBtn.disabled = !isMyTurn;
+        if (takeBtn) takeBtn.disabled = !isMyTurn;
+
+      } else {
+        if (!other) return;
+        const panel = document.createElement('div');
+        panel.className = 'player player-area';
+        panel.dataset.playerId = p.id;
+        panel.classList.toggle('active', p.id === s.turn);
+        if (p.isComputer) panel.classList.add('computer-player');
+        if (p.disconnected) panel.classList.add('disconnected');
+
+        const nameHeader = document.createElement('h3');
+        nameHeader.textContent = p.name + (p.disconnected ? ' (Disconnected)' : '');
+        panel.appendChild(nameHeader);
+
+        const hr = document.createElement('div');
+        hr.className = 'opp-hand';
+        if (p.handCount > 0) {
+          for (let i = 0; i < p.handCount; i++) {
+            hr.appendChild(cardImg({ back: true }, false));
+          }
+        }
+        renderSection(panel, `Hand (${p.handCount})`, hr);
+
+        const sr = document.createElement('div');
+        sr.className = 'stack-row';
+        if (p.up && p.up.length > 0) {
+          p.up.forEach((c) => {
+            const col = document.createElement('div');
+            col.className = 'stack';
+            const downCard = cardImg({ back: true }, false);
+            const downCardImg = downCard.querySelector('.card-img');
+            if (downCardImg) downCardImg.classList.add('down-card');
+            const upCard = cardImg(c, false);
+            const upCardImg = upCard.querySelector('.card-img');
+            if (upCardImg) upCardImg.classList.add('up-card');
+            col.append(downCard, upCard);
+            sr.appendChild(col);
+          });
+        } else if (p.downCount && p.downCount > 0) {
+          for (let i = 0; i < p.downCount; i++) {
+            const col = document.createElement('div');
+            col.className = 'stack';
+            const downCard = cardImg({ back: true }, false);
+            const downCardImg = downCard.querySelector('.card-img');
+            if (downCardImg) downCardImg.classList.add('down-card');
+            col.appendChild(downCard);
+            sr.appendChild(col);
+          }
+        }
+        renderSection(panel, `Up (${p.up.length}) / Down (${p.downCount})`, sr);
+
+        other.appendChild(panel);
+      }
+    });
+
+    const centerDiv = document.getElementById('center');
+    if (!centerDiv) return;
+
+    let eventBanner = document.getElementById('event-banner');
+    if (eventBanner && eventBanner.parentNode === centerDiv) {
+      centerDiv.removeChild(eventBanner);
     }
-  } else {
-    eventBanner.style.display = '';
+    centerDiv.innerHTML = '';
+    if (eventBanner) {
+      centerDiv.insertBefore(eventBanner, centerDiv.firstChild);
+    }
+
+    const pilesWrapper = document.createElement('div');
+    pilesWrapper.className = 'center-piles-wrapper';
+
+    const drawPileContainer = document.createElement('div');
+    drawPileContainer.className = 'center-pile-container';
+    const drawLabel = document.createElement('div');
+    drawLabel.className = 'pile-label';
+    drawLabel.textContent = 'Deck';
+    drawPileContainer.appendChild(drawLabel);
+    const drawPileDiv = document.createElement('div');
+    drawPileDiv.id = 'draw-pile';
+    drawPileDiv.className = 'pile small';
+    drawPileContainer.appendChild(drawPileDiv);
+    const drawCountSpan = document.createElement('span');
+    drawCountSpan.id = 'draw-count';
+    drawCountSpan.className = 'pile-count';
+    drawPileContainer.appendChild(drawCountSpan);
+    if (s.deckCount) {
+      drawPileDiv.appendChild(cardImg({ back: true }));
+      drawCountSpan.textContent = s.deckCount;
+      if (isMyTurn) drawPileDiv.classList.add('playable-pile');
+    } else {
+      drawPileDiv.classList.remove('small');
+      drawPileDiv.style.backgroundColor = 'transparent';
+      drawPileDiv.style.border = 'none';
+      drawPileDiv.style.boxShadow = 'none';
+      drawCountSpan.textContent = '0';
+    }
+    pilesWrapper.appendChild(drawPileContainer);
+
+    const playPileContainer = document.createElement('div');
+    playPileContainer.className = 'center-pile-container';
+    const playLabel = document.createElement('div');
+    playLabel.className = 'pile-label';
+    playLabel.textContent = 'Discard';
+    playPileContainer.appendChild(playLabel);
+    const playPileDiv = document.createElement('div');
+    playPileDiv.id = 'play-pile';
+    playPileDiv.className = 'pile';
+    playPileContainer.appendChild(playPileDiv);
+    const playCountSpan = document.createElement('span');
+    playCountSpan.id = 'play-count';
+    playCountSpan.className = 'pile-count';
+    playPileContainer.appendChild(playCountSpan);
+    if (s.playPile.length) {
+      const topCard = s.playPile.at(-1);
+      playPileDiv.appendChild(cardImg(topCard));
+      playCountSpan.textContent = s.playPile.length;
+      if (isMyTurn) playPileDiv.classList.add('playable-pile');
+    } else {
+      playCountSpan.textContent = '0';
+    }
+
+    pilesWrapper.appendChild(playPileContainer);
+    centerDiv.appendChild(pilesWrapper);
   }
-});
+
+}); // End of DOMContentLoaded listener

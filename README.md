@@ -25,7 +25,7 @@ Background music (toggle on/off)
 Sound effects for play, burn, pickup, draw
 
     Win/loss sound cue
-
+r 
 Online Play
 
 Real-time multiplayer using Socket.io (basic already in progress)
@@ -144,4 +144,14 @@ The fix has been applied and there are no errors in client.js. The UI will now c
 # Remove duplicate or unused files for clarity
 rm -f /workspaces/Top-That/index.js
 rm -f /workspaces/Top-That/Read.me
+
+## Local Development
+
+To start the server in development mode with automatic restarts on file changes:
+
+```
+npm run dev
+```
+
+This uses nodemon to watch and restart server.js. The custom restart-server.js script is not needed for local dev.
 

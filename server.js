@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import { Game } from './game.js';
 
 console.log("File saved!"); // Fixed typo in debug message
+console.log("[Test Restart] Server started at: " + new Date().toISOString());
+console.log("[Restart Test] File change detected at: 2025-04-24");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -136,7 +138,6 @@ function createServer() {
         socket.emit('err', err.message);
       }
     });
-
     socket.on('playCards', idxs => {
       const roomId = socketToRoom.get(socket.id);
       try {

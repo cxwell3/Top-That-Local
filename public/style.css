@@ -3,71 +3,114 @@
   --bg: #178a4c; /* Lighter, single green background */
   --header-bg: #1b2e3c; /* Deep blue for header */
   --accent: #ffb74d;
-  --accent2: #2f80ed;
+  --accent2: #4a90e2; /* Muted Blue */
   --name: #ffd36b;
   --text: #f5f5f5;
-  --mute: #cfd8d1;
+  --mute: #b0bec5; /* Lighter Muted Gray */
   --panelBorder: #ffffff22;
   --active-border: #16f0ff;
+
+  /* New colors */
+  --card-bg: #ffffff;
+  --card-text: #333333;
+  --input-border: #cfd8dc; /* Light Gray */
+  --placeholder-text: #78909c; /* Darkened for AA contrast */
+  --error-color: #e53935; /* Red for validation */
+  --btn-primary-bg: var(--accent);
+  --btn-primary-text: #000000;
+  --btn-secondary-bg: var(--accent2);
+  --btn-secondary-text: #ffffff;
+  --btn-tertiary-bg: #78909c; /* Gray for Copy Link */
+  --btn-tertiary-text: #ffffff;
+  --body-bg-start: #1a9a5c; /* Gradient Start */
+  --body-bg-mid: #168a50;  /* Gradient Mid */
+  --body-bg-end: #147a46;   /* Gradient End */
+  --overlay-bg: rgba(0, 0, 0, 0.6); /* Overlay background */
+
+  /* Spacing */
+  --header-height: 70px; /* Approximate height */
+  --gutter: 24px;
 }
 
 /* ========== Base Styles ========== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   height: 100%;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Updated font stack */
   color: var(--text);
 }
 body {
-  background: var(--bg);
+  /* Animated gradient background */
+  background: linear-gradient(135deg, var(--body-bg-start), var(--body-bg-mid), var(--body-bg-end));
+  background-size: 400% 400%; /* Larger size for smooth animation */
+  animation: gradientBG 15s ease infinite; /* Apply animation */
+
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
   min-height: 100vh;
-  padding: 1rem;
-  overflow-y: auto;
+  /* Add padding-top to prevent content from hiding behind fixed header */
+  padding-top: var(--header-height); 
   margin: 0;
+  overflow-y: auto; /* Allow scrolling if content overflows */
+}
+
+/* Gradient Animation */
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* ========== Header & Navigation ========== */
-header {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 0.8rem 1.5rem; /* Increased padding */
-  border-bottom: 2px solid var(--panelBorder);
+#main-header { /* Changed from header to #main-header */
+  position: fixed; /* Fixed position */
+  top: 0;
+  left: 0;
+  width: 100%;
   background: var(--header-bg);
+  border-bottom: 2px solid var(--panelBorder);
+  z-index: 1000; /* Ensure header stays on top */
+  padding: 0; /* Remove padding, handle inside .header-content */
+  height: var(--header-height);
+  display: flex; /* Use flex to center content */
+  align-items: center; /* Vertically center */
+  justify-content: center; /* Horizontally center */
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between; /* Space out brand and nav */
+  align-items: center;
+  width: 100%;
+  max-width: 1200px; /* Max width for content */
+  padding: 0 1.5rem; /* Horizontal padding */
+  gap: 1rem;
 }
 
 .brand {
   display: flex;
   flex-direction: column;
-  margin-right: auto;
+  margin-right: auto; /* Pushes nav to the right */
 }
 .logo {
   font-weight: 700;
-  font-size: 2rem;
+  font-size: 2rem; /* Keep size */
   background: linear-gradient(90deg, var(--accent), var(--name));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  display: flex; /* Align icon */
+  align-items: center;
+  gap: 0.5rem; /* Space between icon and text */
 }
-
-.logo::after {
-  content: '';
-  display: block;
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(90deg, var(--accent), var(--name));
-  opacity: 0.5;
-  margin: 0.25rem 0;
+.logo-icon {
+  font-size: 1.5rem; /* Adjust icon size */
+  background: none; /* Remove gradient from icon */
+  color: var(--accent); /* Use accent color for icon */
 }
 
 .tagline {
-  font-size: 1.035rem;
+  font-size: 16px; /* Increased size */
   font-weight: 600;
   color: var(--name);
 }
@@ -78,42 +121,333 @@ header {
   cursor: pointer;
   font-weight: 600;
   font-size: 1rem;
+  color: var(--text); /* Ensure text is visible */
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
-#rules[open] {
-  background: #06402b;
-  border: 2px solid var(--panelBorder);
-  border-radius: 8px;
-  padding: 0.7rem 0.9rem;
-  box-shadow: 0 4px 10px #0006;
+#rules summary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
-#rules[open] summary { margin-bottom: 0.5rem; }
-#rules ol { padding-left: 1.2rem; }
-#rules li { margin-bottom: 0.4rem; line-height: 1.35em; }
+#rules summary::after { /* Underline on hover */
+  content: '';
+  display: block;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width .3s;
+  margin-top: 2px;
+}
+#rules summary:hover::after {
+  width: 100%;
+}
 
-/* Header controls */
-header input {
-  flex: 0 0 180px;
-  padding: 6px 10px;
-  border: 2px solid var(--accent);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text);
+/* ========== Main Content & Lobby ========== */
+#main-content { /* Changed from main to #main-content */
+  flex: 1; /* Allow main to grow and fill space */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Center lobby card vertically */
+  width: 100%;
+  padding: 1rem; /* Padding around content */
+  position: relative; /* Needed for overlay positioning context */
+  z-index: 1; /* Below header and modals */
 }
-header button {
-  padding: 7px 14px;
+
+#lobby-container {
+  position: fixed; /* Fixed position to overlay content */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1010; /* Above overlay, below header */
+  pointer-events: none; /* Allow clicks through container itself */
+  opacity: 0; /* Start hidden for fade-in */
+  transition: opacity 0.3s ease-out;
+}
+#lobby-container:not(.hidden) {
+  opacity: 1;
+  pointer-events: auto; /* Enable interaction when visible */
+}
+
+#lobby-form-card {
+  background: var(--card-bg);
+  color: var(--card-text);
+  border-radius: 12px; /* Slightly larger radius */
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
+  padding: var(--gutter) calc(var(--gutter) * 1.2); /* Adjust padding */
+  width: 100%;
+  max-width: 420px; /* Slightly wider */
+  text-align: center;
+  transform: scale(0.95); /* Start slightly smaller for transition */
+  opacity: 0;
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+  pointer-events: auto; /* Ensure card itself is interactive */
+}
+#lobby-container:not(.hidden) #lobby-form-card {
+  transform: scale(1); /* Scale up to normal size */
+  opacity: 1;
+}
+
+#lobby-heading {
+  font-size: 28px; /* Increased size */
+  margin-bottom: var(--gutter);
+  color: var(--card-text);
+}
+
+#lobby-form-content {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--gutter) * 0.75); /* Consistent spacing */
+}
+
+.form-group {
+  text-align: left; /* Align labels/inputs left */
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--mute); /* Muted color for label */
+  margin-bottom: 6px; /* Space between label and input */
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--input-border);
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--card-text);
+  background-color: #fff; /* Ensure background is white */
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Add box-shadow transition */
+}
+
+.form-group input[type="text"]::placeholder,
+.form-group input[type="number"]::placeholder {
+  color: var(--placeholder-text);
+  font-size: 14px;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent); /* Accent color on focus */
+  box-shadow: 0 0 0 3px rgba(255, 183, 77, 0.3); /* Accent glow */
+}
+
+/* Input validation error style */
+.form-group input.input-error {
+  border-color: var(--error-color);
+}
+.error-message {
+  color: var(--error-color);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem; /* Space between buttons */
+  margin-top: calc(var(--gutter) * 0.5);
+}
+
+.computer-options {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: calc(var(--gutter) * 0.5);
+}
+.computer-options label {
+  margin-bottom: 0; /* Remove bottom margin for inline label */
+  flex-shrink: 0; /* Prevent label from shrinking */
+}
+.computer-options input[type="number"] {
+  width: 60px; /* Smaller width for number input */
+  text-align: center;
+  padding: 8px; /* Adjust padding */
+}
+
+/* Polished Buttons */
+.btn {
+  padding: 10px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px; /* Match input radius */
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  background: var(--accent);
-  color: #000;
-  transition: filter 0.15s;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, background-color 0.2s;
+  width: 100%; /* Make buttons fill container in group */
+  text-align: center;
 }
-header button:hover:not(:disabled) { filter: brightness(1.1); }
-header button:disabled {
-  opacity: 0.45;
+
+.btn-primary {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+.btn-secondary {
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+}
+
+.btn-tertiary {
+  background-color: var(--btn-tertiary-bg);
+  color: var(--btn-tertiary-text);
+  font-size: 14px; /* Smaller font for copy button */
+  padding: 8px 12px;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px); /* Slight lift */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18); /* Slightly stronger shadow on hover */
+}
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ========== Waiting State ========== */
+#waiting-state {
+  margin-top: var(--gutter);
+  border-top: 1px solid var(--input-border);
+  padding-top: var(--gutter);
+}
+
+#waiting-heading {
+  font-size: 20px; /* Slightly smaller than main heading */
+  margin-bottom: calc(var(--gutter) * 0.75);
+  color: var(--card-text);
+}
+
+#share-link-message {
+  font-size: 14px;
+  color: var(--mute);
+  margin-bottom: 1rem;
+}
+
+/* Spinner Animation */
+.spinner {
+  margin: 0 auto calc(var(--gutter) * 0.75) auto;
+  width: 70px;
+  text-align: center;
+}
+
+.spinner > div {
+  width: 12px;
+  height: 12px;
+  background-color: var(--accent2); /* Use secondary color */
+  border-radius: 100%;
+  display: inline-block;
+  animation: sk-bouncedelay 1.4s infinite ease-in-out both;
+}
+
+.spinner .dot1 {
+  animation-delay: -0.32s;
+}
+
+.spinner .dot2 {
+  animation-delay: -0.16s;
+}
+
+@keyframes sk-bouncedelay {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1.0); }
+}
+
+/* ========== Modals (Rules) ========== */
+#modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--overlay-bg);
+  z-index: 1005; /* Below modals, above content */
+  opacity: 0; /* Hidden by default */
+  transition: opacity 0.3s ease-out;
+  pointer-events: none; /* Allow clicks through when hidden */
+}
+#modal-overlay:not(.hidden) {
+  opacity: 1;
+  pointer-events: auto; /* Block clicks when visible */
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95); /* Start smaller/centered */
+  background-color: var(--card-bg);
+  color: var(--card-text);
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  z-index: 1010; /* Above overlay */
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh; /* Limit height and allow scrolling */
+  overflow-y: auto;
+  opacity: 0;
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+  pointer-events: none; /* Hidden by default */
+}
+.modal:not(.hidden) {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1); /* Animate to full size */
+  pointer-events: auto; /* Enable interaction when visible */
+}
+
+.modal-content {
+  padding: calc(var(--gutter) * 1.5); /* More padding */
+  position: relative;
+}
+
+.modal-close-button {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--mute);
+  cursor: pointer;
+  padding: 0.25rem;
+}
+.modal-close-button:hover {
+  color: var(--card-text);
+}
+
+/* Rules modal specific styles */
+#rules-modal ul { list-style-type: none; padding-left: 0; }
+#rules-modal > .modal-content > ul > li { /* Target top-level li */
+  margin-top: 1rem; 
+  font-weight: 600; 
+  color: var(--accent); 
+  font-size: 1.1rem;
+}
+#rules-modal .sublist { 
+  margin-top: 0.5rem; 
+  margin-left: 1.4rem; 
+  font-weight: 400; 
+  color: var(--card-text); /* Use card text color */
+  font-size: 1rem;
+  list-style-type: disc; /* Use standard bullets */
+  padding-left: 1rem;
+}
+#rules-modal .sublist li { margin-bottom: 0.5rem; }
 
 /* ========== Notifications & Banners ========== */
 .banner, .notice {
@@ -175,19 +509,6 @@ header button:disabled {
 }
 
 /* ========== Layout & Structure ========== */
-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  gap: 0.5rem;
-  padding: 0.25rem;
-  overflow: visible;
-}
-
 #table {
   display: flex;
   flex-direction: column;
@@ -218,6 +539,10 @@ main {
   box-shadow: none;
 }
 
+.center-area {
+  position: relative;
+}
+
 .center-piles-wrapper {
   display: flex;
   flex-direction: row;
@@ -228,17 +553,7 @@ main {
   background: none;
   align-items: center;
   justify-content: center;
-}
-
-.center-pile-container {
-  background: none;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
+  margin-top: 2.5rem;
 }
 
 /* ========== Game Board Layout ========== */
@@ -378,28 +693,51 @@ main {
 /* ========== Card Row Containers (Hand, Stacks) ========== */
 #my-hand, .hand {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   overflow: visible;
   min-height: 100px;
   justify-content: center;
   align-items: flex-end;
-}
-#my-hand > div, .hand > div {
-  margin-left: 0 !important;
   position: relative;
-  z-index: 1;
-  transition: transform 0.2s, z-index 0.2s;
 }
-#my-hand > div.playable-card-container:hover,
-#my-hand > div.playable-card-container:focus-within {
-  transform: translateY(-22px) scale(1.08);
+
+#my-hand > div {
+  position: relative; /* enable z-index layering */
+  z-index: 1; /* base stacking order */
+  transition: transform .2s;
+}
+#my-hand > div:not(:first-child) {
+  margin-left: -30px !important;
+}
+
+/* Hover effect - revert to simple lift */
+#my-hand > div:not(.selected-container):hover {
+  transform: translateY(-15px);
   z-index: 10;
 }
-#my-hand .card-img.selected {
-  transform: translateY(-32px) scale(1.08);
-  z-index: 15;
-  border: 2px solid var(--accent);
+
+/* Keep selected card styling separate and ensure it stays lifted */
+#my-hand > div.selected-container {
+  transform: translateY(-15px) !important;
+  z-index: 10;
+}
+
+/* Add gold border to raised cards */
+#my-hand > div.selected-container .card-img,
+#my-hand > div:not(.selected-container):hover .card-img {
+  border: 3px solid gold;
+  box-shadow: 0 0 0 3px var(--accent), 0 6px 12px rgba(0,0,0,0.2);
+}
+
+#my-hand .card-img {
+  cursor: pointer;
+  transition: box-shadow 0.12s, border 0.12s, transform 0.12s;
+}
+
+#my-hand .card-img:active {
+  filter: brightness(0.95);
+  transform: scale(0.97) translateY(-15px);
 }
 
 .opp-hand {
@@ -412,7 +750,7 @@ main {
   align-items: flex-end;
 }
 .opp-hand > div {
-  margin-left: -36px !important;
+  margin-left: -47px !important;
   position: relative;
   z-index: 1;
   transition: none;
@@ -423,9 +761,9 @@ main {
 
 .stack-row {
   display: flex;
-  gap: 32px; /* More space between stacks for clarity */
+  gap: 42px; /* More space between stacks for clarity */
   overflow: visible;
-  min-height: 120px;
+  min-height: 156px;
   align-items: flex-start; /* Align stacks to the top so cards are right below label */
   justify-content: center;
   margin-top: 0.2rem;
@@ -433,8 +771,8 @@ main {
 
 .stack {
   position: relative;
-  width: 63px;
-  height: 120px;
+  width: 82px;
+  height: 156px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -443,63 +781,43 @@ main {
 
 .stack .card-img.down-card {
   position: absolute;
-  top: 0;
+  top: 71px; /* Adjusted offset */
   left: 50%;
   transform: translateX(-50%) translateY(0);
   z-index: 2;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  box-shadow: 0 2.6px 5.2px rgba(0,0,0,0.18);
 }
 
 .stack .card-img.up-card {
   position: absolute;
-  top: 28px; /* Overlap the up card below the down card */
+  top: 0; /* Adjusted offset */
   left: 50%;
   transform: translateX(-50%) translateY(0);
   z-index: 1;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  box-shadow: 0 2.6px 5.2px rgba(0,0,0,0.18);
 }
 
 /* ========== Card Images & Containers ========== */
 .card-img {
   display: block; /* Ensure images behave predictably */
-  width: 63px;
-  height: 87px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-}
-
-/* Container for player's hand cards (for fanning/hover) */
-#my-hand > div {
-  position: relative;
-  transition: margin-left 0.2s ease-out, transform 0.2s ease-out;
-}
-#my-hand > div:not(:first-child) {
-  margin-left: -45px; /* Overlap cards */
-}
-#my-hand > div.playable-card-container:hover {
-  transform: translateY(-10px);
-  z-index: 10;
-}
-#my-hand .card-img.selected {
-  transform: translateY(-15px);
-  z-index: 15;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-  border: 2px solid var(--accent);
+  width: 82px;
+  height: 113px;
+  box-shadow: 0 2.6px 5.2px rgba(0, 0, 0, 0.3);
+  border-radius: 5.2px;
 }
 
 /* Container for opponent's hand cards */
 .opp-hand > div { /* Targets the container div */
-  width: 63px;
-  height: 87px;
-  position: relative;
+  width: 82px;
+  height: 113px;
 }
 
 /* Stacks */
 .stack {
   flex-shrink: 0;
   position: relative;
-  width: 63px;
-  height: 90px; /* Adjusted height for more overlap */
+  width: 82px;
+  height: 117px; /* Adjusted height for more overlap */
 }
 .stack .card-img {
   position: absolute;
@@ -509,11 +827,11 @@ main {
 }
 .stack .card-img.down-card {
   z-index: 1;
-  top: 55px; /* REDUCED offset (was 70px) */
+  top: 71px; /* Adjusted offset */
 }
 .stack .card-img.up-card {
   z-index: 2;
-  top: 0;
+  top: 0; /* Adjusted offset */
 }
 .stack.playable-stack:hover .card-img.up-card,
 .stack.playable-stack:hover .card-img.down-card {
@@ -534,21 +852,22 @@ main {
 
 /* ========== Event Banner ========== */
 #event-banner {
-  position: absolute; /* Position relative to #center */
-  top: 50%; /* Center vertically */
-  left: 50%; /* Center horizontally */
-  transform: translate(-50%, -50%); /* Fine-tune centering */
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 110px); /* Will be adjusted by JS for precise placement */
+  transform: translate(-50%, 0);
   padding: 0.8rem 1.5rem;
   border-radius: 8px;
-  font-size: 1.8rem; /* Larger text */
+  font-size: 1.8rem;
   font-weight: bold;
   color: white;
   text-align: center;
-  z-index: 100; /* Above piles */
+  z-index: 120;
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
-  pointer-events: none; /* Don't block clicks */
+  pointer-events: none;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  margin-bottom: 0;
 }
 
 #event-banner.event-banner-visible {
@@ -556,15 +875,16 @@ main {
 }
 
 #event-banner.reset {
-  background-color: rgba(76, 175, 80, 0.85); /* Green */
+  background-color: #ffd700;
+  color: #222;
 }
 
 #event-banner.copy {
-  background-color: rgba(33, 150, 243, 0.85); /* Blue */
+  background-color: rgba(33, 150, 243, 0.85);
 }
 
 #event-banner.burn {
-  background-color: rgba(244, 67, 54, 0.85); /* Red */
+  background-color: rgba(244, 67, 54, 0.85);
 }
 
 /* ========== Buttons ========== */
@@ -594,6 +914,7 @@ main {
 #take {
   background: linear-gradient(135deg, var(--accent2), #1a5fb4);
   color: white;
+
 }
 
 .button-container button:hover:not(:disabled) {
@@ -629,13 +950,13 @@ main {
 /* ========== Responsive Styles ========== */
 @media (max-height: 800px) {
   .card-img {
-    width: 50px;
-    height: 70px;
+    width: 65px;
+    height: 91px;
   }
   
   .pile {
-    width: 50px;
-    height: 70px;
+    width: 65px;
+    height: 91px;
   }
   
   #center {
@@ -644,15 +965,15 @@ main {
   }
   
   .stack {
-    width: 50px;
-    height: 72px; /* Adjusted height for overlap (70px card height + small buffer) */
+    width: 65px;
+    height: 93px; /* Adjusted height for overlap (91px card height + small buffer) */
   }
   .stack .card-img { /* Corrected selector */
-    width: 50px;
-    height: 70px;
+    width: 65px;
+    height: 91px;
   }
   .stack .card-img.down-card { /* Corrected selector */
-    top: 45px; /* REDUCED offset for smaller cards (was 56px) */
+    top: 58px; /* Adjusted offset for smaller cards */
   }
   .stack .card-img.up-card { /* Corrected selector */
      top: 0;
@@ -702,6 +1023,47 @@ main {
 }
 
 @media (max-width: 600px) {
+  body {
+    padding-top: calc(var(--header-height) + 10px); /* Adjust padding if header wraps */
+  }
+  .header-content {
+    flex-direction: column; /* Stack header items */
+    align-items: flex-start; /* Align left */
+    padding: 0.5rem 1rem; /* Adjust padding */
+    gap: 0.5rem;
+  }
+  #main-header {
+    height: auto; /* Allow header height to adjust */
+    position: static; /* Unfix header on mobile? Or keep fixed? Let's keep fixed for now */
+  }
+  #rules[open] {
+    right: 1rem;
+    top: calc(100% + 5px); /* Position below header content */
+    width: calc(100% - 2rem); /* Adjust width */
+  }
+
+  #lobby-form-card {
+    width: 90%; /* Wider card on mobile */
+    padding: calc(var(--gutter) * 0.75); /* Slightly less padding */
+  }
+
+  #lobby-heading {
+    font-size: 24px; /* Slightly smaller heading */
+  }
+
+  .button-group {
+    flex-direction: column; /* Stack buttons */
+    gap: 0.75rem;
+  }
+
+  .computer-options {
+    flex-direction: column; /* Stack computer options */
+    align-items: flex-start;
+  }
+  .computer-options input[type="number"] {
+    width: 100%; /* Full width input */
+  }
+
   #table {
     padding: 0.5rem;
   }
@@ -739,6 +1101,15 @@ main {
   #my-area {
     order: 3; /* Player last */
     margin-top: 1.2rem; /* Add margin back for spacing */
+  }
+
+  /* Modal takes more width on mobile */
+  .modal {
+    width: 95%;
+    max-width: 95%;
+  }
+  .modal-content {
+    padding: var(--gutter);
   }
 }
 

@@ -3,47 +3,77 @@
 <head>
   <meta charset="UTF-8">
   <title>Top That! – Card Game</title>
-  <link rel="stylesheet" href="style.css?v=20250421" />
+  <link rel="stylesheet" href="style.css?v=20250424_lobby_modal" />
   <script defer src="/socket.io/socket.io.js"></script>
-  <script defer type="module" src="client.js?v=20250421"></script>
-  <style>
-    #rules summary {
-      font-weight: bold;
-      font-size: 1.1rem;
-      margin-bottom: 0.4rem;
-    }
-
-    #rules ul {
-      list-style-type: none;
-      padding-left: 0;
-    }
-
-    #rules > ul > li {
-      margin-top: 1rem;
-      font-weight: 600;
-      color: var(--accent);
-    }
-
-    .sublist {
-      margin-top: 0.3rem;
-      margin-left: 1.4rem;
-      font-weight: 400;
-      color: var(--text);
-    }
-
-    .sublist li {
-      margin-bottom: 0.3rem;
-    }
-  </style>
+  <script defer type="module" src="client.js?v=20250424_lobby_modal"></script>
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <h1 class="logo">Top That!</h1>
-      <p class="tagline">One Pile. One Winner. No Mercy.</p>
+  <header id="main-header">
+    <div class="header-content">
+      <div class="brand">
+        <h1 class="logo"><span class="logo-icon">👑</span> Top That!</h1>
+        <p class="tagline">One Pile. One Winner. No Mercy.</p>
+      </div>
+      <nav>
+        <button id="rules-button" class="btn btn-secondary" aria-haspopup="dialog">How to Play</button>
+      </nav>
     </div>
-    <details id="rules">
-      <summary>How to Play ▾</summary>
+  </header>
+
+  <div id="notice-banner" class="notice hidden"></div>
+
+  <div id="modal-overlay" class="hidden"></div>
+
+  <main id="main-content">
+    <div id="lobby-container" class="hidden">
+      <div id="lobby-form-card">
+        <h2 id="lobby-heading">Join a Game</h2>
+        <div id="lobby-form-content">
+          <div class="form-group">
+            <label for="name">Your Name</label>
+            <input type="text" id="name" placeholder="Enter your name" aria-required="true" />
+            <div id="name-error" class="error-message hidden">Please enter your name.</div>
+          </div>
+          <div class="form-group button-group">
+            <button id="join" class="btn btn-primary">Join Game</button>
+            <button id="join-computer" class="btn btn-secondary">Play vs Computer</button>
+            <button id="tutorial-btn" class="btn btn-tertiary">Tutorial</button>
+          </div>
+          <div class="form-group computer-options">
+            <label for="computer-count">Opponents:</label>
+            <input type="number" id="computer-count" name="computer-count" min="1" max="3" value="1" aria-label="Number of computer opponents">
+          </div>
+        </div>
+        <div id="waiting-state" class="hidden">
+          <h3 id="waiting-heading">Waiting for players...</h3>
+          <div class="spinner">
+            <div class="dot1"></div>
+            <div class="dot2"></div>
+          </div>
+          <p id="share-link-message">Share the link to invite others!</p>
+          <button id="copy-link-button" class="btn btn-tertiary">Copy Invite Link</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="table" class="hidden">
+      <div class="game-board">
+        <section id="my-area" class="player-area">
+          <h2 id="my-name"></h2>
+        </section>
+        <div id="center" class="center-area">
+          <div id="event-banner"></div>
+        </div>
+        <section id="other-players" class="player-area">
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div id="rules-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
+    <div class="modal-content">
+      <h2 id="rules-modal-title">How to Play Top That!</h2>
+      <button class="modal-close-button" aria-label="Close rules">&times;</button>
       <ul>
         <li>Game Setup
           <ul class="sublist">
@@ -80,33 +110,8 @@
           </ul>
         </li>
       </ul>
-    </details>
-    <div class="join-options">
-      <input type="text" id="name" placeholder="Enter your name" />
-      <button id="join">Join Game</button>
     </div>
-    <div class="join-options computer-options">
-      <button id="join-computer">Play vs Computer</button>
-      <label for="computer-count">Opponents:</label>
-      <input type="number" id="computer-count" name="computer-count" min="1" max="3" value="1">
-    </div>
-  </header>
-  <div id="lobby-banner" class="banner hidden">Waiting for players…</div>
-  <div id="notice-banner" class="notice hidden"></div>
-  <main id="table" class="hidden">
-    <div class="game-board">
-      <section id="my-area" class="player-area">
-        <h2 id="my-name"></h2>
-        <!-- Hand, Stacks, Buttons rendered by client.js -->
-      </section>
-      <div id="center" class="center-area">
-        <!-- Deck and Discard piles rendered by client.js -->
-        <div id="event-banner"></div>
-      </div>
-      <section id="other-players" class="player-area">
-        <!-- Opponent panels rendered by client.js -->
-      </section>
-    </div>
-  </main>
+  </div>
+
 </body>
 </html>
