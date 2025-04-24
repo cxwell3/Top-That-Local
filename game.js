@@ -399,7 +399,8 @@ export class Game {
             up: p.up,
             down: p.id === targetPlayer.id ? p.down : p.down.map(() => ({ back: true })),
             downCount: p.down.length
-          }))
+          })),
+          started: this.started // <--- Add started flag
         });
       }
     });

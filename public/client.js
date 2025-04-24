@@ -256,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (nameIn) {
+    nameIn.value = 'Player 1'; // Pre-fill name for convenience, but do not auto-join
     nameIn.addEventListener('input', clearNameError);
   }
 
@@ -315,8 +316,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   socket.on('state', s => {
     console.log('🎲 Game state update');
-    showGameTable();
-    renderGameState(s);
+    if (s.started) {
+      showGameTable();
+      renderGameState(s);
+    } else {
+      // Show lobby waiting state if game not started
+      if (s.players && s.players.length && currentRoom) {
+        showWaitingState(currentRoom, s.players.length, s.players.length > 0 ? 4 : 0);
+      }
+    }
   });
 
   socket.on('notice', msg => {
@@ -824,10 +832,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!myArea) return;
         myArea.classList.toggle('active', isMyTurn);
 
-        const myNameElement = document.createElement('h2');
-        myNameElement.id = 'my-name';
-        myNameElement.textContent = `${p.name} (You)`;
-        myArea.appendChild(myNameElement);
+        // --- Stylized player name header ---
+        const myNameHeader = document.createElement('div');
+        myNameHeader.className = 'player-name-header player-human';
+        myNameHeader.innerHTML = `<span class="player-badge">👤</span> <span class="player-name-text">${p.name} <span class='player-role'>(You)</span></span>`;
+        myArea.appendChild(myNameHeader);
 
         const handRow = document.createElement('div');
         handRow.id = 'my-hand';
@@ -923,9 +932,12 @@ document.addEventListener('DOMContentLoaded', () => {
         panel.classList.toggle('active', p.id === s.turn);
         if (p.isComputer) panel.classList.add('computer-player');
         if (p.disconnected) panel.classList.add('disconnected');
+        // Add tutorial-player class if needed in future
 
-        const nameHeader = document.createElement('h3');
-        nameHeader.textContent = p.name + (p.disconnected ? ' (Disconnected)' : '');
+        // --- Stylized player name header ---
+        const nameHeader = document.createElement('div');
+        nameHeader.className = 'player-name-header ' + (p.isComputer ? 'player-cpu' : 'player-human');
+        nameHeader.innerHTML = `<span class="player-badge">${p.isComputer ? '🤖' : '👤'}</span> <span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span>`;
         panel.appendChild(nameHeader);
 
         const hr = document.createElement('div');

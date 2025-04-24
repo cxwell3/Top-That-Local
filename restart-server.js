@@ -1,6 +1,12 @@
+// Trigger restart: April 24, 2025
+// Another restart trigger: 2025-04-24
+// Test trigger: 2025-04-24
+// Test trigger 2: 2025-04-24
 import { exec } from 'child_process';
 
 const PORT = 3000;
+const MAX_RETRIES = 10;
+const DELAY_AFTER_KILL = 2000; // 2 seconds
 
 console.log('Finding processs using port 3000...');
 
@@ -10,6 +16,7 @@ function waitForPortFree(interval = 500, timeout = 60000) { // Increased timeout
     const startTime = Date.now();
     function check() {
       exec(`lsof -i :${PORT}`, (err, stdout) => {
+        console.log(`[waitForPortFree] lsof output (err: ${err ? err.code : 'none'}):\n${stdout}`);
         if ((err && err.code === 1) || (stdout && stdout.trim().split('\n').length <= 1)) {
           console.log(`[waitForPortFree] Port ${PORT} is free after ${(Date.now() - startTime) / 1000}s`);
           return resolve();
@@ -26,10 +33,41 @@ function waitForPortFree(interval = 500, timeout = 60000) { // Increased timeout
   });
 }
 
+function waitForPortReallyFree(interval = 500, timeout = 60000) {
+  return new Promise(resolve => {
+    const startTime = Date.now();
+    function check() {
+      exec(`lsof -i :${PORT}`, (err, stdout) => {
+        if ((err && err.code === 1) || (stdout && stdout.trim().split('\n').length <= 1)) {
+          // Double-check with netstat
+          exec(`netstat -tuln | grep :${PORT}`, (netErr, netStdout) => {
+            if (!netStdout || netStdout.trim() === '') {
+              return resolve();
+            }
+            if (Date.now() - startTime > timeout) {
+              console.warn(`[waitForPortReallyFree] Timeout waiting for port ${PORT} to free after ${(Date.now() - startTime) / 1000}s.`);
+              return resolve();
+            }
+            setTimeout(check, interval);
+          });
+        } else {
+          if (Date.now() - startTime > timeout) {
+            console.warn(`[waitForPortReallyFree] Timeout waiting for port ${PORT} to free after ${(Date.now() - startTime) / 1000}s.`);
+            return resolve();
+          }
+          setTimeout(check, interval);
+        }
+      });
+    }
+    check();
+  });
+}
+
 let restartInProgress = false;
 
 // Find process using port 3000
 exec(`lsof -i :${PORT}`, async (error, stdout, stderr) => {
+  console.log(`[restart-server] Initial lsof output (err: ${error ? error.code : 'none'}):\n${stdout}`);
   if (restartInProgress) {
     console.log('[restart-server] Restart already in progress, skipping duplicate trigger.');
     return;
@@ -43,12 +81,13 @@ exec(`lsof -i :${PORT}`, async (error, stdout, stderr) => {
       setTimeout(() => { startNewServer(); restartInProgress = false; }, 500);
       return;
     }
-    console.error(`Error finding process: ${error.message}`);
+    console.error(`[restart-server] Error finding process: ${error.message}`);
     restartInProgress = false;
     return;
   }
   
   const lines = stdout.trim().split('\n');
+  console.log(`[restart-server] lsof lines:`, lines);
   if (lines.length <= 1) {
     console.log(`No process found using port ${PORT}`);
     await waitForPortFree();
@@ -64,6 +103,7 @@ exec(`lsof -i :${PORT}`, async (error, stdout, stderr) => {
       pids.push(match[1]);
     }
   }
+  console.log(`[restart-server] Parsed PIDs:`, pids);
   if (pids.length === 0) {
     console.log(`No PIDs found for port ${PORT}`);
     setTimeout(() => { startNewServer(); restartInProgress = false; }, 1000);
@@ -75,38 +115,46 @@ exec(`lsof -i :${PORT}`, async (error, stdout, stderr) => {
   // Kill the processes
   const killPromises = pids.map(pid => new Promise(resolve => {
     console.log(`Killing process ${pid}...`);
-    exec(`kill -9 ${pid}`, (killError) => {
+    exec(`kill -9 ${pid}`, (killError, killStdout, killStderr) => {
       if (killError) {
         console.error(`Error killing process ${pid}: ${killError.message}`);
       } else {
-        console.log(`Process ${pid} terminated successfully`);
+        console.log(`Process ${pid} terminated successfully. kill stdout: ${killStdout}, kill stderr: ${killStderr}`);
       }
       resolve();
     });
   }));
   Promise.all(killPromises).then(async () => {
-    console.log('All processes killed, waiting for port to free...');
-    await waitForPortFree();
-    console.log('Port is free, starting server...');
-    startNewServer();
-    restartInProgress = false;
+    console.log('All processes killed, waiting for port to really free...');
+    setTimeout(async () => {
+      await waitForPortReallyFree();
+      console.log('Port is really free, starting server...');
+      startNewServer();
+      restartInProgress = false;
+    }, DELAY_AFTER_KILL);
   });
 });
 
 function startNewServer(retryCount = 0) {
+  if (retryCount >= MAX_RETRIES) {
+    console.error(`[startNewServer] Max retries (${MAX_RETRIES}) reached. Giving up.`);
+    return;
+  }
   console.log(`[startNewServer] Attempt ${retryCount + 1}: Starting new server...`);
   const server = exec('node server.js', (error, stdout, stderr) => {
     if (error) {
-      if (error.message.includes('EADDRINUSE') && retryCount < 5) {
+      console.error(`[startNewServer] Error: ${error.message}`);
+      if (error.message.includes('EADDRINUSE')) {
         console.warn(`[startNewServer] Port 3000 still in use, retrying in 5s...`);
         setTimeout(() => startNewServer(retryCount + 1), 5000);
         return;
       }
-      console.error(`[startNewServer] Error starting server: ${error.message}`);
       return;
     }
+    console.log(`[startNewServer] Server started successfully. stdout: ${stdout}, stderr: ${stderr}`);
   });
-  // Pipe the server output to the console
-  server.stdout.pipe(process.stdout);
-  server.stderr.pipe(process.stderr);
+  if (server.stdout && server.stderr) {
+    server.stdout.on('data', data => console.log(`[server.js stdout]: ${data}`));
+    server.stderr.on('data', data => console.error(`[server.js stderr]: ${data}`));
+  }
 }
