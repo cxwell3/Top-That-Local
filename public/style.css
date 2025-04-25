@@ -32,9 +32,9 @@
   --gutter: 24px;
 
   /* match your existing card dimensions */
-  --card-w: 82px;
-  --card-h: 113px;
-  --card-peek: calc(var(--card-h) * 0.2); /* 20% of card height now */
+  --card-w: 96px;
+  --card-h: 132px;
+  --card-peek: calc(var(--card-h) * 0.2);
 }
 
 /* ========== Base Styles ========== */
@@ -584,65 +584,67 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 1.2rem 1rem 3.5rem 1rem; /* Extra bottom padding for cards/buttons */
+  padding: 1.2rem 1rem 2.2rem 1rem; /* Extra bottom padding for cards/buttons */
   margin: 0;
   position: relative;
   overflow: visible !important; /* Ensure nothing is cut off */
-  min-height: 600px; /* More space for hand and up/down cards */
+  min-height: 0 !important; /* More space for hand and up/down cards */
   width: 100%;
   box-sizing: border-box;
   gap: 0.5rem;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
   border-top: none !important;
+  outline: none !important;
 }
 
 #my-area {
-  border: 2.5px solid var(--panelBorder) !important;
-  border-radius: 12px !important;
-  position: relative;
-  padding-top: 2rem !important; /* even more space for header */
-  padding-bottom: 3.2rem !important; /* use all of the border space */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-top: 1.2rem !important;
+  padding-bottom: 1.2rem !important;
+  gap: 0.7rem;
+  height: 100%;
+  box-sizing: border-box;
+  outline: none !important;
+  border: 2.5px solid #fff !important;
+  box-shadow: none !important;
 }
 
-#my-area #my-hand {
-  margin-top: 1.5rem;
+#my-area.active {
+  border-color: #fff !important;
+  box-shadow: 0 0 15px 3px rgba(255,255,255,0.25) !important;
 }
 
-#my-area #dynamic-btn-container {
-  margin-top: 2rem;
+.player-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  margin-bottom: 0.4rem !important; /* Adjusted margin */
+  outline: none !important;
 }
 
-#my-area .stack-row {
-  margin-top: 2.5rem;
+.row-label {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+  margin: 0.2rem 0 0.2rem 0;
+  text-transform: none;
+  text-align: center;
 }
 
+#my-area .row-label {
+  color: #fff; /* Remove accent color */
+}
+
+#my-area .hand,
+#my-area .stack-row,
+#my-area #dynamic-btn-container,
 #my-area .player-section {
-  margin-bottom: 2.7rem;
-}
-
-#my-area .player-section .row-label {
-  margin-top: 1.7rem;
-  margin-bottom: 1.7rem;
-}
-
-#my-area .hand {
-  margin-bottom: 2.7rem;
-}
-
-#my-area .button-container {
-  margin-top: 2.7rem;
-  margin-bottom: 2.7rem;
-}
-
-#my-area .stack-row {
-  margin-top: 2.7rem;
-}
-
-#my-area > .section {
-  margin-top: 3.5rem;
-}
-#my-area > .section:first-of-type {
-  margin-top: 3.5rem;
+  margin: 0 !important;
+  outline: none !important;
 }
 
 /* Remove all other borders from player panels */
@@ -651,8 +653,8 @@ body {
 }
 
 .player-area.active, .player.active, #my-area.active {
-  border-color: var(--active-border) !important;
-  box-shadow: 0 0 15px 3px rgba(255,183,77,0.25);
+  border-color: #fff !important;
+  box-shadow: 0 0 15px 3px rgba(255,255,255,0.25) !important;
 }
 
 /* Ensure hand and stacks are inside borders */
@@ -673,10 +675,10 @@ body {
 }
 
 #my-area .button-container {
-  margin-top: 1.2rem;
-  margin-bottom: 1.2rem;
+  margin: 0 !important;
   align-self: center;
   display: flex !important;
+  outline: none !important;
 }
 
 /* Hide button container in .player-area (CPU side) by default */
@@ -785,10 +787,10 @@ body {
   border-top: none !important;
 }
 #my-area {
-  border: 2.5px solid var(--panelBorder) !important;
+  border: 2.5px solid #fff !important;
   border-radius: 12px !important;
   position: relative;
-  padding-top: 2.7rem !important; /* space for header inside border */
+  padding-top: 1.2rem !important; /* Adjusted padding */
 }
 #my-area .player-name-header.player-human {
   position: absolute;
@@ -799,14 +801,16 @@ body {
   border-radius: 12px 12px 0 0;
   background: var(--header-bg);
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  padding: 0.7rem 1.2rem 0.7rem 1.2rem;
+  padding: 0.7rem 1.2rem 0.2rem 1.2rem;
   z-index: 2;
-  min-height: 2.8rem;
+  min-height: 2.2rem;
   font-size: 1.7rem;
   letter-spacing: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
+  outline: none !important;
+  margin-bottom: 0.4rem;
 }
 
 /* ========== Section Layout (Label + Row) ========== */
@@ -814,51 +818,54 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center; /* Center label and row */
-  gap: 0.3rem; /* Space between label and row */
-  margin-bottom: 1.3rem; /* Increased space between sections */
+  gap: 0.15rem !important; /* Space between label and row */
+  margin-bottom: 0.4rem !important; /* Adjusted margin */
   width: 100%;
 }
+
 .player-section:last-child {
   margin-bottom: 0; /* No margin after the last section */
 }
 
 /* Row Labels */
 .row-label {
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.95rem; /* Slightly larger */
-  color: var(--accent); /* Use accent color */
-  margin-top: 0.7rem; /* Increased margin */
-  margin-bottom: 0.7rem; /* Increased margin */
+  font-weight: 700;
+  font-size: 1.4rem; /* Larger size */
+  color: #fff; /* White color */
+  margin: 0.2rem 0 0.15rem 0; /* Adjusted margin */
   letter-spacing: 0.5px; /* Added letter spacing */
+  text-transform: none; /* Remove text transformation */
+  text-align: center; /* Center align */
 }
 
-/* Reduce margin below row labels for hand and up/down sections */
-.section–hand .row-label,
-.section–stacks .row-label {
-  margin-bottom: 0.3rem;
+#my-area .row-label + .hand,
+#my-area .row-label + .stack-row {
+  margin-top: 0 !important;
 }
 
 /* ========== Card Row Containers (Hand, Stacks) ========== */
 #my-hand, .hand {
   display: flex;
   flex-wrap: nowrap;
-  gap: 6px;
+  gap: 0;
   overflow: visible;
   min-height: 100px;
   justify-content: center;
   align-items: flex-end;
   position: relative;
-  margin-bottom: 1.2rem; /* Increased spacing below hand */
+  margin: 0 !important;
 }
 
 #my-hand > div {
-  position: relative; /* enable z-index layering */
-  z-index: 1; /* base stacking order */
+  width: var(--card-w);
+  height: var(--card-h);
+  position: relative;
+  z-index: 1;
   transition: transform .2s;
 }
+
 #my-hand > div:not(:first-child) {
-  margin-left: -30px !important;
+  margin-left: -47px !important;
 }
 
 /* Hover effect - revert to simple lift */
@@ -900,6 +907,8 @@ body {
   align-items: flex-end;
 }
 .opp-hand > div {
+  width: var(--card-w);
+  height: var(--card-h);
   margin-left: -47px !important;
   position: relative;
   z-index: 1;
@@ -911,15 +920,18 @@ body {
 
 .stack-row {
   display: flex;
-  gap: 42px; /* More space between stacks for clarity */
+  gap: 21px; /* Reduced from 42px to 21px for closer up/down cards */
   overflow: visible;
   min-height: 156px;
   align-items: flex-start; /* Align stacks to the top so cards are right below label */
   justify-content: center;
-  margin-top: 1.2rem; /* Increased spacing above stacks */
+  margin: 0 !important; /* Kill the extra top-margin */
+  padding-top: 1.2rem !important;
+  background: none !important;
 }
 
 .stack {
+  flex-shrink: 0;
   position: relative;
   width: var(--card-w);
   height: calc(var(--card-h) + var(--card-peek));
@@ -942,25 +954,13 @@ body {
 /* ========== Card Images & Containers ========== */
 .card-img {
   display: block; /* Ensure images behave predictably */
-  width: 82px;
-  height: 113px;
+  width: var(--card-w);
+  height: var(--card-h);
   box-shadow: 0 2.6px 5.2px rgba(0, 0, 0, 0.3);
   border-radius: 5.2px;
 }
 
-/* Container for opponent's hand cards */
-.opp-hand > div { /* Targets the container div */
-  width: 82px;
-  height: 113px;
-}
-
 /* Stacks */
-.stack {
-  flex-shrink: 0;
-  position: relative;
-  width: 82px;
-  height: 117px; /* Adjusted height for more overlap */
-}
 .stack .card-img {
   position: absolute;
   left: 50%;
@@ -1035,10 +1035,11 @@ body {
   border: none !important;
   box-shadow: none !important;
   padding: 0.5rem 0 0 0;
-  margin: 1.2rem auto 1.2rem auto; /* Adjusted spacing */
+  margin: 0 !important; /* Adjusted spacing */
   display: flex;
   gap: 1rem;
   max-width: 360px;
+  outline: none !important;
 }
 
 .button-container button {
@@ -1075,7 +1076,6 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-}
 
 /* Play Options */
 .play-options {
@@ -1095,13 +1095,13 @@ body {
 /* ========== Responsive Styles ========== */
 @media (max-height: 800px) {
   .card-img {
-    width: 65px;
-    height: 91px;
+    width: var(--card-w);
+    height: var(--card-h);
   }
   
   .pile {
-    width: 65px;
-    height: 91px;
+    width: var(--card-w);
+    height: var(--card-h);
   }
   
   #center {
@@ -1110,17 +1110,17 @@ body {
   }
   
   .stack {
-    width: 65px;
-    height: 93px; /* Adjusted height for overlap (91px card height + small buffer) */
+    width: var(--card-w);
+    height: calc(var(--card-h) + var(--card-peek));
   }
-  .stack .card-img { /* Corrected selector */
-    width: 65px;
-    height: 91px;
+  .stack .card-img {
+    width: var(--card-w);
+    height: var(--card-h);
   }
-  .stack .card-img.down-card { /* Corrected selector */
-    top: 58px; /* Adjusted offset for smaller cards */
+  .stack .card-img.down-card {
+    top: var(--card-peek);
   }
-  .stack .card-img.up-card { /* Corrected selector */
+  .stack .card-img.up-card {
      top: 0;
   }
 
@@ -1272,11 +1272,6 @@ body {
 /*  (keep all your existing definitions above exactly as-is)                */
 /* ───────────────────────────────────────────────────────────────────────── */
 
-/* re-center hand, buttons, stacks in the grid */
-#my-area #my-hand          { justify-content: center; }
-#my-area #dynamic-btn-container { justify-self: center; }
-#my-area .stack-row        { justify-content: center; }
-
 /* show only 20% of the down card (80% covered) */
 .stack .up-card {
   top: 11px !important;  /* 113px × 0.1 ≈ 11px */
@@ -1312,4 +1307,118 @@ body {
   left: 50%;
   transform: translateX(-50%);
   z-index: 1;
+}
+
+/* tighten label→cards spacing */
+.player-section,        /* if you’re using the .player-section wrapper */
+.player-section .row-label {
+  gap: 0.15rem !important;
+}
+
+.stack-row {            /* kill its extra top-margin */
+  margin-top: 0 !important;
+}
+
+.hand {                 /* kill any margin above the hand row */
+  margin-top: 0 !important;
+}
+
+.row-label {
+  margin-bottom: 0.15rem;  /* bring label down */
+}
+
+.row-label + .hand,
+.row-label + .stack-row {
+  margin-top:   0.15rem;   /* pull row up */
+}
+
+#my-area {
+  padding-top: 1.2rem !important;
+  padding-bottom: 1.2rem !important;
+  border: 2.5px solid #fff !important;
+  box-shadow: none !important;
+}
+
+#my-area.active {
+  border-color: #fff !important;
+  box-shadow: 0 0 15px 3px rgba(255,255,255,0.25) !important;
+}
+
+#my-area .player-name-header.player-human {
+  padding-bottom: 0.2rem;
+  min-height: 2.2rem;
+  margin-bottom: 0.4rem;
+}
+
+#hand-section {
+  margin-top: 0.5rem !important;
+}
+
+#my-area .player-section {
+  margin-bottom: 0.4rem !important;
+}
+
+#button-section {
+  margin-top: 1.2rem !important;
+  margin-bottom: 1.2rem !important;
+}
+
+#hand-section .row-label {
+  margin-bottom: 0 !important;
+}
+#stack-section .row-label {
+  margin-bottom: 0 !important;
+}
+#hand-section .hand {
+  padding-top: 1.2rem !important;
+  background: none !important;
+}
+#stack-section .stack-row {
+  padding-top: 1.2rem !important;
+  background: none !important;
+}
+
+#hand-section,
+#stack-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem !important; /* Double the default gap between label and cards */
+}
+#hand-section .row-label,
+#stack-section .row-label {
+  margin-bottom: 0 !important;
+}
+#hand-section .hand,
+#stack-section .stack-row {
+  padding-top: 0 !important;
+  background: none !important;
+}
+
+.player-area, .player, #my-area, #my-area .player-name-header.player-human, .player-section, #my-area .hand, #my-area .stack-row, #my-area #dynamic-btn-container, #my-area .player-section, #my-area .button-container {
+  outline: none !important;
+}
+
+/* ========== Pile Badge ========== */
+.pile {
+  position: relative;
+  display: inline-block;
+}
+.pile-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: #e53935 !important; /* bright red for debug */
+  color: #fff !important;
+  font-size: 1.2rem !important;
+  font-weight: bold;
+  padding: 6px 14px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  pointer-events: none;
+  z-index: 10;
+  border: 2px solid #000 !important;
+}
+.pile-count, .pile-label {
+  display: none !important;
 }
