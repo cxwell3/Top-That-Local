@@ -41,7 +41,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   height: 100%;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Updated font stack */
+  font-family: sans-serif; /* Changed from 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif to clean sans-serif */
   color: var(--text);
 }
 body {
@@ -869,7 +869,7 @@ body {
 }
 .player-name-header .player-name-text {
   color: #ffffff; /* Solid white */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: sans-serif;
   font-weight: 900;
   font-size: 1.8rem; /* Make player name text bigger */
   letter-spacing: 1.5px;
@@ -979,8 +979,32 @@ body {
   width: var(--card-w);
   height: var(--card-h);
   position: relative;
-  z-index: 1;
   transition: transform .2s;
+}
+
+/* Set specific z-index for cards based on position (later cards on top) */
+#my-hand > div:nth-child(1) { z-index: 1; }
+#my-hand > div:nth-child(2) { z-index: 2; }
+#my-hand > div:nth-child(3) { z-index: 3; }
+#my-hand > div:nth-child(4) { z-index: 4; }
+#my-hand > div:nth-child(5) { z-index: 5; }
+#my-hand > div:nth-child(6) { z-index: 6; }
+#my-hand > div:nth-child(7) { z-index: 7; }
+#my-hand > div:nth-child(8) { z-index: 8; }
+#my-hand > div:nth-child(9) { z-index: 9; }
+#my-hand > div:nth-child(10) { z-index: 10; }
+
+/* Keep the original z-index when hovering so cards appear behind ones to their right */
+#my-hand > div:not(.selected-container):hover {
+  transform: translateY(-15px);
+  /* No z-index change here - maintains original order */
+  transition: transform 0.12s ease-out; /* Snappy transition */
+}
+
+/* Selected cards also maintain their original z-index */
+#my-hand > div.selected-container {
+  transform: translateY(-15px) !important;
+  /* No z-index change here - maintains original order */
 }
 
 #my-hand > div:not(:first-child) {
@@ -991,29 +1015,32 @@ body {
 #my-hand > div:not(.selected-container):hover {
   transform: translateY(-15px);
   z-index: 10;
+  transition: transform 0.12s ease-out, z-index 0.05s; /* Snappier transition */
 }
 
 /* Keep selected card styling separate and ensure it stays lifted */
 #my-hand > div.selected-container {
-  transform: translateY(-15px) !important;
-  z-index: 10;
+  transform: translateY(-15px) !important; /* Lower height so cards are visible behind */
+  z-index: 5; /* Lower z-index so they appear behind unselected cards */
 }
 
 /* Add gold border to raised cards */
 #my-hand > div.selected-container .card-img,
 #my-hand > div:not(.selected-container):hover .card-img {
-  border: 3px solid gold;
-  box-shadow: 0 0 0 3px var(--accent), 0 6px 12px rgba(0,0,0,0.2);
+  border: 3px solid #16F0FF; /* Changed from gold to bright cyan */
+  box-shadow: 0 0 8px 2px rgba(22, 240, 255, 0.5); /* Cyan glow effect */
+  /* Remove the accent color border */
 }
 
 #my-hand .card-img {
   cursor: pointer;
-  transition: box-shadow 0.12s, border 0.12s, transform 0.12s;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, border 0.15s ease-out;
 }
 
+/* Smooth out the active state */
 #my-hand .card-img:active {
   filter: brightness(0.95);
-  transform: scale(0.97) translateY(-15px);
+  transform: scale(0.98); /* Reduced scale effect */
 }
 
 .opp-hand {
@@ -1049,25 +1076,42 @@ body {
   background: none !important;
 }
 
+/* Reset any conflicting stack styling and implement industry-standard with down cards peeking from top */
 .stack {
   flex-shrink: 0;
   position: relative;
   width: var(--card-w);
-  height: calc(var(--card-h) + var(--card-peek));
+  height: calc(var(--card-h) + 20px); /* Height adjusted for top peeking */
+  margin-top: 20px; /* Space for down card to peek out */
 }
-.stack .down-card {
-  position: absolute;
-  top: var(--card-peek); /* Only show 20% of down card at the bottom */
+
+.stack .card-img.down-card {
+  position: absolute !important;
+  top: -20px; /* Peek out from top */
   left: 50%;
   transform: translateX(-50%);
   z-index: 1;
 }
-.stack .up-card {
-  position: absolute;
-  top: 0; /* Up card sits at the top, covering most of down card */
+
+.stack .card-img.up-card {
+  position: absolute !important;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
+}
+
+/* Remove conflicting styles */
+.stack .up-card {
+  top: 0 !important; /* Override any other top settings */
+}
+
+/* Maintain hover effects for stacks */
+.stack.playable-stack:hover .card-img.up-card,
+.stack.playable-stack:hover .card-img.down-card {
+  transform: translateX(-50%) translateY(-10px) scale(1.05);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.45);
+  z-index: 3;
 }
 
 /* ========== Card Images & Containers ========== */
@@ -1088,11 +1132,9 @@ body {
 }
 .stack .card-img.down-card {
   z-index: 1;
-  top: var(--card-peek); /* show only 20% at bottom */
 }
 .stack .card-img.up-card {
   z-index: 2;
-  top: 11px !important; /* Adjusted offset */
 }
 .stack.playable-stack:hover .card-img.up-card,
 .stack.playable-stack:hover .card-img.down-card {
@@ -1171,18 +1213,20 @@ body {
 }
 
 #play {
-  background: #FFC300; /* Solid yellow to match How to Play button */
+  background: #FFC800; /* Changed to #FFC800 gold */
   color: #000000; /* Black text for better contrast */
-  text-shadow: none; /* Remove text shadow */
-  padding: 0.6rem 1rem; /* Adjusted padding to better fit text */
-  min-width: auto; /* Allow the button to size to content */
+  text-shadow: none;
+  padding: 0.7rem 1.2rem; /* Adjusted padding for shorter text */
+  min-width: 90px; /* Smaller min-width for shorter text */
+  font-weight: 700;
 }
 
 #take {
-  background: #FFC300; /* Solid yellow to match How to Play button */
+  background: #FFC800; /* Changed to #FFC800 gold */
   color: #000000; /* Black text for better contrast */
-  padding: 0.6rem 1rem; /* Adjusted padding to better fit text */
-  min-width: auto; /* Allow the button to size to content */
+  padding: 0.7rem 1.2rem; /* Adjusted padding for shorter text */
+  min-width: 90px; /* Smaller min-width for shorter text */
+  font-weight: 700;
 }
 
 .button-container button:hover:not(:disabled) {
@@ -1543,4 +1587,15 @@ body {
 }
 .pile-count, .pile-label {
   display: none !important;
+}
+
+/* Card selection and snap animation */
+.snap-anim {
+  animation: card-snap 0.15s ease-out; /* Faster animation for more snappiness */
+}
+
+@keyframes card-snap {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.92); } /* More pronounced scale effect */
+  100% { transform: scale(1); }
 }
