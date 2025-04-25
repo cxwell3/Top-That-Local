@@ -731,7 +731,22 @@ body {
   border-top: none !important;
 }
 #my-area {
-  border-top: none !important;
+  border: 2.5px solid var(--panelBorder) !important;
+  border-radius: 12px !important;
+  position: relative;
+  padding-top: 2.7rem !important; /* space for header inside border */
+}
+#my-area .player-name-header.player-human {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: none;
+  border-radius: 12px 12px 0 0;
+  background: var(--header-bg);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  padding: 0.4rem 1rem;
+  z-index: 2;
 }
 
 /* ========== Section Layout (Label + Row) ========== */
@@ -839,29 +854,21 @@ body {
 .stack {
   position: relative;
   width: 82px;
-  height: 156px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start; /* Start from the top */
+  height: 113px;
 }
-
-.stack .card-img.down-card {
+.stack .down-card {
   position: absolute;
-  top: 71px; /* Adjusted offset */
+  top: 90%; /* show only 10% at bottom */
   left: 50%;
-  transform: translateX(-50%) translateY(0);
-  z-index: 2;
-  box-shadow: 0 2.6px 5.2px rgba(0,0,0,0.18);
-}
-
-.stack .card-img.up-card {
-  position: absolute;
-  top: 0; /* Adjusted offset */
-  left: 50%;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%);
   z-index: 1;
-  box-shadow: 0 2.6px 5.2px rgba(0,0,0,0.18);
+}
+.stack .up-card {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
 }
 
 /* ========== Card Images & Containers ========== */
@@ -894,7 +901,7 @@ body {
 }
 .stack .card-img.down-card {
   z-index: 1;
-  top: 71px; /* Adjusted offset */
+  top: 90%; /* show only 10% at bottom */
 }
 .stack .card-img.up-card {
   z-index: 2;
@@ -1191,4 +1198,25 @@ body {
   .player, #my-area {
     padding: 1rem; /* Further reduce padding */
   }
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/*  (keep all your existing definitions above exactly as-is)                */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+/* re-center hand, buttons, stacks in the grid */
+#my-area #my-hand          { justify-content: center; }
+#my-area #dynamic-btn-container { justify-self: center; }
+#my-area .stack-row        { justify-content: center; }
+
+/* show only 10% of the down card (90% covered) */
+.stack .up-card {
+  top: 11px !important;  /* 113px × 0.1 ≈ 11px */
+}
+
+/* bolder, larger white labels */
+#my-area .row-label {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
 }

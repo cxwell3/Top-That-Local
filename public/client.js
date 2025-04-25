@@ -880,8 +880,34 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           handRow.appendChild(el);
         });
-        renderSection(myArea, `Hand (${myHandCount})`, handRow);
+        renderSection(myArea, 'Hand', handRow);
 
+        // --- Buttons ABOVE up/down cards ---
+        let btnContainer = document.getElementById('dynamic-btn-container');
+        if (!btnContainer) {
+          btnContainer = document.createElement('div');
+          btnContainer.className = 'button-container';
+          btnContainer.id = 'dynamic-btn-container';
+          const playBtnDyn = document.createElement('button');
+          playBtnDyn.id = 'play';
+          playBtnDyn.textContent = 'Play Selected';
+          playBtnDyn.onclick = playSelectedCards;
+          playBtnDyn.className = 'btn btn-primary';
+          const takeBtnDyn = document.createElement('button');
+          takeBtnDyn.id = 'take';
+          takeBtnDyn.textContent = 'Take Pile';
+          takeBtnDyn.onclick = () => socket.emit('takePile');
+          takeBtnDyn.className = 'btn btn-secondary';
+          btnContainer.appendChild(playBtnDyn);
+          btnContainer.appendChild(takeBtnDyn);
+        }
+        const playBtn = btnContainer.querySelector('#play');
+        const takeBtn = btnContainer.querySelector('#take');
+        if (playBtn) playBtn.disabled = !isMyTurn;
+        if (takeBtn) takeBtn.disabled = !isMyTurn;
+        myArea.appendChild(btnContainer);
+
+        // --- Up/Down stacks ---
         const stackRow = document.createElement('div');
         stackRow.id = 'my-stacks';
         stackRow.className = 'stack-row';
@@ -924,31 +950,7 @@ document.addEventListener('DOMContentLoaded', () => {
             stackRow.appendChild(col);
           });
         }
-        renderSection(myArea, `Up (${myUpCount}) / Down (${myDownCount})`, stackRow);
-
-        let btnContainer = document.getElementById('dynamic-btn-container');
-        if (!btnContainer) {
-          btnContainer = document.createElement('div');
-          btnContainer.className = 'button-container';
-          btnContainer.id = 'dynamic-btn-container';
-          const playBtnDyn = document.createElement('button');
-          playBtnDyn.id = 'play';
-          playBtnDyn.textContent = 'Play Selected';
-          playBtnDyn.onclick = playSelectedCards;
-          playBtnDyn.className = 'btn btn-primary';
-          const takeBtnDyn = document.createElement('button');
-          takeBtnDyn.id = 'take';
-          takeBtnDyn.textContent = 'Take Pile';
-          takeBtnDyn.onclick = () => socket.emit('takePile');
-          takeBtnDyn.className = 'btn btn-secondary';
-          btnContainer.appendChild(playBtnDyn);
-          btnContainer.appendChild(takeBtnDyn);
-          myArea.appendChild(btnContainer);
-        }
-        const playBtn = document.getElementById('play');
-        const takeBtn = document.getElementById('take');
-        if (playBtn) playBtn.disabled = !isMyTurn;
-        if (takeBtn) takeBtn.disabled = !isMyTurn;
+        renderSection(myArea, 'Up / Down', stackRow);
 
       } else {
         if (!other) return;
