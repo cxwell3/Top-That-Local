@@ -896,14 +896,14 @@ body {
 }
 .stack .down-card {
   position: absolute;
-  top: 90%; /* show only 10% at bottom */
+  top: 90%; /* Only show 10% of down card at the bottom */
   left: 50%;
   transform: translateX(-50%);
   z-index: 1;
 }
 .stack .up-card {
   position: absolute;
-  top: 11px !important; /* Adjusted offset for overlap */
+  top: 0; /* Up card sits at the top, covering most of down card */
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;

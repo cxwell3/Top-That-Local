@@ -861,7 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Stylized player name header ---
         const myNameHeader = document.createElement('div');
         myNameHeader.className = 'player-name-header player-human';
-        myNameHeader.innerHTML = `<span class="player-badge">👤</span> <span class="player-name-text">${p.name} <span class='player-role'>(You)</span></span>`;
+        myNameHeader.innerHTML = `<span class="player-badge">👤</span> <span class="player-name-text">${p.name}</span>`;
         myArea.appendChild(myNameHeader);
 
         const handRow = document.createElement('div');
