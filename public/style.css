@@ -30,6 +30,11 @@
   /* Spacing */
   --header-height: 70px; /* Approximate height */
   --gutter: 24px;
+
+  /* match your existing card dimensions */
+  --card-w: 82px;
+  --card-h: 113px;
+  --card-peek: calc(var(--card-h) * 0.2); /* 20% of card height now */
 }
 
 /* ========== Base Styles ========== */
@@ -891,12 +896,12 @@ body {
 
 .stack {
   position: relative;
-  width: 82px;
-  height: 113px;
+  width: var(--card-w);
+  height: calc(var(--card-h) + var(--card-peek));
 }
 .stack .down-card {
   position: absolute;
-  top: 90%; /* Only show 10% of down card at the bottom */
+  top: var(--card-peek); /* Only show 20% of down card at the bottom */
   left: 50%;
   transform: translateX(-50%);
   z-index: 1;
@@ -939,7 +944,7 @@ body {
 }
 .stack .card-img.down-card {
   z-index: 1;
-  top: 90%; /* show only 10% at bottom */
+  top: var(--card-peek); /* show only 20% at bottom */
 }
 .stack .card-img.up-card {
   z-index: 2;
@@ -1247,7 +1252,7 @@ body {
 #my-area #dynamic-btn-container { justify-self: center; }
 #my-area .stack-row        { justify-content: center; }
 
-/* show only 10% of the down card (90% covered) */
+/* show only 20% of the down card (80% covered) */
 .stack .up-card {
   top: 11px !important;  /* 113px × 0.1 ≈ 11px */
 }
@@ -1257,4 +1262,29 @@ body {
   font-size: 1.4rem;
   font-weight: 700;
   color: #fff;
+}
+
+/* 1) make the stack container hold both cards */
+.stack {
+  position: relative;
+  width: var(--card-w);
+  height: calc(var(--card-h) + var(--card-peek));
+}
+
+/* 2) up-card sits at the very top, on top layer */
+.stack .card-img.up-card {
+  position: absolute !important;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+/* 3) down-card sits exactly 20% below the top, behind */
+.stack .card-img.down-card {
+  position: absolute !important;
+  top: var(--card-peek);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
 }
