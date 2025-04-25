@@ -600,8 +600,20 @@ body {
   border: 2.5px solid var(--panelBorder) !important;
   border-radius: 12px !important;
   position: relative;
-  padding-top: 4.7rem !important; /* even more space for header */
+  padding-top: 2rem !important; /* even more space for header */
   padding-bottom: 3.2rem !important; /* use all of the border space */
+}
+
+#my-area #my-hand {
+  margin-top: 1.5rem;
+}
+
+#my-area #dynamic-btn-container {
+  margin-top: 2rem;
+}
+
+#my-area .stack-row {
+  margin-top: 2.5rem;
 }
 
 #my-area .player-section {
@@ -624,6 +636,13 @@ body {
 
 #my-area .stack-row {
   margin-top: 2.7rem;
+}
+
+#my-area > .section {
+  margin-top: 3.5rem;
+}
+#my-area > .section:first-of-type {
+  margin-top: 3.5rem;
 }
 
 /* Remove all other borders from player panels */
@@ -812,6 +831,12 @@ body {
   margin-top: 0.7rem; /* Increased margin */
   margin-bottom: 0.7rem; /* Increased margin */
   letter-spacing: 0.5px; /* Added letter spacing */
+}
+
+/* Reduce margin below row labels for hand and up/down sections */
+.section–hand .row-label,
+.section–stacks .row-label {
+  margin-bottom: 0.3rem;
 }
 
 /* ========== Card Row Containers (Hand, Stacks) ========== */
