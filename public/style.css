@@ -1,14 +1,14 @@
 /* ========== Color Variables & Root Styles ========== */
 :root {
-  --bg: #178a4c; /* Lighter, single green background */
+  --bg: #0b5137; /* Changed to dark green #0b5137 */
   --header-bg: #1b2e3c; /* Deep blue for header */
-  --accent: #ffb74d;
+  --accent: #FFC300; /* Changed to bright gold */
   --accent2: #4a90e2; /* Muted Blue */
-  --name: #ffd36b;
+  --name: #FFC300; /* Changed to bright gold */
   --text: #f5f5f5;
   --mute: #b0bec5; /* Lighter Muted Gray */
   --panelBorder: #ffffff22;
-  --active-border: var(--accent);
+  --active-border: #00CCCC; /* Changed to brighter teal (#00CCCC) */
 
   /* New colors */
   --card-bg: #ffffff;
@@ -18,13 +18,13 @@
   --error-color: #e53935; /* Red for validation */
   --btn-primary-bg: var(--accent);
   --btn-primary-text: #000000;
-  --btn-secondary-bg: var(--accent2);
+  --btn-secondary-bg: var(--accent); /* Changed to match the gold color */
   --btn-secondary-text: #ffffff;
   --btn-tertiary-bg: #78909c; /* Gray for Copy Link */
   --btn-tertiary-text: #ffffff;
-  --body-bg-start: #1a9a5c; /* Gradient Start */
-  --body-bg-mid: #168a50;  /* Gradient Mid */
-  --body-bg-end: #147a46;   /* Gradient End */
+  --body-bg-start: #367347; /* Changed gradient start to match main bg */
+  --body-bg-mid: #2e5e3c;  /* Slightly darker for middle */
+  --body-bg-end: #264c32;   /* Even darker for end */
   --overlay-bg: rgba(0, 0, 0, 0.6); /* Overlay background */
 
   /* Spacing */
@@ -45,11 +45,8 @@ html, body {
   color: var(--text);
 }
 body {
-  /* Animated gradient background */
-  background: linear-gradient(135deg, var(--body-bg-start), var(--body-bg-mid), var(--body-bg-end));
-  background-size: 400% 400%; /* Larger size for smooth animation */
-  animation: gradientBG 15s ease infinite; /* Apply animation */
-
+  /* Solid background instead of animated gradient */
+  background: var(--bg);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -145,6 +142,16 @@ body {
 }
 #rules summary:hover::after {
   width: 100%;
+}
+
+#rules-button {
+  background: #FFC300; /* Match the rules modal border color */
+  color: #000000; /* Black text for better contrast with gold */
+  transition: background-color 0.2s;
+}
+
+#rules-button:hover {
+  background: #ffd54f; /* Slightly lighter gold for hover effect */
 }
 
 /* ========== Main Content & Lobby ========== */
@@ -436,23 +443,58 @@ body {
 }
 
 /* Rules modal specific styles */
-#rules-modal ul { list-style-type: none; padding-left: 0; }
-#rules-modal > .modal-content > ul > li { /* Target top-level li */
-  margin-top: 1rem; 
-  font-weight: 600; 
-  color: var(--accent); 
-  font-size: 1.1rem;
+#rules-modal {
+  background-color: #0c3d2a; /* Darker version of our background for better contrast */
+  color: #f5f5f5; /* Light text for readability */
+  border: 2px solid #FFC300; /* Gold border to match our accent color */
 }
-#rules-modal .sublist { 
-  margin-top: 0.5rem; 
-  margin-left: 1.4rem; 
-  font-weight: 400; 
-  color: var(--card-text); /* Use card text color */
-  font-size: 1rem;
-  list-style-type: disc; /* Use standard bullets */
-  padding-left: 1rem;
+
+#rules-modal-title {
+  color: #FFC300; /* Gold color for title */
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 195, 0, 0.3);
+  padding-bottom: 0.5rem;
 }
-#rules-modal .sublist li { margin-bottom: 0.5rem; }
+
+#rules-modal .modal-content {
+  padding: 1.5rem;
+}
+
+#rules-modal .modal-close-button {
+  color: #FFC300; /* Gold color for close button */
+  font-size: 2.2rem;
+}
+
+#rules-modal .modal-close-button:hover {
+  color: white;
+}
+
+#rules-modal > .modal-content > ul > li { 
+  margin-top: 1.2rem;
+  font-weight: 600;
+  color: #FFC300; /* Gold color for section headers */
+  font-size: 1.2rem;
+}
+
+#rules-modal .sublist {
+  margin-top: 0.5rem;
+  margin-left: 1.4rem;
+  font-weight: 400;
+  color: #ffffff; /* White text for better readability */
+  font-size: 1.15rem; /* Increased from 1.05rem */
+  list-style-type: none; /* Remove default bullets */
+  padding-left: 0.5rem;
+}
+
+#rules-modal .sublist li {
+  margin-bottom: 0.6rem;
+  line-height: 1.4; /* Better line spacing */
+}
+
+#rules-modal .sublist li::before {
+  content: none;
+}
 
 /* ========== Notifications & Banners ========== */
 .banner, .notice {
@@ -577,18 +619,18 @@ body {
 /* Consolidated player panel styles */
 .player-area, .player, #my-area {
   background: none !important;
-  border: 2.5px solid #fff !important; /* Bold white border */
+  border: 2.5px solid #fff !important; /* Reverted back to original 2.5px width */
   border-radius: 12px;
   box-shadow: none !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 1.2rem 1rem 2.2rem 1rem; /* Extra bottom padding for cards/buttons */
+  padding: 1.2rem 1rem 2.8rem 1rem; /* Increased bottom padding */
   margin: 0;
   position: relative;
   overflow: visible !important; /* Ensure nothing is cut off */
-  min-height: 0 !important; /* More space for hand and up/down cards */
+  min-height: 500px !important; /* Increased from 450px to make playable area even bigger */
   width: 100%;
   box-sizing: border-box;
   gap: 0.5rem;
@@ -598,22 +640,29 @@ body {
 }
 
 #my-area {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   padding-top: 1.2rem !important;
   padding-bottom: 1.2rem !important;
-  gap: 0.7rem;
-  height: 100%;
-  box-sizing: border-box;
-  outline: none !important;
-  border: 2.5px solid #fff !important;
+  border: 2.5px solid #fff !important; /* Match the increased border width */
   box-shadow: none !important;
+  min-height: 400px; /* Ensure enough space for the spacer and content */
 }
 
 #my-area.active {
-  border-color: #fff !important;
-  box-shadow: 0 0 15px 3px rgba(255,255,255,0.25) !important;
+  border-color: #00CCCC !important; /* Changed to brighter teal (#00CCCC) */
+  box-shadow: 0 0 20px 5px rgba(0, 204, 204, 0.4) !important; /* Updated glow color to match */
+  animation: activePulse 2s infinite; /* Add pulsing animation for active state */
+}
+
+.player-area.active, .player.active {
+  border-color: #00CCCC !important; /* Changed to brighter teal (#00CCCC) */
+  box-shadow: 0 0 20px 5px rgba(0, 204, 204, 0.4) !important; /* Updated glow color to match */
+  animation: activePulse 2s infinite; /* Add pulsing animation for active state */
+}
+
+@keyframes activePulse {
+  0% { box-shadow: 0 0 20px 5px rgba(0, 204, 204, 0.4); }
+  50% { box-shadow: 0 0 25px 8px rgba(0, 204, 204, 0.5); }
+  100% { box-shadow: 0 0 20px 5px rgba(0, 204, 204, 0.4); }
 }
 
 .player-section {
@@ -652,9 +701,81 @@ body {
   border: none !important;
 }
 
-.player-area.active, .player.active, #my-area.active {
-  border-color: #fff !important;
-  box-shadow: 0 0 15px 3px rgba(255,255,255,0.25) !important;
+.player-section,        /* if you’re using the .player-section wrapper */
+.player-section .row-label {
+  gap: 0.15rem !important;
+}
+
+.stack-row {            /* kill its extra top-margin */
+  margin-top: 0 !important;
+}
+
+.hand {                 /* kill any margin above the hand row */
+  margin-top: 0 !important;
+}
+
+.row-label {
+  margin-bottom: 0.15rem;  /* bring label down */
+}
+
+.row-label + .hand,
+.row-label + .stack-row {
+  margin-top:   0.15rem;   /* pull row up */
+}
+
+#my-area .player-name-header.player-human {
+  padding-bottom: 0.2rem;
+  min-height: 2.2rem;
+  margin-bottom: 0.4rem;
+}
+
+#hand-section {
+  margin-top: 0.5rem !important;
+}
+
+#my-area .player-section {
+  margin-bottom: 0.4rem !important;
+}
+
+#button-section {
+  margin-top: 1.2rem !important;
+  margin-bottom: 1.2rem !important;
+}
+
+#hand-section .row-label {
+  margin-bottom: 0 !important;
+}
+#stack-section .row-label {
+  margin-bottom: 0 !important;
+}
+#hand-section .hand {
+  padding-top: 1.2rem !important;
+  background: none !important;
+}
+#stack-section .stack-row {
+  padding-top: 1.2rem !important;
+  background: none !important;
+}
+
+#hand-section,
+#stack-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem !important; /* Double the default gap between label and cards */
+}
+#hand-section .row-label,
+#stack-section .row-label {
+  margin-bottom: 0 !important;
+}
+#hand-section .hand,
+#stack-section .stack-row {
+  padding-top: 0 !important;
+  background: none !important;
+}
+
+.player-area, .player, #my-area, #my-area .player-name-header.player-human, .player-section, #my-area .hand, #my-area .stack-row, #my-area #dynamic-btn-container, #my-area .player-section, #my-area .button-container {
+  outline: none !important;
 }
 
 /* Ensure hand and stacks are inside borders */
@@ -743,16 +864,14 @@ body {
   text-shadow: 1px 1px 2px rgba(0,0,0,0.18);
 }
 .player-name-header .player-badge {
-  font-size: 1.5rem;
+  font-size: 2rem; /* Increased from 1.5rem */
   filter: drop-shadow(0 1px 2px #0003);
 }
 .player-name-header .player-name-text {
-  background: linear-gradient(90deg, var(--accent), var(--name));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #ffffff; /* Solid white */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-weight: 900;
+  font-size: 1.8rem; /* Make player name text bigger */
   letter-spacing: 1.5px;
   text-transform: uppercase;
 }
@@ -1052,15 +1171,18 @@ body {
 }
 
 #play {
-  background: linear-gradient(135deg, var(--accent), #ff7b00);
-  color: #000;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: #FFC300; /* Solid yellow to match How to Play button */
+  color: #000000; /* Black text for better contrast */
+  text-shadow: none; /* Remove text shadow */
+  padding: 0.6rem 1rem; /* Adjusted padding to better fit text */
+  min-width: auto; /* Allow the button to size to content */
 }
 
 #take {
-  background: linear-gradient(135deg, var(--accent2), #1a5fb4);
-  color: white;
-
+  background: #FFC300; /* Solid yellow to match How to Play button */
+  color: #000000; /* Black text for better contrast */
+  padding: 0.6rem 1rem; /* Adjusted padding to better fit text */
+  min-width: auto; /* Allow the button to size to content */
 }
 
 .button-container button:hover:not(:disabled) {
@@ -1340,8 +1462,8 @@ body {
 }
 
 #my-area.active {
-  border-color: #fff !important;
-  box-shadow: 0 0 15px 3px rgba(255,255,255,0.25) !important;
+  border-color: #00CCCC !important; /* Changed to brighter teal (#00CCCC) */
+  box-shadow: 0 0 20px 5px rgba(0, 204, 204, 0.4) !important; /* Updated glow color to match */
 }
 
 #my-area .player-name-header.player-human {

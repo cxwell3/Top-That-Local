@@ -875,8 +875,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Stylized player name header ---
         const myNameHeader = document.createElement('div');
         myNameHeader.className = 'player-name-header player-human';
-        myNameHeader.innerHTML = `<span class="player-badge">👤</span> <span class="player-name-text">${p.name}</span>`;
+        myNameHeader.innerHTML = `<span class="player-name-text">${p.name}</span> <span class="player-badge">👑🦁</span>`;
         myArea.appendChild(myNameHeader);
+
+        const spacer = document.createElement('div');
+        spacer.style.height = '40px'; // Increased from 25px to 40px for even more space
+        myArea.appendChild(spacer);
 
         const handRow = document.createElement('div');
         handRow.id = 'my-hand';
@@ -979,7 +983,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Stylized player name header ---
         const nameHeader = document.createElement('div');
         nameHeader.className = 'player-name-header ' + (p.isComputer ? 'player-cpu' : 'player-human');
-        nameHeader.innerHTML = `<span class="player-badge">${p.isComputer ? '🤖' : '👤'}</span> <span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span>`;
+        nameHeader.innerHTML = `<span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span> <span class="player-badge">${p.isComputer ? '🤖' : '👤'}</span>`;
         panel.appendChild(nameHeader);
 
         const hr = document.createElement('div');
