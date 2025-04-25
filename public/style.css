@@ -591,6 +591,36 @@ body {
   border-top: none !important;
 }
 
+#my-area {
+  border: 2.5px solid var(--panelBorder) !important;
+  border-radius: 12px !important;
+  position: relative;
+  padding-top: 4.7rem !important; /* even more space for header */
+  padding-bottom: 3.2rem !important; /* use all of the border space */
+}
+
+#my-area .player-section {
+  margin-bottom: 2.7rem;
+}
+
+#my-area .player-section .row-label {
+  margin-top: 1.7rem;
+  margin-bottom: 1.7rem;
+}
+
+#my-area .hand {
+  margin-bottom: 2.7rem;
+}
+
+#my-area .button-container {
+  margin-top: 2.7rem;
+  margin-bottom: 2.7rem;
+}
+
+#my-area .stack-row {
+  margin-top: 2.7rem;
+}
+
 /* Remove all other borders from player panels */
 .player-area *, .player *, #my-area * {
   border: none !important;
@@ -620,7 +650,7 @@ body {
 
 #my-area .button-container {
   margin-top: 1.2rem;
-  margin-bottom: 0;
+  margin-bottom: 1.2rem;
   align-self: center;
   display: flex !important;
 }
@@ -745,8 +775,14 @@ body {
   border-radius: 12px 12px 0 0;
   background: var(--header-bg);
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  padding: 0.4rem 1rem;
+  padding: 0.7rem 1.2rem 0.7rem 1.2rem;
   z-index: 2;
+  min-height: 2.8rem;
+  font-size: 1.7rem;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ========== Section Layout (Label + Row) ========== */
@@ -755,7 +791,7 @@ body {
   flex-direction: column;
   align-items: center; /* Center label and row */
   gap: 0.3rem; /* Space between label and row */
-  margin-bottom: 0.5rem; /* Reduced space between sections */
+  margin-bottom: 1.3rem; /* Increased space between sections */
   width: 100%;
 }
 .player-section:last-child {
@@ -768,7 +804,8 @@ body {
   text-transform: uppercase;
   font-size: 0.95rem; /* Slightly larger */
   color: var(--accent); /* Use accent color */
-  margin-bottom: 0.3rem; /* Increased margin */
+  margin-top: 0.7rem; /* Increased margin */
+  margin-bottom: 0.7rem; /* Increased margin */
   letter-spacing: 0.5px; /* Added letter spacing */
 }
 
@@ -782,6 +819,7 @@ body {
   justify-content: center;
   align-items: flex-end;
   position: relative;
+  margin-bottom: 1.2rem; /* Increased spacing below hand */
 }
 
 #my-hand > div {
@@ -848,7 +886,7 @@ body {
   min-height: 156px;
   align-items: flex-start; /* Align stacks to the top so cards are right below label */
   justify-content: center;
-  margin-top: 0.2rem;
+  margin-top: 1.2rem; /* Increased spacing above stacks */
 }
 
 .stack {
@@ -865,7 +903,7 @@ body {
 }
 .stack .up-card {
   position: absolute;
-  top: 0;
+  top: 11px !important; /* Adjusted offset for overlap */
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
@@ -905,7 +943,7 @@ body {
 }
 .stack .card-img.up-card {
   z-index: 2;
-  top: 0; /* Adjusted offset */
+  top: 11px !important; /* Adjusted offset */
 }
 .stack.playable-stack:hover .card-img.up-card,
 .stack.playable-stack:hover .card-img.down-card {
@@ -967,7 +1005,7 @@ body {
   border: none !important;
   box-shadow: none !important;
   padding: 0.5rem 0 0 0;
-  margin: 0.5rem auto 0 auto;
+  margin: 1.2rem auto 1.2rem auto; /* Adjusted spacing */
   display: flex;
   gap: 1rem;
   max-width: 360px;
