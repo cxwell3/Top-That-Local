@@ -52,13 +52,27 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.style.zIndex = 2000;
     btn.onclick = () => {
       socket.emit('adminReset');
-      // Skip reconnect logic: just reload page
+      // After reload, auto-trigger Play vs Computer
+      sessionStorage.setItem('autoPlayVsComputer', '1');
       window.location.reload();
     };
     document.body.appendChild(btn);
   }
 
   addRestartButton();
+
+  // After reload, auto-trigger Play vs Computer if requested
+  if (sessionStorage.getItem('autoPlayVsComputer') === '1') {
+    sessionStorage.removeItem('autoPlayVsComputer');
+    setTimeout(() => {
+      if (typeof joinComputerBtn?.onclick === 'function') {
+        joinComputerBtn.onclick();
+      } else {
+        // fallback: simulate click
+        joinComputerBtn?.click();
+      }
+    }, 300);
+  }
 
   // Global state
   let myId = null;
