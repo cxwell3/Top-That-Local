@@ -155,8 +155,8 @@ export class Game {
     const computer = this.findPlayerById(computerId);
     if (!computer || computer.disconnected || this.turn !== computer.id) return;
 
-    // Increase the delay before the computer starts thinking
     setTimeout(() => {
+      const t = this.effectiveTop();
       if (computer.hand.length > 0) {
         const wilds = computer.hand
           .map((card, index) => ({ card, index }))
@@ -371,6 +371,15 @@ export class Game {
     return this.playPile.at(-1);
   }
 
+  effectiveTop() {
+    const t = this.top();
+    if (!t) return null;
+    if (t.value === 5 && t.copied && this.lastRealCard) {
+      return { ...this.lastRealCard, copied: true };
+    }
+    return t;
+  }
+
   byId(id) {
     return this.players.find(p => p.id === id && !p.disconnected);
   }
@@ -382,26 +391,19 @@ export class Game {
   }
 
   valid(cards) {
-    // --- DEBUG LOGGING for 4-of-a-kind ---
     if (cards.length === 4) {
       console.log(`[DEBUG valid] Checking four cards: ${JSON.stringify(cards.map(c => c.value))}. Should return true.`);
-      // Explicitly return true here just in case something weird is happening below
       return true;
     }
-    // --- END DEBUG LOGGING ---
 
     if (!cards.length || !cards.every(c => c.value === cards[0].value)) return false;
-    // Allow special cards (2, 5, 10) regardless of rank
     if (new Set([2, 5, 10, '2', '5', '10']).has(cards[0].value)) return true;
-    const t = this.top();
-    if (!t) return true; // Allow any card on an empty pile
-    // Otherwise, the card must be higher rank
+    const t = this.effectiveTop();
+    if (!t) return true;
     const isValidRank = this.rank(cards[0]) > this.rank(t);
-    // --- DEBUG LOGGING for rank comparison ---
     if (!isValidRank) {
         console.log(`[DEBUG valid] Rank check failed: Card ${cards[0].value} (rank ${this.rank(cards[0])}) vs Pile ${t.value} (rank ${this.rank(t)})`);
     }
-    // --- END DEBUG LOGGING ---
     return isValidRank;
   }
 

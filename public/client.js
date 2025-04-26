@@ -182,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lobbyContainer) console.log(`  - lobbyContainer classes: ${lobbyContainer.className}`);
     if (lobbyCard) console.log(`  - lobby-form-card opacity: ${lobbyCard.style.opacity}`);
 
+    prevStarted = false; // Reset game start flag so showGameTable() can trigger again
   }
 
   function showWaitingState(roomId, playersLength, maxPlayers, playersList) {
@@ -989,12 +990,19 @@ document.addEventListener('DOMContentLoaded', () => {
         myHandCount = p.hand.length;
         p.hand.forEach((c, i) => {
           const canInteract = isMyTurn;
-          const el = cardImg(c, canInteract);
-          const cardElement = el.querySelector('.card-img');
+          // Render a placeholder first
+          const el = document.createElement('div');
+          el.className = 'card-placeholder';
+          // Only show the card after the image loads
+          const cardEl = cardImg(c, canInteract, () => {
+            el.innerHTML = '';
+            el.appendChild(cardEl);
+          });
+          const cardElement = cardEl.querySelector('.card-img');
           if (cardElement) {
             cardElement.dataset.idx = i;
             if (canInteract) {
-              el.classList.add('playable-card-container');
+              cardEl.classList.add('playable-card-container');
             }
           }
           handRow.appendChild(el);
