@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>Top That! – Card Game</title>
-  <link rel="stylesheet" href="style.css?v=20250424_lobby_modal" />
+  <link rel="stylesheet" href="style.css?v=20250426_centered_piles" />
   <script defer src="/socket.io/socket.io.js"></script>
-  <script defer type="module" src="client.js?v=20250424_lobby_modal"></script>
+  <script defer type="module" src="client.js?v=20250426_centered_piles"></script>
 </head>
 <body>
   <header id="main-header">
@@ -57,16 +57,18 @@
     </div>
 
     <div id="table" class="hidden">
-      <div class="game-board">
-        <section id="my-area" class="player-area">
-          <h2 id="my-name"></h2>
-        </section>
-        <div id="center" class="center-area">
-          <div id="event-banner"></div>
-          <div id="error-banner" class="error-banner hidden" role="alert"></div>
+      <div class="table-board">
+        <div class="table-slot-top"></div>
+        <div class="table-slot-left"></div>
+        <div class="table-slot-center">
+          <div id="center" class="center-area">
+            <div id="event-banner"></div>
+            <div id="error-banner" class="error-banner hidden" role="alert"></div>
+            <!-- createCenterPiles() will insert deck and discard piles here -->
+          </div>
         </div>
-        <section id="other-players" class="player-area">
-        </section>
+        <div class="table-slot-right"></div>
+        <div class="table-slot-bottom"></div>
       </div>
     </div>
   </main>
@@ -78,36 +80,45 @@
       <ul>
         <li>Game Setup
           <ul class="sublist">
-            <li>- Deal 3 hand cards, 3 face-up cards, and 3 face-down cards per player</li>
-            <li>- Remaining cards form the draw pile</li>
+            <li>- Use 1 deck for 1–3 players; 2 decks for 4–8 players.</li>
+            <li>- Deal each player, in order:
+              <ul style="margin-left: 2em;">
+                <li>3 cards face-down</li>
+                <li>3 cards face-up</li>
+                <li>3 cards in their hand</li>
+              </ul>
+            </li>
+            <li>- Place the rest face-down as the draw pile.</li>
+            <li>- Turn the top card face-up to start the discard pile.</li>
           </ul>
         </li>
-        <li>Turn Rules
+        <li>On Your Turn
           <ul class="sublist">
-            <li>- A card is drawn from the pile to start the game</li>
-            <li>- The first player plays 1 or more cards of a higher value</li>
-            <li>- If the deck remains, you must draw to keep 3 cards in your hand at all times</li>
-            <li>- Can’t play? Take the pile and flip a new card to restart</li>
+            <li>- Play one or more hand cards higher than the top discard.</li>
+            <li>- After playing, draw back up to 3 cards (if the draw pile isn’t empty).</li>
+            <li>- If you can’t play, pick up the entire discard pile into your hand.</li>
+            <li>- End by passing play to the next player.</li>
           </ul>
         </li>
         <li>Special Cards
           <ul class="sublist">
-            <li>- 2 resets the pile</li>
-            <li>- 5 copies the previous card’s value (acts as a regular 5 if it’s the first card played)</li>
-            <li>- 10 clears the pile</li>
-            <li>- Four of a kind clears the pile and does not have to be higher than the last card</li>
+            <li>- 2: Reset the pile. Next player may play any card.</li>
+            <li>- 5: Copy the last card’s value. If it’s the first in a new pile, treat as normal.</li>
+            <li>- 10: Clear the discard pile—those cards are removed.</li>
+            <li>- Four-of-a-kind: Also clears the pile, regardless of value.</li>
           </ul>
         </li>
-        <li>Card Phases
+        <li>Playing Up & Down Cards
           <ul class="sublist">
-            <li>- Play all hand cards before using face-up cards</li>
-            <li>- Play all face-up cards before using face-down cards</li>
-            <li>- If you can’t play a face-up or face-down card, take the pile and must empty your hand before resuming</li>
+            <li>- Finish hand cards before playing face-up.</li>
+            <li>- Finish face-up before playing face-down.</li>
+            <li>- Only one face-up or face-down card may be played per turn, even if you have multiples of the same value.</li>
+            <li>- If you can’t play an up/down card, pick up the discard pile and resume with hand cards.</li>
           </ul>
         </li>
         <li>Winning
           <ul class="sublist">
-            <li>- First player to empty hand, face-ups, and face-downs wins</li>
+            <li>- First to empty hand, face-up, and face-down cards wins.</li>
           </ul>
         </li>
       </ul>
