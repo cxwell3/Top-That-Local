@@ -497,39 +497,55 @@ body {
 }
 
 /* ========== Notifications & Banners ========== */
-.banner, .notice {
-  text-align: center;
-  padding: 0.8rem 1rem;
-  font-weight: 600;
-  font-size: 1.05rem;
-}
 .banner {
-  background: var(--accent2);
+  position: absolute;
+  top: -1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: var(--name);
+  border: 2px solid var(--accent2);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: bold;
   color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 10;
 }
-.notice {
-  /* Remove fixed positioning for in-game notice */
-  position: static !important;
-  bottom: unset;
-  left: unset;
-  transform: none;
-  margin: 1rem auto 0 auto;
-  background: rgba(0, 0, 0, 0.7);
-  color: var(--accent);
-  border: 1px solid var(--panelBorder);
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: default;
-  user-select: none;
-  z-index: 150;
-  width: auto;
-  max-width: 80%;
-  padding: 0.5rem 1rem;
+.banner.show {
+  opacity: 1;
+}
+.banner.reset { color: #3b82f6; }
+.banner.copy  { color: #10b981; }
+.banner.burn  { color: #ef4444; }
+.banner i { font-size: 1rem; }
+
+.error-banner {
+  margin: 0.5rem auto 0 auto;
+  padding: 0.7rem 1.5rem;
+  background: linear-gradient(90deg, #2e5e3c 80%, #367347 100%);
+  color: #fffbe7;
+  border: 2.5px solid #FFC300;
+  border-radius: 10px;
+  font-size: 1.18rem;
+  font-weight: 700;
   text-align: center;
+  box-shadow: 0 4px 18px 0 #0005, 0 0 0 2px #FFC30055;
+  z-index: 200;
+  min-width: 220px;
+  max-width: 420px;
+  letter-spacing: 0.5px;
+  display: none;
+}
+.error-banner.show {
   display: block;
 }
+
 .hidden { display: none !important; }
 
 .took-pile-banner {
@@ -1597,4 +1613,57 @@ body {
 }
 #error-banner.hidden {
   display: none;
+}
+
+#special-banner, #error-banner {
+  pointer-events: none;
+}
+
+/* ========== Special Banner ========== */
+#special-banner {
+  position: absolute;
+  top: -2.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 120px;
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.35rem 1.2rem;
+  border-radius: 0.7rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  box-shadow: 0 2px 12px 0 #0003;
+  border: 2.5px solid #fff;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  background: #fffbe7;
+  color: #1b2e3c;
+  letter-spacing: 0.5px;
+}
+#special-banner.show {
+  opacity: 1;
+}
+#special-banner.reset {
+  background: #e3f0ff;
+  color: #2563eb;
+  border-color: #2563eb;
+}
+#special-banner.copy {
+  background: #e6fff6;
+  color: #059669;
+  border-color: #059669;
+}
+#special-banner.burn {
+  background: #fff0f0;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+#special-banner i {
+  font-size: 1.3rem;
+  margin-right: 0.5rem;
 }
