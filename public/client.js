@@ -352,21 +352,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   socket.on('notice', msg => {
-    if (!notice) return;
-    if (!msg) {
-      notice.classList.add('hidden');
-      return;
+    // Only show error in new error banner if it's a take pile message
+    if (msg && (msg.toLowerCase().includes('take pile') || msg.toLowerCase().includes('no valid moves'))) {
+      showError('You must take the pile.');
+    } else {
+      clearError();
     }
-    notice.textContent = msg.replace('Take Pile', 'take pile');
-    notice.classList.remove('hidden');
-    setTimeout(() => {
-      if (notice.textContent === msg.replace('Take Pile', 'take pile')) {
-        notice.classList.add('hidden');
-      }
-    }, 4000);
   });
 
   socket.on('err', msg => {
+    if (msg && msg.toLowerCase().includes('illegal play')) {
+      showError('Invalid play');
+    } else {
+      showError(msg);
+    }
     console.error(`❌ Server Error: ${msg}`);
     showError(msg); // Display the error message to the user
 
@@ -710,17 +709,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ---------- Helper Functions ---------- */
   function showError(msg) {
-    if (!notice) return;
-    notice.textContent = `Error: ${msg.replace('Take Pile', 'take pile')}`;
-    notice.classList.remove('hidden');
-    notice.style.backgroundColor = 'var(--error-color)';
-    notice.style.color = 'white';
+    // Hide old notice banner if present
+    if (notice) notice.classList.add('hidden');
+    // Show new error banner
+    const errorBanner = document.getElementById('error-banner');
+    if (!errorBanner) return;
+    errorBanner.textContent = msg;
+    errorBanner.classList.remove('hidden');
+  }
 
-    setTimeout(() => {
-      notice.classList.add('hidden');
-      notice.style.backgroundColor = '';
-      notice.style.color = '';
-    }, 5000);
+  function clearError() {
+    const errorBanner = document.getElementById('error-banner');
+    if (errorBanner) errorBanner.classList.add('hidden');
+    if (notice) notice.classList.add('hidden');
   }
 
   function code(c) {
@@ -855,6 +856,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     console.log(`▶️ Emitting playCards with indexes: ${indexes}`);
+    clearError();
     socket.emit('playCards', indexes);
   }
 
@@ -908,13 +910,16 @@ document.addEventListener('DOMContentLoaded', () => {
           btnContainer.id = 'dynamic-btn-container';
           const playBtnDyn = document.createElement('button');
           playBtnDyn.id = 'play';
-          playBtnDyn.textContent = 'Play Selected';
+          playBtnDyn.textContent = 'Play'; // Changed from 'Play Selected'
           playBtnDyn.onclick = playSelectedCards;
           playBtnDyn.className = 'btn btn-primary';
           const takeBtnDyn = document.createElement('button');
           takeBtnDyn.id = 'take';
-          takeBtnDyn.textContent = 'Take Pile';
-          takeBtnDyn.onclick = () => socket.emit('takePile');
+          takeBtnDyn.textContent = 'Take'; // Changed from 'Take Pile'
+          takeBtnDyn.onclick = () => {
+            clearError();
+            socket.emit('takePile');
+          };
           takeBtnDyn.className = 'btn btn-secondary';
           btnContainer.appendChild(playBtnDyn);
           btnContainer.appendChild(takeBtnDyn);
@@ -1031,13 +1036,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!centerDiv) return;
 
     let eventBanner = document.getElementById('event-banner');
+    let errorBanner = document.getElementById('error-banner');
+    // Remove both banners if present
     if (eventBanner && eventBanner.parentNode === centerDiv) {
       centerDiv.removeChild(eventBanner);
     }
-    centerDiv.innerHTML = '';
-    if (eventBanner) {
-      centerDiv.insertBefore(eventBanner, centerDiv.firstChild);
+    if (errorBanner && errorBanner.parentNode === centerDiv) {
+      centerDiv.removeChild(errorBanner);
     }
+    centerDiv.innerHTML = '';
+    // Re-append banners at the top of centerDiv
+    if (eventBanner) {
+      centerDiv.appendChild(eventBanner);
+    }
+    if (!errorBanner) {
+      errorBanner = document.createElement('div');
+      errorBanner.id = 'error-banner';
+      errorBanner.className = 'error-banner hidden';
+      errorBanner.setAttribute('role', 'alert');
+    }
+    centerDiv.appendChild(errorBanner);
 
     const pilesWrapper = document.createElement('div');
     pilesWrapper.className = 'center-piles-wrapper';

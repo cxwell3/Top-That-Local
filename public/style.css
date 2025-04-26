@@ -980,6 +980,26 @@ body {
   height: var(--card-h);
   position: relative;
   transition: transform .2s;
+  /* No transform or z-index change on hover or select */
+  transform: none !important;
+  z-index: auto !important;
+}
+
+#my-hand > div.selected-container {
+  /* No raise, no scale */
+  z-index: auto !important;
+}
+
+#my-hand > div .card-img {
+  border: none !important;
+  box-shadow: none !important;
+  transition: border 0.13s, box-shadow 0.13s;
+}
+
+#my-hand > div:hover .card-img,
+#my-hand > div.selected-container .card-img {
+  border: 3px solid #f472b6 !important; /* Subtle but viewable pink/magenta */
+  box-shadow: 0 0 12px 3px rgba(244, 114, 182, 0.28) !important; /* Soft pink glow */
 }
 
 /* Set specific z-index for cards based on position (later cards on top) */
@@ -994,53 +1014,8 @@ body {
 #my-hand > div:nth-child(9) { z-index: 9; }
 #my-hand > div:nth-child(10) { z-index: 10; }
 
-/* Keep the original z-index when hovering so cards appear behind ones to their right */
-#my-hand > div:not(.selected-container):hover {
-  transform: translateY(-15px);
-  /* No z-index change here - maintains original order */
-  transition: transform 0.12s ease-out; /* Snappy transition */
-}
-
-/* Selected cards also maintain their original z-index */
-#my-hand > div.selected-container {
-  transform: translateY(-15px) !important;
-  /* No z-index change here - maintains original order */
-}
-
 #my-hand > div:not(:first-child) {
   margin-left: -47px !important;
-}
-
-/* Hover effect - revert to simple lift */
-#my-hand > div:not(.selected-container):hover {
-  transform: translateY(-15px);
-  z-index: 10;
-  transition: transform 0.12s ease-out, z-index 0.05s; /* Snappier transition */
-}
-
-/* Keep selected card styling separate and ensure it stays lifted */
-#my-hand > div.selected-container {
-  transform: translateY(-15px) !important; /* Lower height so cards are visible behind */
-  z-index: 5; /* Lower z-index so they appear behind unselected cards */
-}
-
-/* Add gold border to raised cards */
-#my-hand > div.selected-container .card-img,
-#my-hand > div:not(.selected-container):hover .card-img {
-  border: 3px solid #16F0FF; /* Changed from gold to bright cyan */
-  box-shadow: 0 0 8px 2px rgba(22, 240, 255, 0.5); /* Cyan glow effect */
-  /* Remove the accent color border */
-}
-
-#my-hand .card-img {
-  cursor: pointer;
-  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, border 0.15s ease-out;
-}
-
-/* Smooth out the active state */
-#my-hand .card-img:active {
-  filter: brightness(0.95);
-  transform: scale(0.98); /* Reduced scale effect */
 }
 
 .opp-hand {
@@ -1598,4 +1573,28 @@ body {
   0% { transform: scale(1); }
   50% { transform: scale(0.92); } /* More pronounced scale effect */
   100% { transform: scale(1); }
+}
+
+/* Themed error banner below deck/discard */
+#error-banner.error-banner {
+  display: block;
+  margin: 0.5rem auto 0 auto;
+  padding: 0.7rem 1.5rem;
+  background: linear-gradient(90deg, #2e5e3c 80%, #367347 100%); /* felt green gradient */
+  color: #fffbe7;
+  border: 2.5px solid #FFC300; /* gold border */
+  border-radius: 10px;
+  font-size: 1.18rem;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 4px 18px 0 #0005, 0 0 0 2px #FFC30055;
+  z-index: 200;
+  position: relative;
+  min-width: 220px;
+  max-width: 420px;
+  letter-spacing: 0.5px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+#error-banner.hidden {
+  display: none;
 }
