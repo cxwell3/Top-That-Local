@@ -39,19 +39,40 @@ document.addEventListener('DOMContentLoaded', () => {
   const other = $('other-players');
   const myArea = $('my-area');
 
-  // Add dev/test restart buttons (soft and hard)
+  // Add a dev/test restart button
+  function addRestartButton() {
+    if (document.getElementById('dev-restart-btn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'dev-restart-btn';
+    btn.textContent = 'Restart Game (Dev)';
+    btn.className = 'btn btn-tertiary';
+    btn.style.position = 'fixed';
+    btn.style.bottom = '24px';
+    btn.style.right = '24px';
+    btn.style.zIndex = 2000;
+    btn.onclick = () => {
+      socket.emit('adminReset');
+      // After reload, auto-trigger Play vs Computer
+      sessionStorage.setItem('autoPlayVsComputer', '1');
+      window.location.reload();
+    };
+    document.body.appendChild(btn);
+  }
+
+  addRestartButton();
+
+  /* ---------- Dev/Test Buttons ---------- */
   function addRestartButtons() {
     if (document.getElementById('dev-restart-btn-soft') || document.getElementById('dev-restart-btn-hard')) return;
     // Soft Reset Button
     const btnSoft = document.createElement('button');
     btnSoft.id = 'dev-restart-btn-soft';
     btnSoft.textContent = 'Soft Reset';
-    btnSoft.className = 'btn btn-primary'; // Small like Play/Take
-    btnSoft.style.position = 'absolute';
-    btnSoft.style.top = '2.5rem'; // Move up to align with up/down cards
-    btnSoft.style.left = '50%';
-    btnSoft.style.transform = 'translateX(-120%)';
-    btnSoft.style.zIndex = 1200;
+    btnSoft.className = 'btn btn-tertiary'; // Use tertiary style for less emphasis
+    btnSoft.style.position = 'fixed'; // Position relative to viewport
+    btnSoft.style.bottom = '24px';
+    btnSoft.style.right = '130px'; // Position left of the hard reset
+    btnSoft.style.zIndex = 2000;
     btnSoft.style.width = '90px';
     btnSoft.style.fontSize = '1rem';
     btnSoft.onclick = () => {
@@ -61,19 +82,17 @@ document.addEventListener('DOMContentLoaded', () => {
       sessionStorage.removeItem('myId');
       sessionStorage.removeItem('currentRoom');
       window.history.pushState({}, '', window.location.pathname);
-      // Force reload of the page state to allow joining again
       window.location.reload();
     };
     // Hard Reset Button
     const btnHard = document.createElement('button');
     btnHard.id = 'dev-restart-btn-hard';
     btnHard.textContent = 'Hard Reset';
-    btnHard.className = 'btn btn-primary';
-    btnHard.style.position = 'absolute';
-    btnHard.style.top = '2.5rem';
-    btnHard.style.left = '50%';
-    btnHard.style.transform = 'translateX(20%)';
-    btnHard.style.zIndex = 1200;
+    btnHard.className = 'btn btn-tertiary'; // Use tertiary style
+    btnHard.style.position = 'fixed'; // Position relative to viewport
+    btnHard.style.bottom = '24px';
+    btnHard.style.right = '24px';
+    btnHard.style.zIndex = 2000;
     btnHard.style.width = '90px';
     btnHard.style.fontSize = '1rem';
     btnHard.onclick = () => {
@@ -81,18 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
       sessionStorage.setItem('autoPlayVsComputer', '1');
       window.location.reload(true);
     };
-    // Place in center area
-    const centerDiv = document.getElementById('center');
-    if (centerDiv) {
-      centerDiv.appendChild(btnSoft);
-      centerDiv.appendChild(btnHard);
-    } else {
-      document.body.appendChild(btnSoft);
-      document.body.appendChild(btnHard);
-    }
+    // Append directly to body
+    document.body.appendChild(btnSoft);
+    document.body.appendChild(btnHard);
   }
-
-  addRestartButtons();
 
   // After reload, auto-trigger Play vs Computer if requested
   if (sessionStorage.getItem('autoPlayVsComputer') === '1') {
@@ -111,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let myId = null;
   let currentRoom = null;
   let activeModal = null; // Keep track of the currently open modal
-  let gameHasBeenShown = false; // Add a flag to track if table is already visible
 
   /* ---------- UI State Functions ---------- */
 
@@ -130,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showLobbyForm() {
-    gameHasBeenShown = false; // Reset flag when showing lobby
     console.log('[Debug] showLobbyForm called'); // Re-added log
 
     // Log initial state & check elements
@@ -176,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showWaitingState(roomId, playersLength, maxPlayers, playersList) {
-    gameHasBeenShown = false; // Reset flag when showing waiting state
     console.log('[Debug] showWaitingState called'); // Added log
     if (lobbyContainer) lobbyContainer.classList.remove('hidden');
     if (lobbyFormContent) lobbyFormContent.classList.add('hidden');
@@ -203,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (notice) notice.classList.add('hidden');
     hideOverlay(); // Hide overlay when game starts
     closeModal(); // Ensure any open modals are closed
+    addRestartButtons(); // Add buttons AFTER table is shown
   }
 
   /* ---------- Modal Handling ---------- */
@@ -374,18 +383,19 @@ document.addEventListener('DOMContentLoaded', () => {
     showWaitingState(roomId, players.length, maxPlayers);
   });
 
+  // Track previous started state to prevent multiple showGameTable() calls
+  let prevStarted = false;
+
   socket.on('state', s => {
     console.log('[Debug] Received state event:', s); // Debug log for state event
+    // Only call showGameTable() when transitioning from not started to started
+    if (s.started && !prevStarted) {
+      showGameTable();
+    }
+    prevStarted = s.started;
     if (s.started) {
-      // Only show the game table the first time we receive a started state
-      if (!gameHasBeenShown) {
-        showGameTable();
-        gameHasBeenShown = true; // Set the flag
-      }
-      renderGameState(s); // Always render the latest state
+      renderGameState(s);
     } else {
-      // If we receive a non-started state (e.g., back to lobby), reset the flag
-      gameHasBeenShown = false;
       // Show lobby waiting state if game not started
       if (s.players && s.players.length && currentRoom) {
         showWaitingState(currentRoom, s.players.length, s.players.length > 0 ? 4 : 0);
@@ -583,12 +593,14 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       message: 'Try to play a 10. It burns the pile!',
       highlight: 'special10',
-      restrict: null // up card, will allow in next step
+      restrict: null,
+      expect: null // up card, will allow in next step
     },
     {
       message: 'Try to play a 5. It copies the previous card\'s value!',
       highlight: 'special5',
-      restrict: null // up card, will allow in next step
+      restrict: null,
+      expect: null // up card, will allow in next step
     },
     {
       message: 'Great job! You\'ve learned the basics. Play a full game to master the rest!',
@@ -767,7 +779,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  document.addEventListener('keydown', e => {
+  /* Remove Ctrl+R listener */
+  /* document.addEventListener('keydown', e => {
     if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       console.log('🛑 Sending adminReset');
@@ -779,7 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.history.pushState({}, '', window.location.pathname);
       showLobbyForm();
     }
-  });
+  }); */
 
   /* ---------- Helper Functions ---------- */
   function showError(msg) {
@@ -818,16 +831,17 @@ document.addEventListener('DOMContentLoaded', () => {
     return v + s;
   }
 
-  function cardImg(card, sel = false) {
+  function cardImg(card, sel = false, onCardLoad) {
     const container = document.createElement('div');
-
     const img = new Image();
     img.className = 'card-img';
     img.src = card.back
       ? 'https://deckofcardsapi.com/static/img/back.png'
       : `https://deckofcardsapi.com/static/img/${code(card)}.png`;
     img.alt = card.back ? 'Card back' : `${card.value} of ${card.suit}`;
-
+    if (typeof onCardLoad === 'function') {
+      img.onload = () => onCardLoad(img);
+    }
     if (sel) {
       img.style.cursor = 'pointer';
       // Attach handlers directly on the image so click always registers
@@ -959,7 +973,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!myArea) return;
         myArea.classList.toggle('active', isMyTurn);
 
-        // --- Stylized player name header ---
+        // --- Stylized player name header (NO ICON) ---
         const myNameHeader = document.createElement('div');
         myNameHeader.className = 'player-name-header player-human';
         myNameHeader.innerHTML = `<span class="player-name-text">${p.name}</span>`;
@@ -1077,17 +1091,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (p.disconnected) panel.classList.add('disconnected');
         // Add tutorial-player class if needed in future
 
-        // --- Stylized player name header ---
+        // --- Stylized player name header (NO ICON) ---
         const nameHeader = document.createElement('div');
         nameHeader.className = 'player-name-header ' + (p.isComputer ? 'player-cpu' : 'player-human');
         nameHeader.innerHTML = `
           <span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span>
         `;
         panel.appendChild(nameHeader);
-        // Add spacer for CPU just like Player 1
-        const cpuSpacer = document.createElement('div');
-        cpuSpacer.style.height = '40px';
-        panel.appendChild(cpuSpacer);
 
         const hr = document.createElement('div');
         hr.className = 'opp-hand';
@@ -1186,16 +1196,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const playPileContainer = document.createElement('div');
     playPileContainer.className = 'center-pile-container';
-    const playLabel = document.createElement('div');
-    playLabel.className = 'pile-label';
-    // Only show label and count if pile has cards
+    // Only show the Discard label if there are cards in the pile
     if (s.playPile.length > 0) {
+      const playLabel = document.createElement('div');
+      playLabel.className = 'pile-label';
       playLabel.textContent = `Discard (${s.playPile.length})`;
-    } else {
-      playLabel.textContent = ' '; // Use space to maintain layout or set height
-      playLabel.style.visibility = 'hidden'; // Hide label text when empty
+      playPileContainer.appendChild(playLabel);
     }
-    playPileContainer.appendChild(playLabel);
     const playPileDiv = document.createElement('div');
     playPileDiv.id = 'play-pile';
     playPileDiv.className = 'pile';
@@ -1204,9 +1211,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const topCard = s.playPile.at(-1);
       playPileDiv.appendChild(cardImg(topCard));
       if (isMyTurn) playPileDiv.classList.add('playable-pile');
-    } else {
-      // Optional: Add specific styling for empty pile if needed
-      playPileDiv.classList.add('empty-pile'); 
     }
 
     pilesWrapper.appendChild(playPileContainer);
