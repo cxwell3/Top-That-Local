@@ -1,7 +1,7 @@
 /* ========== Color Variables & Root Styles ========== */
 :root {
   --bg: #0b5137; /* Changed to dark green #0b5137 */
-  --header-bg: #1b2e3c; /* Deep blue for header */
+  --header-bg: #1b2e3c; /* Deep blue for header - REVERTED to #1b2e3c */
   --accent: #FFC300; /* Changed to bright gold */
   --accent2: #4a90e2; /* Muted Blue */
   --name: #FFC300; /* Changed to bright gold */
@@ -526,7 +526,7 @@ body {
 .banner i { font-size: 1rem; }
 
 .error-banner {
-  margin: 0;
+  margin: 0; /* Remove any default margin */
   padding: 0.7rem 1.5rem;
   background: linear-gradient(90deg, #2e5e3c 80%, #367347 100%);
   color: #fffbe7;
@@ -541,7 +541,10 @@ body {
   max-width: 420px;
   letter-spacing: 0.5px;
   position: relative; /* Position relative to normal flow within #center */
-  order: 3; /* Ensure it appears after the piles wrapper in flex layout */
+  order: 3; /* Ensure it comes AFTER the piles wrapper (order 2) */
+  margin-top: 0.8rem; /* Add margin above it (was 0.5rem) */
+  width: 100%; /* Allow it to take full width for centering */
+  box-sizing: border-box; /* Include padding in width calculation */
 }
 
 #error-banner.hidden {
@@ -597,17 +600,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.8rem; /* Use gap for spacing between items */
+  gap: 0.5rem; /* Reduced gap slightly */
   position: relative;
   padding-top: 0; /* Remove padding */
-  margin-top: 8rem; /* Increased margin to push the center section down further */
+  margin-top: 6rem; /* Reduced margin-top slightly (was 8rem) */
 }
 
 .center-piles-wrapper {
   display: flex;
   flex-direction: row;
   gap: 2.5rem;
-  border: 2.5px solid #fff !important;
+  border: none !important; /* REMOVED border */
   border-radius: 12px;
   padding: 1.5rem 2.2rem; /* Increased padding slightly */
   background: none;
@@ -827,6 +830,14 @@ body {
   display: flex !important;
 }
 
+#my-area .player-section:has(#my-stacks) {
+  /* Remove gap: 1rem !important; */
+}
+
+#my-area .player-section:has(#my-stacks) .row-label {
+  margin-top: 2rem; /* Increase margin-top further (was 1rem) */
+}
+
 /* Responsive tweaks for game board */
 @media (max-width: 900px) {
   .game-board {
@@ -890,9 +901,9 @@ body {
 }
 .badge-crown {
   position: absolute;
-  top: -0.6em; /* Adjust vertical position as needed */
-  left: 0.05em; /* Adjust horizontal position as needed */
-  font-size: 0.7em; /* Make crown slightly smaller */
+  top: -0.7em; /* Adjust vertical position (was -0.6em) */
+  left: 0.05em; /* Keep horizontal position */
+  font-size: 0.8em; /* Increase size slightly (was 0.7em) */
   transform: rotate(-15deg); /* Optional: Tilt the crown slightly */
 }
 .player-name-header .player-name-text {
@@ -911,11 +922,11 @@ body {
   text-shadow: none;
 }
 .player-human.player-name-header {
-  background: linear-gradient(90deg, var(--header-bg) 80%, var(--accent) 100%);
+  background: linear-gradient(90deg, var(--header-bg) 80%, var(--accent) 100%); /* REVERTED to original gradient */
   color: var(--name);
 }
 .player-cpu.player-name-header {
-  background: linear-gradient(90deg, var(--accent2) 80%, var(--mute) 100%);
+  background: linear-gradient(90deg, var(--header-bg) 80%, var(--accent) 100%); /* CHANGED to match human player */
   color: #fff;
 }
 .player-tutorial.player-name-header {
@@ -946,7 +957,7 @@ body {
   width: 100%;
   transform: none;
   border-radius: 12px 12px 0 0;
-  background: var(--header-bg);
+  background: var(--header-bg); /* REVERTED to use --header-bg variable */
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   padding: 0.7rem 1.2rem 0.2rem 1.2rem;
   z-index: 2;
@@ -983,6 +994,17 @@ body {
   letter-spacing: 0.5px; /* Added letter spacing */
   text-transform: none; /* Remove text transformation */
   text-align: center; /* Center align */
+}
+
+/* Pile Labels (Deck, Discard) */
+.pile-label {
+  font-weight: 700; /* Match .row-label */
+  font-size: 1.4rem; /* Match .row-label */
+  color: #fff; /* Match .row-label */
+  margin-bottom: 0.5rem; /* Space above the pile */
+  letter-spacing: 0.5px; /* Match .row-label */
+  text-transform: none; /* Match .row-label */
+  text-align: center; /* Match .row-label */
 }
 
 #my-area .row-label + .hand,
@@ -1159,7 +1181,7 @@ body {
 /* ========== Event Banner ========== */
 #event-banner {
   position: absolute; /* Change from relative to absolute */
-  top: -4rem; /* Move banner further up */
+  top: -3rem; /* Move banner up slightly (was -2.5rem) */
   left: 50%;
   transform: translateX(-50%);
   order: 1; /* Order might not be needed with absolute positioning */

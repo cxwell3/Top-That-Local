@@ -118,17 +118,43 @@ export class Game {
     }
 
     p.hand = p.hand.filter((_, i) => !idxs.includes(i));
-    p.up = p.up.filter((_, i) => !idxs.includes(i + 1000));
-    if (idxs.includes(2000)) p.down.shift();
+    // Only filter up cards if an up card index was played
+    if (idxs.some(i => i >= 1000 && i < 2000)) {
+      p.up = p.up.filter((_, i) => !idxs.includes(i + 1000));
+    }
+    // Only shift down card if a down card index was played
+    if (idxs.some(i => i >= 2000)) {
+      p.down.shift();
+    }
 
-    this.applySpecial(cards);
-    this.refill(p);
-    this.advanceTurn();
+    // Push state immediately to show card on pile
     this.pushState();
 
-    const nextPlayer = this.byId(this.turn);
-    if (nextPlayer && nextPlayer.isComputer) {
-      this.computerTurn(nextPlayer.id);
+    const isSpecialPlay = [2, 5, 10].includes(cards[0].value) || cards.length === 4;
+    const delayDuration = 800; // ms delay for computer special plays
+
+    // Define the rest of the play logic as a function
+    const finishPlay = () => {
+      this.applySpecial(cards); // Apply effects (like burning pile)
+      this.refill(p);           // Refill hand
+      this.advanceTurn();       // Advance turn
+      this.pushState();         // Push final state *after* effects
+
+      // Trigger next computer turn if needed (moved inside finishPlay)
+      const nextPlayer = this.byId(this.turn);
+      if (nextPlayer && nextPlayer.isComputer) {
+        // Add a small delay before the next computer starts thinking
+        setTimeout(() => this.computerTurn(nextPlayer.id), 300);
+      }
+    };
+
+    // Check if it's a computer playing a special card
+    if (p.isComputer && isSpecialPlay) {
+      // If computer played a special card, delay the rest of the logic
+      setTimeout(finishPlay, delayDuration);
+    } else {
+      // Otherwise (human play or non-special computer play), finish immediately
+      finishPlay();
     }
   }
 
@@ -200,7 +226,8 @@ export class Game {
     this.pushState();
 
     const nextPlayer = this.byId(this.turn);
-    if (nextPlayer && nextPlayer.isComputer) {
+    // Only trigger next computer turn if the turn actually advanced to a *different* computer player
+    if (nextPlayer && nextPlayer.isComputer && nextPlayer.id !== p.id) {
       this.computerTurn(nextPlayer.id);
     }
   }
@@ -396,9 +423,18 @@ export class Game {
 
   pushState() {
     const currentPlayer = this.byId(this.turn); // Find active player whose turn it is
-    if (currentPlayer && currentPlayer.sock && !currentPlayer.isComputer && !this.hasMove(currentPlayer)) {
-      currentPlayer.sock.emit('notice', 'No valid moves. You must Take Pile.');
+    if (currentPlayer && !this.hasMove(currentPlayer)) {
+      const noticeMsg = `${currentPlayer.name} must take the pile.`;
+      if (currentPlayer.sock && !currentPlayer.isComputer) {
+        // Only send the specific notice to the human player if it's their turn and they have no moves
+        currentPlayer.sock.emit('notice', noticeMsg);
+      } else {
+        // For computer turns or general state updates, maybe log it or handle differently?
+        // For now, we won't emit this specific notice to everyone, only the affected player.
+        console.log(`Game Notice (server): ${noticeMsg}`);
+      }
     } else if (currentPlayer && currentPlayer.sock) {
+      // Clear notice for the current player if they DO have moves
       currentPlayer.sock.emit('notice', '');
     }
 

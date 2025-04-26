@@ -758,10 +758,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     console.log(`[Debug] showError called with message: "${msg}"`); // Add log
 
+    // Clear any existing timeout before showing the new message
+    clearTimeout(errorBanner._hideTimeout);
+
     errorBanner.textContent = msg;
     errorBanner.classList.remove('hidden');
 
-    clearTimeout(errorBanner._hideTimeout);
+    // Set a new timeout to hide the banner
     errorBanner._hideTimeout = setTimeout(() => {
       errorBanner.classList.add('hidden');
       errorBanner.textContent = '';
@@ -928,7 +931,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const myNameHeader = document.createElement('div');
         myNameHeader.className = 'player-name-header player-human';
         // Wrap emojis in spans for positioning
-        myNameHeader.innerHTML = `<span class="player-name-text">${p.name}</span> <span class="player-badge"><span class="badge-lion">🦁</span><span class="badge-crown">👑</span></span>`;
+        myNameHeader.innerHTML = `<span class="player-name-text">${p.name}</span> <span class="badge-lion">🦁</span><span class="badge-crown">👑</span>`;
         myArea.appendChild(myNameHeader);
 
         const spacer = document.createElement('div');
@@ -993,34 +996,41 @@ document.addEventListener('DOMContentLoaded', () => {
           p.up.forEach((c, i) => {
             const col = document.createElement('div');
             col.className = 'stack';
-            const canPlayThisStack = canPlayStacks;
-            const downCard = cardImg({ back: true }, false);
-            const downCardImg = downCard.querySelector('.card-img');
+            const canPlayThisUpCard = canPlayStacks;
+            const downCardContainer = cardImg({ back: true }, false); // Down card container
+            const downCardImg = downCardContainer.querySelector('.card-img');
             if (downCardImg) downCardImg.classList.add('down-card');
 
-            const upCard = cardImg(c, canPlayThisStack);
-            const upCardElement = upCard.querySelector('.card-img');
+            const upCardContainer = cardImg(c, canPlayThisUpCard); // Up card container, pass interaction flag
+            const upCardElement = upCardContainer.querySelector('.card-img');
             if (upCardElement) {
               upCardElement.classList.add('up-card');
-              upCardElement.dataset.idx = i + 1000;
-              if (canPlayThisStack) col.classList.add('playable-stack');
+              upCardElement.dataset.idx = i + 1000; // Set index for up card
+              if (canPlayThisUpCard) {
+                col.classList.add('playable-stack');
+                upCardContainer.classList.add('playable-card-container'); // Add class for styling/selection
+              }
             }
-            col.append(downCard, upCard);
+            col.append(downCardContainer, upCardContainer); // Append containers
             stackRow.appendChild(col);
           });
         } else if (myDownCount > 0) {
           p.down.forEach((c, i) => {
             const col = document.createElement('div');
             col.className = 'stack';
-            const canPlayThisStack = canPlayStacks && myUpCount === 0 && i === 0;
-            const downCard = cardImg(c.back ? { back: true } : c, canPlayThisStack);
-            const downCardImg = downCard.querySelector('.card-img');
+            // Only the first down card is playable if up cards are gone
+            const canPlayThisDownCard = canPlayStacks && myUpCount === 0 && i === 0;
+            const downCardContainer = cardImg(c.back ? { back: true } : c, canPlayThisDownCard); // Pass interaction flag
+            const downCardImg = downCardContainer.querySelector('.card-img');
             if (downCardImg) {
               downCardImg.classList.add('down-card');
-              downCardImg.dataset.idx = i + 2000;
-              if (canPlayThisStack) col.classList.add('playable-stack');
+              downCardImg.dataset.idx = i + 2000; // Set index for down card
+              if (canPlayThisDownCard) {
+                 col.classList.add('playable-stack');
+                 downCardContainer.classList.add('playable-card-container'); // Add class for styling/selection
+              }
             }
-            col.appendChild(downCard);
+            col.appendChild(downCardContainer); // Append container
             stackRow.appendChild(col);
           });
         }
@@ -1039,16 +1049,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Stylized player name header ---
         const nameHeader = document.createElement('div');
         nameHeader.className = 'player-name-header ' + (p.isComputer ? 'player-cpu' : 'player-human');
-        nameHeader.innerHTML = `<span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span> <span class="player-badge">${p.isComputer ? '🤖' : '👤'}</span>`;
+        // CHANGED CPU emoji from 🤖 to 🦾
+        nameHeader.innerHTML = `<span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span> <span class="player-badge">${p.isComputer ? '🦾' : '👤'}</span>`;
         panel.appendChild(nameHeader);
 
         const hr = document.createElement('div');
         hr.className = 'opp-hand';
         if (p.handCount > 0) {
+          // Show multiple overlapping card backs again
           for (let i = 0; i < p.handCount; i++) {
-            hr.appendChild(cardImg({ back: true }, false));
+            const cardContainer = cardImg({ back: true }, false);
+            hr.appendChild(cardContainer);
           }
         }
+        // Add hand count to the label text
         renderSection(panel, `Hand (${p.handCount})`, hr);
 
         const sr = document.createElement('div');
@@ -1077,7 +1091,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sr.appendChild(col);
           }
         }
-        renderSection(panel, `Up (${p.up.length}) / Down (${p.downCount})`, sr);
+        renderSection(panel, `Up / Down`, sr);
 
         other.appendChild(panel);
       }
@@ -1115,26 +1129,21 @@ document.addEventListener('DOMContentLoaded', () => {
     drawPileContainer.className = 'center-pile-container';
     const drawLabel = document.createElement('div');
     drawLabel.className = 'pile-label';
-    drawLabel.textContent = 'Deck';
+    // Add count to label text
+    drawLabel.textContent = `Deck (${s.deckCount})`;
     drawPileContainer.appendChild(drawLabel);
     const drawPileDiv = document.createElement('div');
     drawPileDiv.id = 'draw-pile';
     drawPileDiv.className = 'pile small';
     drawPileContainer.appendChild(drawPileDiv);
-    const drawCountSpan = document.createElement('span');
-    drawCountSpan.id = 'draw-count';
-    drawCountSpan.className = 'pile-count';
-    drawPileContainer.appendChild(drawCountSpan);
     if (s.deckCount) {
       drawPileDiv.appendChild(cardImg({ back: true }));
-      drawCountSpan.textContent = s.deckCount;
       if (isMyTurn) drawPileDiv.classList.add('playable-pile');
     } else {
       drawPileDiv.classList.remove('small');
       drawPileDiv.style.backgroundColor = 'transparent';
       drawPileDiv.style.border = 'none';
       drawPileDiv.style.boxShadow = 'none';
-      drawCountSpan.textContent = '0';
     }
     pilesWrapper.appendChild(drawPileContainer);
 
@@ -1142,23 +1151,17 @@ document.addEventListener('DOMContentLoaded', () => {
     playPileContainer.className = 'center-pile-container';
     const playLabel = document.createElement('div');
     playLabel.className = 'pile-label';
-    playLabel.textContent = 'Discard';
+    // Add count to label text
+    playLabel.textContent = `Discard (${s.playPile.length})`;
     playPileContainer.appendChild(playLabel);
     const playPileDiv = document.createElement('div');
     playPileDiv.id = 'play-pile';
     playPileDiv.className = 'pile';
     playPileContainer.appendChild(playPileDiv);
-    const playCountSpan = document.createElement('span');
-    playCountSpan.id = 'play-count';
-    playCountSpan.className = 'pile-count';
-    playPileContainer.appendChild(playCountSpan);
     if (s.playPile.length) {
       const topCard = s.playPile.at(-1);
       playPileDiv.appendChild(cardImg(topCard));
-      playCountSpan.textContent = s.playPile.length;
       if (isMyTurn) playPileDiv.classList.add('playable-pile');
-    } else {
-      playCountSpan.textContent = '0';
     }
 
     pilesWrapper.appendChild(playPileContainer);
