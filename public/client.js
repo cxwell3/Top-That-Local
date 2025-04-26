@@ -39,27 +39,60 @@ document.addEventListener('DOMContentLoaded', () => {
   const other = $('other-players');
   const myArea = $('my-area');
 
-  // Add a dev/test restart button
-  function addRestartButton() {
-    if (document.getElementById('dev-restart-btn')) return;
-    const btn = document.createElement('button');
-    btn.id = 'dev-restart-btn';
-    btn.textContent = 'Restart Game (Dev)';
-    btn.className = 'btn btn-tertiary';
-    btn.style.position = 'fixed';
-    btn.style.bottom = '24px';
-    btn.style.right = '24px';
-    btn.style.zIndex = 2000;
-    btn.onclick = () => {
+  // Add dev/test restart buttons (soft and hard)
+  function addRestartButtons() {
+    if (document.getElementById('dev-restart-btn-soft') || document.getElementById('dev-restart-btn-hard')) return;
+    // Soft Reset Button
+    const btnSoft = document.createElement('button');
+    btnSoft.id = 'dev-restart-btn-soft';
+    btnSoft.textContent = 'Soft Reset';
+    btnSoft.className = 'btn btn-primary'; // Small like Play/Take
+    btnSoft.style.position = 'absolute';
+    btnSoft.style.top = '2.5rem'; // Move up to align with up/down cards
+    btnSoft.style.left = '50%';
+    btnSoft.style.transform = 'translateX(-120%)';
+    btnSoft.style.zIndex = 1200;
+    btnSoft.style.width = '90px';
+    btnSoft.style.fontSize = '1rem';
+    btnSoft.onclick = () => {
       socket.emit('adminReset');
-      // After reload, auto-trigger Play vs Computer
-      sessionStorage.setItem('autoPlayVsComputer', '1');
+      myId = null;
+      currentRoom = null;
+      sessionStorage.removeItem('myId');
+      sessionStorage.removeItem('currentRoom');
+      window.history.pushState({}, '', window.location.pathname);
+      // Force reload of the page state to allow joining again
       window.location.reload();
     };
-    document.body.appendChild(btn);
+    // Hard Reset Button
+    const btnHard = document.createElement('button');
+    btnHard.id = 'dev-restart-btn-hard';
+    btnHard.textContent = 'Hard Reset';
+    btnHard.className = 'btn btn-primary';
+    btnHard.style.position = 'absolute';
+    btnHard.style.top = '2.5rem';
+    btnHard.style.left = '50%';
+    btnHard.style.transform = 'translateX(20%)';
+    btnHard.style.zIndex = 1200;
+    btnHard.style.width = '90px';
+    btnHard.style.fontSize = '1rem';
+    btnHard.onclick = () => {
+      socket.emit('adminReset');
+      sessionStorage.setItem('autoPlayVsComputer', '1');
+      window.location.reload(true);
+    };
+    // Place in center area
+    const centerDiv = document.getElementById('center');
+    if (centerDiv) {
+      centerDiv.appendChild(btnSoft);
+      centerDiv.appendChild(btnHard);
+    } else {
+      document.body.appendChild(btnSoft);
+      document.body.appendChild(btnHard);
+    }
   }
 
-  addRestartButton();
+  addRestartButtons();
 
   // After reload, auto-trigger Play vs Computer if requested
   if (sessionStorage.getItem('autoPlayVsComputer') === '1') {
@@ -78,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let myId = null;
   let currentRoom = null;
   let activeModal = null; // Keep track of the currently open modal
+  let gameHasBeenShown = false; // Add a flag to track if table is already visible
 
   /* ---------- UI State Functions ---------- */
 
@@ -96,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showLobbyForm() {
+    gameHasBeenShown = false; // Reset flag when showing lobby
     console.log('[Debug] showLobbyForm called'); // Re-added log
 
     // Log initial state & check elements
@@ -141,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showWaitingState(roomId, playersLength, maxPlayers, playersList) {
+    gameHasBeenShown = false; // Reset flag when showing waiting state
     console.log('[Debug] showWaitingState called'); // Added log
     if (lobbyContainer) lobbyContainer.classList.remove('hidden');
     if (lobbyFormContent) lobbyFormContent.classList.add('hidden');
@@ -341,9 +377,15 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('state', s => {
     console.log('[Debug] Received state event:', s); // Debug log for state event
     if (s.started) {
-      showGameTable();
-      renderGameState(s);
+      // Only show the game table the first time we receive a started state
+      if (!gameHasBeenShown) {
+        showGameTable();
+        gameHasBeenShown = true; // Set the flag
+      }
+      renderGameState(s); // Always render the latest state
     } else {
+      // If we receive a non-started state (e.g., back to lobby), reset the flag
+      gameHasBeenShown = false;
       // Show lobby waiting state if game not started
       if (s.players && s.players.length && currentRoom) {
         showWaitingState(currentRoom, s.players.length, s.players.length > 0 ? 4 : 0);
@@ -541,14 +583,12 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       message: 'Try to play a 10. It burns the pile!',
       highlight: 'special10',
-      restrict: '10',
-      expect: null // up card, will allow in next step
+      restrict: null // up card, will allow in next step
     },
     {
       message: 'Try to play a 5. It copies the previous card\'s value!',
       highlight: 'special5',
-      restrict: '5',
-      expect: null // up card, will allow in next step
+      restrict: null // up card, will allow in next step
     },
     {
       message: 'Great job! You\'ve learned the basics. Play a full game to master the rest!',
@@ -922,8 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Stylized player name header ---
         const myNameHeader = document.createElement('div');
         myNameHeader.className = 'player-name-header player-human';
-        // Wrap emojis in spans for positioning
-        myNameHeader.innerHTML = `<span class="player-name-text">${p.name}</span> <span class="badge-lion">🦁</span><span class="badge-crown">👑</span>`;
+        myNameHeader.innerHTML = `<span class="player-name-text">${p.name}</span>`;
         myArea.appendChild(myNameHeader);
 
         const spacer = document.createElement('div');
@@ -1042,10 +1081,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const nameHeader = document.createElement('div');
         nameHeader.className = 'player-name-header ' + (p.isComputer ? 'player-cpu' : 'player-human');
         nameHeader.innerHTML = `
-          <span class="player-badge">${p.isComputer ? '🤖' : '👤'}</span>
           <span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span>
         `;
         panel.appendChild(nameHeader);
+        // Add spacer for CPU just like Player 1
+        const cpuSpacer = document.createElement('div');
+        cpuSpacer.style.height = '40px';
+        panel.appendChild(cpuSpacer);
 
         const hr = document.createElement('div');
         hr.className = 'opp-hand';
@@ -1146,8 +1188,13 @@ document.addEventListener('DOMContentLoaded', () => {
     playPileContainer.className = 'center-pile-container';
     const playLabel = document.createElement('div');
     playLabel.className = 'pile-label';
-    // Add count to label text
-    playLabel.textContent = `Discard (${s.playPile.length})`;
+    // Only show label and count if pile has cards
+    if (s.playPile.length > 0) {
+      playLabel.textContent = `Discard (${s.playPile.length})`;
+    } else {
+      playLabel.textContent = ' '; // Use space to maintain layout or set height
+      playLabel.style.visibility = 'hidden'; // Hide label text when empty
+    }
     playPileContainer.appendChild(playLabel);
     const playPileDiv = document.createElement('div');
     playPileDiv.id = 'play-pile';
@@ -1157,6 +1204,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const topCard = s.playPile.at(-1);
       playPileDiv.appendChild(cardImg(topCard));
       if (isMyTurn) playPileDiv.classList.add('playable-pile');
+    } else {
+      // Optional: Add specific styling for empty pile if needed
+      playPileDiv.classList.add('empty-pile'); 
     }
 
     pilesWrapper.appendChild(playPileContainer);

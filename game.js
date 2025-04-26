@@ -109,27 +109,45 @@ export class Game {
         }
     };
 
-    const effectDelay = 1000;
+    const effectDelay = 1000; // Original delay for animation/effect display
+    const burnDisplayDelay = 2000; // New delay to show empty pile after burn
 
     if (String(playedValue) === '10' || isFourOfAKind) {
         this.io.emit('specialEffect', { value: 10, type: isFourOfAKind ? 'four' : 'ten' });
-        this.pushState();
+
+        // Immediately clear the pile and push state to show it empty
+        console.log(`[DEBUG play] Burn effect triggered. Clearing pile immediately.`);
+        this.discard = (this.discard || []).concat(this.playPile.splice(0));
+        this.lastRealCard = null; // Pile is cleared, so no last card
+        this.pushState(); // Push state showing the empty pile
+
+        // Wait for the burn display delay
         setTimeout(() => {
-            console.log(`[DEBUG play] Applying delayed burn effect.`);
-            this.discard = (this.discard || []).concat(this.playPile.splice(0));
+            if (!this.started) return; // Check if game reset during delay
+            console.log(`[DEBUG play] Burn display delay finished. Drawing next card.`);
+            
+            // Draw the next card if available
             if (this.deck.length > 0) {
                 const nextCard = this.draw();
                 this.playPile.push(nextCard);
                  if (![2, 5, 10, '2', '5', '10'].includes(nextCard.value)) {
                     this.lastRealCard = nextCard;
                  } else {
+                    // If the new card is special, recursively handle its effect? 
+                    // For now, just don't set lastRealCard and let the next player deal with it.
                     this.lastRealCard = null;
+                    // TODO: Consider if drawing a 10/5/2 here needs immediate handling
                  }
+                 console.log(`[DEBUG play] Placed ${nextCard.value} after burn.`);
             } else {
-                 this.lastRealCard = null;
+                 this.lastRealCard = null; // Deck empty
+                 console.log(`[DEBUG play] Deck empty after burn.`);
             }
-            finishTurn();
-        }, effectDelay);
+            
+            // Finish the turn (refill, advance, push final state)
+            finishTurn(); 
+
+        }, burnDisplayDelay);
 
     } else if (String(playedValue) === '5') {
         this.io.emit('specialEffect', { value: 5, type: 'five' });
@@ -234,43 +252,98 @@ export class Game {
         console.warn(`startGame called but only ${this.players.length} players present.`);
         return;
     }
-    console.log(`Starting game with players: ${this.players.map(p => p.name).join(', ')}`);
+    console.log(`Starting game setup for players: ${this.players.map(p => p.name).join(', ')}`);
+
+    // --- Step 1: Initial Setup (Deal Cards, NO Play Pile Card Yet) ---
     this.started = true;
     this.buildDeck();
     this.deal();
+    this.turn = null; // IMPORTANT: No turn assigned yet
+    this.playPile = []; // IMPORTANT: Ensure play pile is explicitly empty
+    this.lastRealCard = null;
 
-    let initialCard = null;
-    while (this.deck.length > 0) {
-        initialCard = this.draw();
-        if (String(initialCard.value) === '10') {
-            console.log("[DEBUG startGame] Discarding initial 10.");
-            this.discard = (this.discard || []).concat(initialCard);
-            this.io.emit('specialEffect', { value: 10, type: 'ten' });
-            initialCard = null;
+    // --- Step 2: Send Initial State (Empty Pile) ---
+    this.pushState(); // Push state with hands dealt, empty pile
+    console.log(`Initial state (cards dealt, empty pile) pushed. Waiting 2 seconds.`);
+
+    // --- Step 3: Wait 2 Seconds ---
+    setTimeout(() => {
+        if (!this.started || !this.players.length) {
+            console.log("Game reset or players left during initial delay. Aborting turn start.");
+            return;
+        }
+        console.log(`2-second delay finished. Drawing initial card...`);
+
+        // Draw the first card
+        let initialCard = this.draw();
+
+        if (initialCard) {
+            this.playPile.push(initialCard);
+            console.log(`Initial card ${initialCard.value} drawn and placed. Pushing state.`);
+            this.pushState(); // Show the card in the pile
         } else {
-            break;
+            console.error("Deck empty when drawing initial card.");
+            this.turn = this.players[0].id;
+            this.pushState();
+            const firstPlayer = this.byId(this.turn);
+            if (firstPlayer && firstPlayer.isComputer) {
+                setTimeout(() => { if (this.started && this.turn === firstPlayer.id) this.computerTurn(firstPlayer.id); }, 500);
+            }
+            return;
         }
-    }
 
-    if (initialCard) {
-        this.playPile.push(initialCard);
-        if (![2, 5, '2', '5'].includes(initialCard.value)) {
-            this.lastRealCard = initialCard;
+        if (String(initialCard.value) === '10') {
+            console.log("[DEBUG startGame] Initial card is 10. Emitting effect and delaying burn process.");
+            this.io.emit('specialEffect', { value: 10, type: 'ten' });
+            setTimeout(() => {
+                if (!this.started || !this.players.length) return;
+                console.log("[DEBUG startGame] Processing burn for initial 10.");
+                this.discard = (this.discard || []).concat(this.playPile.splice(0));
+                this.lastRealCard = null;
+                // Draw the next non-10 card
+                let nextCard = null;
+                while (this.deck.length > 0) {
+                    nextCard = this.draw();
+                    if (String(nextCard.value) === '10') {
+                        console.log("[DEBUG startGame] Discarding subsequent 10.");
+                        this.discard.push(nextCard);
+                        this.io.emit('specialEffect', { value: 10, type: 'ten' });
+                        nextCard = null;
+                    } else {
+                        break;
+                    }
+                }
+                if (nextCard) {
+                    this.playPile.push(nextCard);
+                    if (![2, 5, '2', '5'].includes(nextCard.value)) {
+                        this.lastRealCard = nextCard;
+                    }
+                    console.log(`Actual starting card ${nextCard.value} placed after initial 10 burn.`);
+                } else {
+                    console.error("Deck ran out while drawing actual starting card after initial 10.");
+                    this.lastRealCard = null;
+                }
+                this.turn = this.players[0].id;
+                console.log(`First turn assigned to: ${this.players[0].name} after initial 10 burn.`);
+                this.pushState();
+                const firstPlayer = this.byId(this.turn);
+                if (firstPlayer && firstPlayer.isComputer) {
+                    setTimeout(() => { if (this.started && this.turn === firstPlayer.id) this.computerTurn(firstPlayer.id); }, 500);
+                }
+            }, 2000); // 2s delay to show the 10 before burn
+        } else {
+            if (![2, 5, '2', '5'].includes(initialCard.value)) {
+                this.lastRealCard = initialCard;
+            }
+            this.turn = this.players[0].id;
+            console.log(`First turn assigned to: ${this.players[0].name}`);
+            this.pushState();
+            const firstPlayer = this.byId(this.turn);
+            if (firstPlayer && firstPlayer.isComputer) {
+                setTimeout(() => { if (this.started && this.turn === firstPlayer.id) this.computerTurn(firstPlayer.id); }, 500);
+            }
         }
-    } else {
-        console.error("Deck ran out while trying to draw a non-10 starting card.");
-        this.lastRealCard = null;
-    }
-
-    this.turn = this.players[0].id;
-    this.pushState();
-    console.log(`Game started. First turn: ${this.players[0].name}`);
-
-    const firstPlayer = this.byId(this.turn);
-    if (firstPlayer && firstPlayer.isComputer) {
-        console.log("First player is computer, initiating turn.");
-        this.computerTurn(firstPlayer.id);
-    }
+    }, 2000); // Initial 2-second delay before anything happens
   }
 
   buildDeck() {

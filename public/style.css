@@ -659,11 +659,10 @@ body {
 }
 
 #my-area {
-  padding-top: 1.2rem !important;
-  padding-bottom: 1.2rem !important;
-  border: 2.5px solid #fff !important; /* Match the increased border width */
-  box-shadow: none !important;
-  min-height: 400px; /* Ensure enough space for the spacer and content */
+  border: 2.5px solid #fff !important;
+  border-radius: 12px !important;
+  position: relative;
+  padding-top: 3.8rem !important; /* Make room for deeper banner */
 }
 
 #my-area.active {
@@ -830,12 +829,16 @@ body {
   display: flex !important;
 }
 
-#my-area .player-section:has(#my-stacks) {
-  /* Remove gap: 1rem !important; */
-}
-
 #my-area .player-section:has(#my-stacks) .row-label {
   margin-top: 2rem; /* Increase margin-top further (was 1rem) */
+}
+
+/* Remove forced flex order for player areas so layout matches HTML order */
+#other-players {
+  /* order: 1; */
+}
+#my-area {
+  /* order: 3; */
 }
 
 /* Responsive tweaks for game board */
@@ -858,6 +861,53 @@ body {
   }
 }
 
+/* --- Player Name Header Segments --- */
+.player-name-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  padding: 1.2rem 0.5rem 0.7rem; /* Increased vertical padding for deeper blue */
+  min-height: 3.2rem; /* Make banner visually deeper */
+  margin: 0;
+  border-radius: 12px 12px 0 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  font-size: 2.1rem; /* Larger font size */
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  box-shadow: 0 2px 8px #0002;
+  background: var(--header-bg);
+  color: #ffffff;
+  z-index: 2;
+}
+.player-name-header .player-name-text {
+  font-size: 2.2rem; /* Make name even bigger */
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+#my-area, .player-area {
+  position: relative;
+  padding-top: 3.8rem !important; /* Make room for deeper banner */
+  border-top: none !important; /* Remove extra top border for both */
+}
+.player-area {
+  border-top: none !important; /* Explicit for CPU area */
+}
+#my-area .player-name-header.player-human,
+.player-area .player-name-header.player-cpu {
+  margin: 0;
+  padding-bottom: 0.7rem;
+  border-radius: 12px 12px 0 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 /* ========== Player Name Headers ========== */
 .player h3, #my-name {
   margin: 0 0 0.8rem 0; /* Consistent margin */
@@ -870,106 +920,6 @@ body {
   padding-bottom: 0.4rem; /* Consistent padding */
   border-bottom: 1px solid var(--panelBorder);
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); /* Added shadow */
-}
-
-/* --- Player Name Header Segments --- */
-.player-name-header {
-  width: 100%;
-  padding: 0.7rem 0.5rem 0.5rem;
-  margin-bottom: 0;
-  border: 2.5px solid var(--panelBorder);
-  border-bottom: none;
-  border-radius: 12px 12px 0 0;
-  font-size: 1.35rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.7rem;
-  box-shadow: 0 2px 8px #0002;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.18);
-}
-.player-name-header .player-badge {
-  font-size: 2rem; /* Increased from 1.5rem */
-  filter: drop-shadow(0 1px 2px #0003);
-  position: relative; /* Establish positioning context */
-  display: inline-block; /* Ensure proper layout */
-}
-.badge-lion {
-  display: inline-block;
-}
-.badge-crown {
-  position: absolute;
-  top: -0.65em; /* Adjusted vertical position slightly */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%) rotate(-15deg); /* Center and rotate */
-  font-size: 0.75em; /* Adjusted size slightly */
-  line-height: 1; /* Ensure line height doesn't interfere */
-}
-.player-name-header .player-name-text {
-  color: #ffffff; /* Solid white */
-  font-family: sans-serif;
-  font-weight: 900;
-  font-size: 1.8rem; /* Make player name text bigger */
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-.player-name-header .player-role {
-  font-size: 1rem;
-  color: var(--accent2);
-  margin-left: 0.5rem;
-  font-weight: 700;
-  text-shadow: none;
-}
-.player-human.player-name-header {
-  background: linear-gradient(90deg, var(--header-bg) 80%, var(--accent) 100%); /* REVERTED to original gradient */
-  color: var(--name);
-}
-.player-cpu.player-name-header {
-  background: linear-gradient(90deg, var(--header-bg) 80%, var(--accent) 100%); /* CHANGED to match human player */
-  color: #fff;
-}
-.player-tutorial.player-name-header {
-  background: linear-gradient(90deg, var(--name) 80%, var(--accent2) 100%);
-  color: var(--header-bg);
-}
-
-/* Add a subtle border to the top of player panels for segmentation */
-#my-area, .player-area {
-  position: relative;
-}
-.player-area.computer-player {
-  border-top: none !important;
-}
-.player-area.tutorial-player {
-  border-top: none !important;
-}
-#my-area {
-  border: 2.5px solid #fff !important;
-  border-radius: 12px !important;
-  position: relative;
-  padding-top: 1.2rem !important; /* Adjusted padding */
-}
-#my-area .player-name-header.player-human {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  transform: none;
-  border-radius: 12px 12px 0 0;
-  background: var(--header-bg); /* REVERTED to use --header-bg variable */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  padding: 0.7rem 1.2rem 0.2rem 1.2rem;
-  z-index: 2;
-  min-height: 2.2rem;
-  font-size: 1.7rem;
-  letter-spacing: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  outline: none !important;
-  margin-bottom: 0.4rem;
 }
 
 /* ========== Section Layout (Label + Row) ========== */
