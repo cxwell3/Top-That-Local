@@ -351,38 +351,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  socket.on('notice', msg => {
-    if (msg && (msg.toLowerCase().includes('take pile') || msg.toLowerCase().includes('no valid moves'))) {
-      console.log(`[Debug] Received take pile notice: "${msg}"`);
-      // Check if banner exists before calling showError
-      const bannerExists = document.getElementById('error-banner');
-      if (!bannerExists) {
-        console.error('[Debug] #error-banner NOT FOUND before calling showError in notice handler!');
-      } else {
-        console.log('[Debug] #error-banner FOUND before calling showError in notice handler.');
-      }
-      showError('You must take the pile.');
+  socket.on('gameOver', ({ winnerId, winnerName }) => {
+    console.log(`[Debug] Game Over! Winner: ${winnerName} (${winnerId})`);
+    showGameOverMessage(winnerId === myId, winnerName);
+  });
+
+  // Handle general notices/errors from the server
+  let noticeTimeout = null; // Variable to hold the timeout ID
+  socket.on('notice', (message) => {
+    const errorBanner = document.getElementById('error-banner');
+    if (!errorBanner) return; // Safety check
+
+    // Clear any pending notice display
+    clearTimeout(noticeTimeout);
+
+    if (message) {
+      // Delay showing the notice slightly more
+      noticeTimeout = setTimeout(() => {
+        errorBanner.textContent = message;
+        errorBanner.classList.remove('hidden');
+      }, 1000); // Increased delay to 1000ms (1 second)
     } else {
-      // Handle other general notices using the top notice banner
-      const noticeBanner = $('notice-banner');
-      if (!noticeBanner) return;
-
-      if (!msg) {
-        noticeBanner.classList.add('hidden');
-        return;
-      }
-      noticeBanner.textContent = msg;
-      noticeBanner.classList.remove('hidden');
-
-      // Optional: Clear existing timeout
-      clearTimeout(noticeBanner._hideTimeout);
-
-      // Hide after a delay
-      noticeBanner._hideTimeout = setTimeout(() => {
-        if (noticeBanner.textContent === msg) { // Check if message is still the same
-          noticeBanner.classList.add('hidden');
-        }
-      }, 4000);
+      // Hide immediately if the message is empty
+      errorBanner.classList.add('hidden');
+      errorBanner.textContent = ''; // Clear text when hiding
     }
   });
 
@@ -1049,20 +1041,23 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Stylized player name header ---
         const nameHeader = document.createElement('div');
         nameHeader.className = 'player-name-header ' + (p.isComputer ? 'player-cpu' : 'player-human');
-        // CHANGED CPU emoji from 🤖 to 🦾
-        nameHeader.innerHTML = `<span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span> <span class="player-badge">${p.isComputer ? '🦾' : '👤'}</span>`;
+        nameHeader.innerHTML = `
+          <span class="player-badge">${p.isComputer ? '🤖' : '👤'}</span>
+          <span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span>
+        `;
         panel.appendChild(nameHeader);
 
         const hr = document.createElement('div');
         hr.className = 'opp-hand';
         if (p.handCount > 0) {
-          // Show multiple overlapping card backs again
-          for (let i = 0; i < p.handCount; i++) {
+          // Only render up to 3 card backs visually
+          const visualHandCount = Math.min(p.handCount, 3);
+          for (let i = 0; i < visualHandCount; i++) {
             const cardContainer = cardImg({ back: true }, false);
             hr.appendChild(cardContainer);
           }
         }
-        // Add hand count to the label text
+        // Add hand count to the label text (using the actual p.handCount)
         renderSection(panel, `Hand (${p.handCount})`, hr);
 
         const sr = document.createElement('div');
@@ -1166,6 +1161,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     pilesWrapper.appendChild(playPileContainer);
     centerDiv.appendChild(pilesWrapper);
+  }
+
+  function showGameOverMessage(didIWin, winnerName) {
+    // Create or find a container for the game over message
+    let gameOverContainer = document.getElementById('game-over-container');
+    if (!gameOverContainer) {
+      gameOverContainer = document.createElement('div');
+      gameOverContainer.id = 'game-over-container';
+      gameOverContainer.style.position = 'fixed';
+      gameOverContainer.style.top = '0';
+      gameOverContainer.style.left = '0';
+      gameOverContainer.style.width = '100%';
+      gameOverContainer.style.height = '100%';
+      gameOverContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.75)';
+      gameOverContainer.style.display = 'flex';
+      gameOverContainer.style.flexDirection = 'column';
+      gameOverContainer.style.justifyContent = 'center';
+      gameOverContainer.style.alignItems = 'center';
+      gameOverContainer.style.zIndex = '3000'; // Ensure it's on top
+      gameOverContainer.style.color = 'white';
+      gameOverContainer.style.textAlign = 'center';
+      document.body.appendChild(gameOverContainer);
+    }
+
+    gameOverContainer.innerHTML = `
+      <div style="font-size: 4em; margin-bottom: 20px;">🏆</div>
+      <h1 style="font-size: 3em; margin-bottom: 10px;">Game Over!</h1>
+      <p style="font-size: 1.5em; margin-bottom: 30px;">
+        ${didIWin ? '🎉 You win! 🎉' : `${winnerName} wins!`}
+      </p>
+      <button id="play-again-btn" class="btn btn-primary" style="font-size: 1.2em; padding: 10px 20px;">Play Again</button>
+    `;
+
+    // Add event listener for the play again button
+    const playAgainBtn = document.getElementById('play-again-btn');
+    if (playAgainBtn) {
+      playAgainBtn.onclick = () => {
+        // Reload the page to go back to the lobby
+        window.location.reload();
+      };
+    }
+
+    gameOverContainer.classList.remove('hidden');
   }
 
 }); // End of DOMContentLoaded listener

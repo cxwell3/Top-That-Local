@@ -18,9 +18,6 @@ export class Game {
     this.players.push({ id: sock.id, sock, name, hand: [], up: [], down: [], disconnected: false }); // Initialize disconnected
     sock.emit('joined', { id: sock.id });
 
-    // Remove startGame call from here
-    // this.io.emit('lobby', this.players.map(p => ({ id: p.id, name: p.name }))); // Lobby update handled by server
-    // if (this.players.length >= 2) this.startGame();
     return true;
   }
 
@@ -49,10 +46,6 @@ export class Game {
       disconnected: false // Initialize disconnected
     });
 
-    // Remove startGame call from here
-    // if (this.players.length >= 2) {
-    //   this.startGame();
-    // }
     return true;
   }
 
@@ -70,34 +63,9 @@ export class Game {
   }
 
   play(sock, idxs) {
-    const p = this.findPlayerById(sock.id); // Use findPlayerById
-    if (!p || p.disconnected || (this.turn !== p.id && p.id !== 'computer')) return;
-
-    // Prevent playing up and down cards together
-    const isUpPlay = idxs.some(i => i >= 1000 && i < 2000);
-    const isDownPlay = idxs.some(i => i >= 2000);
-    if (isUpPlay && isDownPlay) {
-      sock.emit('err', 'You cannot play up and down cards together');
-      return;
-    }
-
-    // Enforce: all up cards must be played before down cards
-    if (isDownPlay && p.up.length > 0) {
-      sock.emit('err', 'You must play all face-up cards before playing face-down cards');
-      return;
-    }
-
-    // Enforce: all hand cards must be played before up cards
-    if (isUpPlay && p.hand.length > 0) {
-      sock.emit('err', 'You must play all hand cards before playing face-up cards');
-      return;
-    }
-
-    // If player has picked up the pile while in up/down phase, they must play all hand cards before returning to up/down
-    // (This is already enforced by the above, but let's make it explicit)
-    if ((isUpPlay || isDownPlay) && p.hand.length > 0) {
-      sock.emit('err', 'You must play all hand cards before playing up or down cards');
-      return;
+    const p = this.findPlayerById(sock.id);
+    if (!p || p.disconnected || (this.turn !== p.id)) { // Simplified turn check
+        return;
     }
 
     const cards = idxs.map(i => {
@@ -105,63 +73,89 @@ export class Game {
       if (i >= 1000) return p.up[i - 1000];
       return p.hand[i];
     });
+    if (!cards.every(c => c)) {
+        sock.emit?.('err', 'Invalid card selection');
+        return;
+    }
 
     if (!this.valid(cards)) {
-      sock.emit('err', 'Illegal play');
+      sock.emit?.('err', 'Illegal play');
       return;
     }
 
     cards.forEach(c => this.playPile.push(c));
+    const playedValue = cards[0].value;
+    const isFourOfAKind = cards.length === 4;
 
-    if (![2, 5, 10].includes(cards[0].value) && cards.length < 4) {
-      this.lastRealCard = cards[0];
+    if (![2, 5, 10, '2', '5', '10'].includes(playedValue) && !isFourOfAKind) {
+        this.lastRealCard = cards[0];
     }
 
     p.hand = p.hand.filter((_, i) => !idxs.includes(i));
-    // Only filter up cards if an up card index was played
     if (idxs.some(i => i >= 1000 && i < 2000)) {
       p.up = p.up.filter((_, i) => !idxs.includes(i + 1000));
     }
-    // Only shift down card if a down card index was played
     if (idxs.some(i => i >= 2000)) {
       p.down.shift();
     }
 
-    // Push state immediately to show card on pile
-    this.pushState();
-
-    const isSpecialPlay = [2, 5, 10].includes(cards[0].value) || cards.length === 4;
-    const delayDuration = 800; // ms delay for computer special plays
-
-    // Define the rest of the play logic as a function
-    const finishPlay = () => {
-      this.applySpecial(cards); // Apply effects (like burning pile)
-      this.refill(p);           // Refill hand
-      this.advanceTurn();       // Advance turn
-      this.pushState();         // Push final state *after* effects
-
-      // Trigger next computer turn if needed (moved inside finishPlay)
-      const nextPlayer = this.byId(this.turn);
-      if (nextPlayer && nextPlayer.isComputer) {
-        // Add a small delay before the next computer starts thinking
-        setTimeout(() => this.computerTurn(nextPlayer.id), 300);
-      }
+    const finishTurn = () => {
+        this.refill(p);
+        this.advanceTurn();
+        this.pushState();
+        const nextPlayer = this.byId(this.turn);
+        if (nextPlayer && nextPlayer.isComputer) {
+            setTimeout(() => this.computerTurn(nextPlayer.id), 300);
+        }
     };
 
-    // Check if it's a computer playing a special card
-    if (p.isComputer && isSpecialPlay) {
-      // If computer played a special card, delay the rest of the logic
-      setTimeout(finishPlay, delayDuration);
+    const effectDelay = 1000;
+
+    if (String(playedValue) === '10' || isFourOfAKind) {
+        this.io.emit('specialEffect', { value: 10, type: isFourOfAKind ? 'four' : 'ten' });
+        this.pushState();
+        setTimeout(() => {
+            console.log(`[DEBUG play] Applying delayed burn effect.`);
+            this.discard = (this.discard || []).concat(this.playPile.splice(0));
+            if (this.deck.length > 0) {
+                const nextCard = this.draw();
+                this.playPile.push(nextCard);
+                 if (![2, 5, 10, '2', '5', '10'].includes(nextCard.value)) {
+                    this.lastRealCard = nextCard;
+                 } else {
+                    this.lastRealCard = null;
+                 }
+            } else {
+                 this.lastRealCard = null;
+            }
+            finishTurn();
+        }, effectDelay);
+
+    } else if (String(playedValue) === '5') {
+        this.io.emit('specialEffect', { value: 5, type: 'five' });
+        this.pushState();
+        setTimeout(() => {
+            console.log(`[DEBUG play] Applying delayed copy effect.`);
+            if (this.lastRealCard) {
+                this.playPile.push({ ...this.lastRealCard, copied: true });
+            }
+            finishTurn();
+        }, effectDelay);
+
+    } else if (String(playedValue) === '2') {
+        this.io.emit('specialEffect', { value: 2, type: 'two' });
+        finishTurn();
+
     } else {
-      // Otherwise (human play or non-special computer play), finish immediately
-      finishPlay();
+        finishTurn();
     }
   }
 
   computerTurn(computerId = 'computer') {
-    const computer = this.findPlayerById(computerId); // Use findPlayerById
+    const computer = this.findPlayerById(computerId);
     if (!computer || computer.disconnected || this.turn !== computer.id) return;
 
+    // Increase the delay before the computer starts thinking
     setTimeout(() => {
       if (computer.hand.length > 0) {
         const wilds = computer.hand
@@ -209,11 +203,11 @@ export class Game {
         return;
       }
       this.takePile({ id: computerId });
-    }, 1000);
+    }, 1500); // Changed delay to 1500ms (1.5 seconds)
   }
 
   takePile(sock) {
-    const p = this.findPlayerById(sock.id); // Use findPlayerById
+    const p = this.findPlayerById(sock.id);
     if (!p || p.disconnected || this.turn !== p.id) return;
     this.givePile(p, 'You picked up the pile');
     if (p.sock && !p.isComputer) {
@@ -226,7 +220,6 @@ export class Game {
     this.pushState();
 
     const nextPlayer = this.byId(this.turn);
-    // Only trigger next computer turn if the turn actually advanced to a *different* computer player
     if (nextPlayer && nextPlayer.isComputer && nextPlayer.id !== p.id) {
       this.computerTurn(nextPlayer.id);
     }
@@ -239,44 +232,40 @@ export class Game {
     }
     if (this.players.length < 2) {
         console.warn(`startGame called but only ${this.players.length} players present.`);
-        return; // Don't start with fewer than 2 players
+        return;
     }
     console.log(`Starting game with players: ${this.players.map(p => p.name).join(', ')}`);
     this.started = true;
     this.buildDeck();
     this.deal();
 
-    // Draw initial card, handling special cards (10)
     let initialCard = null;
     while (this.deck.length > 0) {
         initialCard = this.draw();
-        if (initialCard.value === 10 || initialCard.value === '10') {
-            // If it's a 10, discard it and try again
+        if (String(initialCard.value) === '10') {
+            console.log("[DEBUG startGame] Discarding initial 10.");
             this.discard = (this.discard || []).concat(initialCard);
-            this.io.emit('specialEffect', { value: 10, type: 'ten' }); // Notify clients of the burn
-            initialCard = null; // Reset initialCard to continue loop
+            this.io.emit('specialEffect', { value: 10, type: 'ten' });
+            initialCard = null;
         } else {
-            // It's not a 10, break the loop
             break;
         }
     }
 
     if (initialCard) {
         this.playPile.push(initialCard);
-        // Set lastRealCard if the initial card isn't special
-        if (![2, 5, 10, '2', '5', '10'].includes(initialCard.value)) {
+        if (![2, 5, '2', '5'].includes(initialCard.value)) {
             this.lastRealCard = initialCard;
         }
     } else {
         console.error("Deck ran out while trying to draw a non-10 starting card.");
-        // Handle this edge case - maybe reset or end game? For now, playPile remains empty.
+        this.lastRealCard = null;
     }
 
-    this.turn = this.players[0].id; // Start with the first player
-    this.pushState(); // Send initial state
+    this.turn = this.players[0].id;
+    this.pushState();
     console.log(`Game started. First turn: ${this.players[0].name}`);
 
-    // Check if the first player is a computer and trigger its turn
     const firstPlayer = this.byId(this.turn);
     if (firstPlayer && firstPlayer.isComputer) {
         console.log("First player is computer, initiating turn.");
@@ -296,19 +285,16 @@ export class Game {
   }
 
   deal() {
-    // Deal all down cards first
     for (let i = 0; i < 3; i++) {
       this.players.forEach(p => {
         p.down.push(this.draw());
       });
     }
-    // Then all up cards
     for (let i = 0; i < 3; i++) {
       this.players.forEach(p => {
         p.up.push(this.draw());
       });
     }
-    // Then all hand cards
     for (let i = 0; i < 3; i++) {
       this.players.forEach(p => {
         p.hand.push(this.draw());
@@ -352,28 +338,27 @@ export class Game {
   }
 
   valid(cards) {
+    // --- DEBUG LOGGING for 4-of-a-kind ---
+    if (cards.length === 4) {
+      console.log(`[DEBUG valid] Checking four cards: ${JSON.stringify(cards.map(c => c.value))}. Should return true.`);
+      // Explicitly return true here just in case something weird is happening below
+      return true;
+    }
+    // --- END DEBUG LOGGING ---
+
     if (!cards.length || !cards.every(c => c.value === cards[0].value)) return false;
+    // Allow special cards (2, 5, 10) regardless of rank
     if (new Set([2, 5, 10, '2', '5', '10']).has(cards[0].value)) return true;
     const t = this.top();
-    if (!t) return true;
-    return this.rank(cards[0]) > this.rank(t);
-  }
-
-  applySpecial(cards) {
-    const v = cards[0].value;
-    if (v === 10 || cards.length === 4) {
-      this.discard = (this.discard || []).concat(this.playPile.splice(0));
-      if (this.deck.length) this.playPile.push(this.draw());
-      this.io.emit('specialEffect', { value: 10, type: cards.length === 4 ? 'four' : 'ten' });
-      return;
+    if (!t) return true; // Allow any card on an empty pile
+    // Otherwise, the card must be higher rank
+    const isValidRank = this.rank(cards[0]) > this.rank(t);
+    // --- DEBUG LOGGING for rank comparison ---
+    if (!isValidRank) {
+        console.log(`[DEBUG valid] Rank check failed: Card ${cards[0].value} (rank ${this.rank(cards[0])}) vs Pile ${t.value} (rank ${this.rank(t)})`);
     }
-    if (v === 2) {
-      this.io.emit('specialEffect', { value: 2, type: 'two' });
-    }
-    if (v === 5 && this.lastRealCard) {
-      this.playPile.push({ ...this.lastRealCard, copied: true });
-      this.io.emit('specialEffect', { value: 5, type: 'five' });
-    }
+    // --- END DEBUG LOGGING ---
+    return isValidRank;
   }
 
   refill(p) {
@@ -398,10 +383,23 @@ export class Game {
   }
 
   hasMove(p) {
-    if (p.hand.length) return p.hand.some(c => this.valid([c]));
-    if (this.deck.length === 0) return p.up.some(c => this.valid([c]));
-    if (this.deck.length === 0 && p.up.length === 0 && p.down.length)
+    if (p.hand.length > 0) {
+      if (p.hand.some(c => this.valid([c]))) {
+        return true;
+      }
+      return false;
+    }
+
+    if (p.up.length > 0) {
+      if (p.up.some(c => this.valid([c]))) {
+        return true;
+      }
+    }
+
+    if (p.down.length > 0) {
       return true;
+    }
+
     return false;
   }
 
@@ -422,24 +420,29 @@ export class Game {
   }
 
   pushState() {
-    const currentPlayer = this.byId(this.turn); // Find active player whose turn it is
+    const currentPlayer = this.byId(this.turn);
+
     if (currentPlayer && !this.hasMove(currentPlayer)) {
       const noticeMsg = `${currentPlayer.name} must take the pile.`;
       if (currentPlayer.sock && !currentPlayer.isComputer) {
-        // Only send the specific notice to the human player if it's their turn and they have no moves
+        console.log(`[DEBUG pushState] Emitting notice to human ${currentPlayer.id}: ${noticeMsg}`);
         currentPlayer.sock.emit('notice', noticeMsg);
-      } else {
-        // For computer turns or general state updates, maybe log it or handle differently?
-        // For now, we won't emit this specific notice to everyone, only the affected player.
-        console.log(`Game Notice (server): ${noticeMsg}`);
+      } else if (currentPlayer.isComputer) {
+        console.log(`[DEBUG pushState] Computer ${currentPlayer.id} must take pile. Broadcasting notice.`);
+        this.players.forEach(p => {
+          if (p.id !== currentPlayer.id && p.sock && !p.isComputer) {
+            p.sock.emit('notice', noticeMsg);
+          }
+        });
+        console.log(`[DEBUG pushState] Triggering computer ${currentPlayer.id} to take pile immediately.`);
+        setTimeout(() => this.takePile({ id: currentPlayer.id }), 50); 
       }
     } else if (currentPlayer && currentPlayer.sock) {
-      // Clear notice for the current player if they DO have moves
+      console.log(`[DEBUG pushState] Clearing notice for ${currentPlayer.id}.`);
       currentPlayer.sock.emit('notice', '');
     }
 
     this.players.forEach(targetPlayer => {
-      // Only send state to active players
       if (targetPlayer.sock && !targetPlayer.disconnected) {
         targetPlayer.sock.emit('state', {
           deckCount: this.deck.length,
@@ -450,14 +453,14 @@ export class Game {
             id: p.id,
             name: p.name,
             isComputer: p.isComputer,
-            disconnected: p.disconnected, // Include disconnected status
+            disconnected: p.disconnected,
             hand: p.id === targetPlayer.id ? p.hand : [],
             handCount: p.hand.length,
             up: p.up,
             down: p.id === targetPlayer.id ? p.down : p.down.map(() => ({ back: true })),
             downCount: p.down.length
           })),
-          started: this.started // <--- Add started flag
+          started: this.started
         });
       }
     });

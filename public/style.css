@@ -901,10 +901,11 @@ body {
 }
 .badge-crown {
   position: absolute;
-  top: -0.7em; /* Adjust vertical position (was -0.6em) */
-  left: 0.05em; /* Keep horizontal position */
-  font-size: 0.8em; /* Increase size slightly (was 0.7em) */
-  transform: rotate(-15deg); /* Optional: Tilt the crown slightly */
+  top: -0.65em; /* Adjusted vertical position slightly */
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%) rotate(-15deg); /* Center and rotate */
+  font-size: 0.75em; /* Adjusted size slightly */
+  line-height: 1; /* Ensure line height doesn't interfere */
 }
 .player-name-header .player-name-text {
   color: #ffffff; /* Solid white */
