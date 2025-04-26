@@ -583,13 +583,13 @@ body {
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  min-width: 0;
-  max-width: 1300px;
+  min-width: 1400px;
+  max-width: 2000px;
   height: auto;
-  min-height: 0;
+  min-height: 900px;
   background-color: var(--bg);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 4rem 3rem;
   gap: 1rem;
   overflow-x: hidden;
   margin: 0 auto;
@@ -612,7 +612,7 @@ body {
   gap: 2.5rem;
   border: none !important; /* REMOVED border */
   border-radius: 12px;
-  padding: 1.5rem 2.2rem; /* Increased padding slightly */
+  padding: 1.2rem 2rem;
   background: none;
   align-items: center; /* Vertically center the piles inside */
   justify-content: center;
@@ -628,42 +628,54 @@ body {
   flex-direction: row;
   justify-content: center;
   align-items: stretch;
-  gap: 2.5rem;
+  gap: 1.5rem;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1900px;
   margin: 0 auto;
-  min-height: 500px;
+  min-height: 850px;
 }
 
-/* Consolidated player panel styles */
-.player-area, .player, #my-area {
-  background: none !important;
-  border: 2.5px solid #fff !important; /* Reverted back to original 2.5px width */
-  border-radius: 12px;
-  box-shadow: none !important;
+#other-players {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 1.2rem 1rem 2.8rem 1rem; /* Increased bottom padding */
-  margin: 0;
-  position: relative;
-  overflow: visible !important; /* Ensure nothing is cut off */
-  min-height: 500px !important; /* Increased from 450px to make playable area even bigger */
-  width: 100%;
+  flex-direction: row;
+  gap: 1.2rem;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.player-area {
+  min-width: calc(var(--card-w) * 4 + 48px);
+  max-width: calc(var(--card-w) * 5 + 64px);
+  width: auto;
+  min-height: 420px;
+  max-height: 520px;
+  height: auto;
+  padding: 1.5rem 1.5rem 2.2rem 1.5rem;
+  gap: 1rem;
   box-sizing: border-box;
-  gap: 0.5rem;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  border-top: none !important;
-  outline: none !important;
+  border: 2.5px solid #fff !important;
+  border-radius: 12px !important;
+  background: none !important;
+  margin-top: 0.8rem;
+}
+
+.player-area.computer-player {
+  border: 2.5px solid #fff !important;
+  border-radius: 12px !important;
+  background: none !important;
+  margin-top: 0.8rem;
 }
 
 #my-area {
-  padding-top: 1.2rem !important;
-  padding-bottom: 1.2rem !important;
-  border: 2.5px solid #fff !important; /* Match the increased border width */
-  box-shadow: none !important;
-  min-height: 400px; /* Ensure enough space for the spacer and content */
+  min-width: calc(var(--card-w) * 4 + 48px);
+  max-width: calc(var(--card-w) * 5 + 64px);
+  min-height: 420px;
+  max-height: 520px;
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+  border: 2.5px solid #fff !important;
+  border-radius: 12px !important;
+  margin-top: 0.8rem;
 }
 
 #my-area.active {
@@ -713,6 +725,34 @@ body {
 #my-area .player-section {
   margin: 0 !important;
   outline: none !important;
+}
+
+#my-area .hand {
+  margin-top: 2.2rem !important;
+}
+
+#my-area .button-container {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  margin-top: 3.5rem !important;
+  margin-bottom: 1.1rem !important;
+}
+
+.player-area .button-container {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  margin-top: 3.5rem !important;
+  margin-bottom: 1.1rem !important;
+}
+
+.player-area .hand {
+  margin-top: 2.2rem !important;
+}
+
+.player-area .button-container {
+  margin-top: 3.5rem !important;
 }
 
 /* Remove all other borders from player panels */
@@ -885,6 +925,9 @@ body {
   gap: 0.7rem;
   box-shadow: 0 2px 8px #0002;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.18);
+  box-sizing: border-box;
+  padding-left: 0;
+  padding-right: 0;
 }
 .player-name-header .player-badge {
   font-size: 2rem; /* Increased from 1.5rem */
@@ -1221,16 +1264,16 @@ body {
   border: none !important;
   box-shadow: none !important;
   padding: 0.5rem 0 0 0;
-  margin: 0 !important; /* Adjusted spacing */
+  margin: 0 !important;
   display: flex;
   gap: 1rem;
-  max-width: 360px;
+  max-width: none;
   outline: none !important;
 }
-
 .button-container button {
   padding: 0.6rem 1.3rem;
-  min-width: 120px;
+  min-width: unset;
+  width: auto;
   border-radius: 6px;
   font-weight: 700;
   cursor: pointer;
@@ -1242,7 +1285,6 @@ body {
   color: #000000; /* Black text for better contrast */
   text-shadow: none;
   padding: 0.7rem 1.2rem; /* Adjusted padding for shorter text */
-  min-width: 90px; /* Smaller min-width for shorter text */
   font-weight: 700;
 }
 
@@ -1250,7 +1292,6 @@ body {
   background: #FFC800; /* Changed to #FFC800 gold */
   color: #000000; /* Black text for better contrast */
   padding: 0.7rem 1.2rem; /* Adjusted padding for shorter text */
-  min-width: 90px; /* Smaller min-width for shorter text */
   font-weight: 700;
 }
 

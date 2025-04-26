@@ -223,8 +223,7 @@ export class Game {
           other.sock.emit('opponentTookPile', { playerId: p.id });
         }
       });
-    } else if (p.isComputer) {
-      // After the computer takes the pile, notify all human players
+    } else if (p.isComputer && !sock.skipNotice) {
       this.players.forEach(other => {
         if (other.sock && !other.isComputer) {
           other.sock.emit('notice', `${p.name} must take the pile.`);
@@ -233,6 +232,7 @@ export class Game {
     }
     this.pushState();
 
+    // Prevent immediate re-invocation of computerTurn for the same computer
     const nextPlayer = this.byId(this.turn);
     if (nextPlayer && nextPlayer.isComputer && nextPlayer.id !== p.id) {
       this.computerTurn(nextPlayer.id);
@@ -488,9 +488,10 @@ export class Game {
         const noticeMsg = `${currentPlayer.name} must take the pile.`;
         currentPlayer.sock.emit('notice', noticeMsg);
       } else if (currentPlayer.isComputer) {
-        // Do not show notice yet, just trigger the computer to take the pile
-        setTimeout(() => this.takePile({ id: currentPlayer.id }), 50);
+        // Do not emit notice here, just trigger the computer to take the pile
+        setTimeout(() => this.takePile({ id: currentPlayer.id, skipNotice: true }), 50);
         // Do not emit notice here
+        return; // Prevent further state push until after takePile
       }
     } else if (currentPlayer && currentPlayer.sock) {
       currentPlayer.sock.emit('notice', '');
