@@ -122,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let myId = null;
   let currentRoom = null;
   let activeModal = null; // Keep track of the currently open modal
+  let pileTransition = false; // Track if the pile is in a transition state (e.g., after 5, 10, or four-of-a-kind)
 
   /* ---------- UI State Functions ---------- */
 
@@ -473,6 +474,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   socket.on('specialEffect', ({ value, type }) => {
+    if (value === 10 || type === 'four' || (value === 5 && type === 'five')) {
+      setPileTransition(true);
+      setTimeout(() => setPileTransition(false), 2000); // Match server delay
+    }
     showCardEvent(value, type);
   });
 
@@ -754,6 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Enhance snap effect for main game as well
   const origPlaySelectedCards = playSelectedCards;
   function playSelectedCardsWithSnap() {
+    if (pileTransition) return;
     const selectedCards = document.querySelectorAll('.card-img.selected');
     selectedCards.forEach(img => snapCard(img));
     origPlaySelectedCards();
@@ -796,6 +802,38 @@ document.addEventListener('DOMContentLoaded', () => {
   }); */
 
   /* ---------- Helper Functions ---------- */
+  function setPileTransition(active) {
+    pileTransition = active;
+    const playBtn = document.getElementById('play');
+    if (playBtn) playBtn.disabled = active;
+    // Show or hide a transition overlay/banner
+    let transitionBanner = document.getElementById('pile-transition-banner');
+    if (active) {
+      if (!transitionBanner) {
+        transitionBanner = document.createElement('div');
+        transitionBanner.id = 'pile-transition-banner';
+        transitionBanner.className = 'banner';
+        transitionBanner.style.position = 'absolute';
+        transitionBanner.style.top = '50%';
+        transitionBanner.style.left = '50%';
+        transitionBanner.style.transform = 'translate(-50%, -50%)';
+        transitionBanner.style.zIndex = 2000;
+        transitionBanner.style.background = 'rgba(0,0,0,0.7)';
+        transitionBanner.style.color = '#fff';
+        transitionBanner.style.fontWeight = 'bold';
+        transitionBanner.style.fontSize = '2rem';
+        transitionBanner.style.padding = '1.5rem 3rem';
+        transitionBanner.style.borderRadius = '12px';
+        transitionBanner.textContent = 'Pile in transition...';
+        document.body.appendChild(transitionBanner);
+      } else {
+        transitionBanner.classList.remove('hidden');
+      }
+    } else if (transitionBanner) {
+      transitionBanner.classList.add('hidden');
+    }
+  }
+
   function showError(msg) {
     const errorBanner = document.getElementById('error-banner');
     if (!errorBanner) {
@@ -934,6 +972,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function playSelectedCards() {
+    if (pileTransition) return;
+
     const selectedCards = document.querySelectorAll('.card-img.selected');
     if (selectedCards.length === 0) return;
 

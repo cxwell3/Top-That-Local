@@ -64,6 +64,7 @@ export class Game {
 
   play(sock, idxs) {
     const p = this.findPlayerById(sock.id);
+    console.log(`[DEBUG play] play() called by ${p ? p.name : 'unknown'} (${sock.id}) with idxs: ${JSON.stringify(idxs)}. Current turn: ${this.turn}`);
     if (!p || p.disconnected || (this.turn !== p.id)) { // Simplified turn check
         return;
     }
@@ -79,11 +80,13 @@ export class Game {
     }
 
     if (!this.valid(cards)) {
+      console.log(`[DEBUG play] Invalid play attempted by ${p ? p.name : 'unknown'} (${sock.id}) with cards: ${JSON.stringify(cards)}. Current turn: ${this.turn}`);
       sock.emit?.('err', 'Illegal play');
       return;
     }
 
     cards.forEach(c => this.playPile.push(c));
+    console.log(`[DEBUG play] ${p ? p.name : 'unknown'} played cards: ${JSON.stringify(cards)}. New playPile: ${JSON.stringify(this.playPile)}. Turn: ${this.turn}`);
     const playedValue = cards[0].value;
     const isFourOfAKind = cards.length === 4;
 
@@ -102,10 +105,13 @@ export class Game {
     const finishTurn = () => {
         this.refill(p);
         this.advanceTurn();
+        console.log(`[DEBUG finishTurn] Advancing turn. New turn: ${this.turn}`);
         this.pushState();
         const nextPlayer = this.byId(this.turn);
         if (nextPlayer && nextPlayer.isComputer) {
-            setTimeout(() => this.computerTurn(nextPlayer.id), 300);
+            // Wait 2 seconds after a special effect, otherwise 1.5s
+            const delay = (String(playedValue) === '10' || isFourOfAKind || String(playedValue) === '5') ? 2000 : 1500;
+            setTimeout(() => this.computerTurn(nextPlayer.id), delay);
         }
     };
 
@@ -153,6 +159,7 @@ export class Game {
 
   computerTurn(computerId = 'computer') {
     const computer = this.findPlayerById(computerId);
+    console.log(`[DEBUG computerTurn] Called for ${computerId}. Current turn: ${this.turn}`);
     if (!computer || computer.disconnected || this.turn !== computer.id) return;
 
     setTimeout(() => {
@@ -214,6 +221,13 @@ export class Game {
       this.players.forEach(other => {
         if (other.id !== p.id && other.sock) {
           other.sock.emit('opponentTookPile', { playerId: p.id });
+        }
+      });
+    } else if (p.isComputer) {
+      // After the computer takes the pile, notify all human players
+      this.players.forEach(other => {
+        if (other.sock && !other.isComputer) {
+          other.sock.emit('notice', `${p.name} must take the pile.`);
         }
       });
     }
@@ -468,23 +482,17 @@ export class Game {
   pushState() {
     const currentPlayer = this.byId(this.turn);
 
+    // Only show the 'must take pile' notice if it's a human player's turn
     if (currentPlayer && !this.hasMove(currentPlayer)) {
-      const noticeMsg = `${currentPlayer.name} must take the pile.`;
       if (currentPlayer.sock && !currentPlayer.isComputer) {
-        console.log(`[DEBUG pushState] Emitting notice to human ${currentPlayer.id}: ${noticeMsg}`);
+        const noticeMsg = `${currentPlayer.name} must take the pile.`;
         currentPlayer.sock.emit('notice', noticeMsg);
       } else if (currentPlayer.isComputer) {
-        console.log(`[DEBUG pushState] Computer ${currentPlayer.id} must take pile. Broadcasting notice.`);
-        this.players.forEach(p => {
-          if (p.id !== currentPlayer.id && p.sock && !p.isComputer) {
-            p.sock.emit('notice', noticeMsg);
-          }
-        });
-        console.log(`[DEBUG pushState] Triggering computer ${currentPlayer.id} to take pile immediately.`);
-        setTimeout(() => this.takePile({ id: currentPlayer.id }), 50); 
+        // Do not show notice yet, just trigger the computer to take the pile
+        setTimeout(() => this.takePile({ id: currentPlayer.id }), 50);
+        // Do not emit notice here
       }
     } else if (currentPlayer && currentPlayer.sock) {
-      console.log(`[DEBUG pushState] Clearing notice for ${currentPlayer.id}.`);
       currentPlayer.sock.emit('notice', '');
     }
 
