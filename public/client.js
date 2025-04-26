@@ -352,22 +352,64 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   socket.on('notice', msg => {
-    // Only show error in new error banner if it's a take pile message
     if (msg && (msg.toLowerCase().includes('take pile') || msg.toLowerCase().includes('no valid moves'))) {
+      console.log(`[Debug] Received take pile notice: "${msg}"`);
+      // Check if banner exists before calling showError
+      const bannerExists = document.getElementById('error-banner');
+      if (!bannerExists) {
+        console.error('[Debug] #error-banner NOT FOUND before calling showError in notice handler!');
+      } else {
+        console.log('[Debug] #error-banner FOUND before calling showError in notice handler.');
+      }
       showError('You must take the pile.');
     } else {
-      clearError();
+      // Handle other general notices using the top notice banner
+      const noticeBanner = $('notice-banner');
+      if (!noticeBanner) return;
+
+      if (!msg) {
+        noticeBanner.classList.add('hidden');
+        return;
+      }
+      noticeBanner.textContent = msg;
+      noticeBanner.classList.remove('hidden');
+
+      // Optional: Clear existing timeout
+      clearTimeout(noticeBanner._hideTimeout);
+
+      // Hide after a delay
+      noticeBanner._hideTimeout = setTimeout(() => {
+        if (noticeBanner.textContent === msg) { // Check if message is still the same
+          noticeBanner.classList.add('hidden');
+        }
+      }, 4000);
     }
   });
 
   socket.on('err', msg => {
-    if (msg && msg.toLowerCase().includes('illegal play')) {
-      showError('Invalid play');
-    } else {
-      showError(msg);
-    }
     console.error(`❌ Server Error: ${msg}`);
-    showError(msg); // Display the error message to the user
+    // Check if banner exists before calling showError
+    const bannerExists = document.getElementById('error-banner');
+    if (!bannerExists) {
+      console.error('[Debug] #error-banner NOT FOUND before calling showError in err handler!');
+    } else {
+      console.log('[Debug] #error-banner FOUND before calling showError in err handler.');
+    }
+    showError(msg);
+
+    // Deselect cards if the error is related to an invalid play
+    if (msg.toLowerCase().includes('invalid play') || msg.toLowerCase().includes('must be higher') || msg.toLowerCase().includes('cannot play')) {
+      console.log('[Debug] Deselecting cards due to server error.');
+      const selectedCards = document.querySelectorAll('.card-img.selected');
+      selectedCards.forEach(img => {
+        img.classList.remove('selected');
+        // Also remove the container selection class if applicable
+        const container = img.closest('.selected-container');
+        if (container) {
+          container.classList.remove('selected-container');
+        }
+      });
+    }
 
     // Specific handling for "Game room no longer exists" error during rejoin
     if (msg.includes('Game room no longer exists')) {
@@ -709,13 +751,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ---------- Helper Functions ---------- */
   function showError(msg) {
-    // Hide old notice banner if present
-    if (notice) notice.classList.add('hidden');
-    // Show new error banner
     const errorBanner = document.getElementById('error-banner');
-    if (!errorBanner) return;
+    if (!errorBanner) {
+      console.error('#error-banner element not found!');
+      return;
+    }
+    console.log(`[Debug] showError called with message: "${msg}"`); // Add log
+
     errorBanner.textContent = msg;
     errorBanner.classList.remove('hidden');
+
+    clearTimeout(errorBanner._hideTimeout);
+    errorBanner._hideTimeout = setTimeout(() => {
+      errorBanner.classList.add('hidden');
+      errorBanner.textContent = '';
+    }, 4000);
   }
 
   function clearError() {

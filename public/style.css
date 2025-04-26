@@ -526,7 +526,7 @@ body {
 .banner i { font-size: 1rem; }
 
 .error-banner {
-  margin: 0.5rem auto 0 auto;
+  margin: 0;
   padding: 0.7rem 1.5rem;
   background: linear-gradient(90deg, #2e5e3c 80%, #367347 100%);
   color: #fffbe7;
@@ -536,14 +536,16 @@ body {
   font-weight: 700;
   text-align: center;
   box-shadow: 0 4px 18px 0 #0005, 0 0 0 2px #FFC30055;
-  z-index: 200;
+  z-index: 200; /* Ensure it's above piles but below modals */
   min-width: 220px;
   max-width: 420px;
   letter-spacing: 0.5px;
-  display: none;
+  position: relative; /* Position relative to normal flow within #center */
+  order: 3; /* Ensure it appears after the piles wrapper in flex layout */
 }
-.error-banner.show {
-  display: block;
+
+#error-banner.hidden {
+  display: none !important;
 }
 
 .hidden { display: none !important; }
@@ -593,30 +595,27 @@ body {
 
 #center {
   display: flex;
-  flex-direction: row;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  gap: 2.5rem;
-  background: none;
-  border: none;
-  box-shadow: none;
-}
-
-.center-area {
+  gap: 0.8rem; /* Use gap for spacing between items */
   position: relative;
+  padding-top: 0; /* Remove padding */
 }
 
 .center-piles-wrapper {
   display: flex;
   flex-direction: row;
   gap: 2.5rem;
-  border: 2.5px solid #fff !important; /* Bold white border for center piles */
+  border: 2.5px solid #fff !important;
   border-radius: 12px;
-  padding: 1.2rem 2.2rem;
+  padding: 1.5rem 2.2rem; /* Increased padding slightly */
   background: none;
-  align-items: center;
+  align-items: center; /* Vertically center the piles inside */
   justify-content: center;
-  margin-top: 2.5rem;
+  order: 2; /* Piles are second */
+  position: relative; /* Keep relative for badge positioning */
+  margin-top: 0; /* Remove margin, rely on flex gap */
+  width: fit-content; /* Ensure wrapper fits content */
 }
 
 /* ========== Game Board Layout ========== */
@@ -1146,22 +1145,20 @@ body {
 
 /* ========== Event Banner ========== */
 #event-banner {
-  position: absolute;
-  left: 50%;
-  top: calc(50% - 110px); /* Will be adjusted by JS for precise placement */
-  transform: translate(-50%, 0);
+  position: relative; /* Change from absolute */
+  order: 1; /* Event banner is first */
+  margin-bottom: 0; /* Rely on flex gap */
   padding: 0.8rem 1.5rem;
   border-radius: 8px;
   font-size: 1.8rem;
   font-weight: bold;
   color: white;
   text-align: center;
-  z-index: 120;
+  z-index: 120; /* Keep z-index */
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
   pointer-events: none;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-  margin-bottom: 0;
 }
 
 #event-banner.event-banner-visible {
@@ -1232,7 +1229,8 @@ body {
 .button-container button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
+  transform: none; /* Added missing semicolon */
+}
 
 /* Play Options */
 .play-options {
@@ -1423,247 +1421,4 @@ body {
   .player, #my-area {
     padding: 1rem; /* Further reduce padding */
   }
-}
-
-/* ───────────────────────────────────────────────────────────────────────── */
-/*  (keep all your existing definitions above exactly as-is)                */
-/* ───────────────────────────────────────────────────────────────────────── */
-
-/* show only 20% of the down card (80% covered) */
-.stack .up-card {
-  top: 11px !important;  /* 113px × 0.1 ≈ 11px */
-}
-
-/* bolder, larger white labels */
-#my-area .row-label {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-/* 1) make the stack container hold both cards */
-.stack {
-  position: relative;
-  width: var(--card-w);
-  height: calc(var(--card-h) + var(--card-peek));
-}
-
-/* 2) up-card sits at the very top, on top layer */
-.stack .card-img.up-card {
-  position: absolute !important;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-}
-
-/* 3) down-card sits exactly 20% below the top, behind */
-.stack .card-img.down-card {
-  position: absolute !important;
-  top: var(--card-peek);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1;
-}
-
-/* tighten label→cards spacing */
-.player-section,        /* if you’re using the .player-section wrapper */
-.player-section .row-label {
-  gap: 0.15rem !important;
-}
-
-.stack-row {            /* kill its extra top-margin */
-  margin-top: 0 !important;
-}
-
-.hand {                 /* kill any margin above the hand row */
-  margin-top: 0 !important;
-}
-
-.row-label {
-  margin-bottom: 0.15rem;  /* bring label down */
-}
-
-.row-label + .hand,
-.row-label + .stack-row {
-  margin-top:   0.15rem;   /* pull row up */
-}
-
-#my-area {
-  padding-top: 1.2rem !important;
-  padding-bottom: 1.2rem !important;
-  border: 2.5px solid #fff !important;
-  box-shadow: none !important;
-}
-
-#my-area.active {
-  border-color: #00CCCC !important; /* Changed to brighter teal (#00CCCC) */
-  box-shadow: 0 0 20px 5px rgba(0, 204, 204, 0.4) !important; /* Updated glow color to match */
-}
-
-#my-area .player-name-header.player-human {
-  padding-bottom: 0.2rem;
-  min-height: 2.2rem;
-  margin-bottom: 0.4rem;
-}
-
-#hand-section {
-  margin-top: 0.5rem !important;
-}
-
-#my-area .player-section {
-  margin-bottom: 0.4rem !important;
-}
-
-#button-section {
-  margin-top: 1.2rem !important;
-  margin-bottom: 1.2rem !important;
-}
-
-#hand-section .row-label {
-  margin-bottom: 0 !important;
-}
-#stack-section .row-label {
-  margin-bottom: 0 !important;
-}
-#hand-section .hand {
-  padding-top: 1.2rem !important;
-  background: none !important;
-}
-#stack-section .stack-row {
-  padding-top: 1.2rem !important;
-  background: none !important;
-}
-
-#hand-section,
-#stack-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.4rem !important; /* Double the default gap between label and cards */
-}
-#hand-section .row-label,
-#stack-section .row-label {
-  margin-bottom: 0 !important;
-}
-#hand-section .hand,
-#stack-section .stack-row {
-  padding-top: 0 !important;
-  background: none !important;
-}
-
-.player-area, .player, #my-area, #my-area .player-name-header.player-human, .player-section, #my-area .hand, #my-area .stack-row, #my-area #dynamic-btn-container, #my-area .player-section, #my-area .button-container {
-  outline: none !important;
-}
-
-/* ========== Pile Badge ========== */
-.pile {
-  position: relative;
-  display: inline-block;
-}
-.pile-badge {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  background: #e53935 !important; /* bright red for debug */
-  color: #fff !important;
-  font-size: 1.2rem !important;
-  font-weight: bold;
-  padding: 6px 14px !important;
-  border-radius: 16px !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  pointer-events: none;
-  z-index: 10;
-  border: 2px solid #000 !important;
-}
-.pile-count, .pile-label {
-  display: none !important;
-}
-
-/* Card selection and snap animation */
-.snap-anim {
-  animation: card-snap 0.15s ease-out; /* Faster animation for more snappiness */
-}
-
-@keyframes card-snap {
-  0% { transform: scale(1); }
-  50% { transform: scale(0.92); } /* More pronounced scale effect */
-  100% { transform: scale(1); }
-}
-
-/* Themed error banner below deck/discard */
-#error-banner.error-banner {
-  display: block;
-  margin: 0.5rem auto 0 auto;
-  padding: 0.7rem 1.5rem;
-  background: linear-gradient(90deg, #2e5e3c 80%, #367347 100%); /* felt green gradient */
-  color: #fffbe7;
-  border: 2.5px solid #FFC300; /* gold border */
-  border-radius: 10px;
-  font-size: 1.18rem;
-  font-weight: 700;
-  text-align: center;
-  box-shadow: 0 4px 18px 0 #0005, 0 0 0 2px #FFC30055;
-  z-index: 200;
-  position: relative;
-  min-width: 220px;
-  max-width: 420px;
-  letter-spacing: 0.5px;
-  transition: opacity 0.2s, transform 0.2s;
-}
-#error-banner.hidden {
-  display: none;
-}
-
-#special-banner, #error-banner {
-  pointer-events: none;
-}
-
-/* ========== Special Banner ========== */
-#special-banner {
-  position: absolute;
-  top: -2.2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  min-width: 120px;
-  max-width: 320px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  padding: 0.35rem 1.2rem;
-  border-radius: 0.7rem;
-  font-size: 1.1rem;
-  font-weight: 700;
-  box-shadow: 0 2px 12px 0 #0003;
-  border: 2.5px solid #fff;
-  z-index: 20;
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-  background: #fffbe7;
-  color: #1b2e3c;
-  letter-spacing: 0.5px;
-}
-#special-banner.show {
-  opacity: 1;
-}
-#special-banner.reset {
-  background: #e3f0ff;
-  color: #2563eb;
-  border-color: #2563eb;
-}
-#special-banner.copy {
-  background: #e6fff6;
-  color: #059669;
-  border-color: #059669;
-}
-#special-banner.burn {
-  background: #fff0f0;
-  color: #dc2626;
-  border-color: #dc2626;
-}
-#special-banner i {
-  font-size: 1.3rem;
-  margin-right: 0.5rem;
 }
