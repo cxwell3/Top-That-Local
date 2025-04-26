@@ -927,7 +927,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Stylized player name header ---
         const myNameHeader = document.createElement('div');
         myNameHeader.className = 'player-name-header player-human';
-        myNameHeader.innerHTML = `<span class="player-name-text">${p.name}</span> <span class="player-badge">👑🦁</span>`;
+        // Wrap emojis in spans for positioning
+        myNameHeader.innerHTML = `<span class="player-name-text">${p.name}</span> <span class="player-badge"><span class="badge-lion">🦁</span><span class="badge-crown">👑</span></span>`;
         myArea.appendChild(myNameHeader);
 
         const spacer = document.createElement('div');

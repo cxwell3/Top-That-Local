@@ -600,6 +600,7 @@ body {
   gap: 0.8rem; /* Use gap for spacing between items */
   position: relative;
   padding-top: 0; /* Remove padding */
+  margin-top: 8rem; /* Increased margin to push the center section down further */
 }
 
 .center-piles-wrapper {
@@ -881,6 +882,18 @@ body {
 .player-name-header .player-badge {
   font-size: 2rem; /* Increased from 1.5rem */
   filter: drop-shadow(0 1px 2px #0003);
+  position: relative; /* Establish positioning context */
+  display: inline-block; /* Ensure proper layout */
+}
+.badge-lion {
+  display: inline-block;
+}
+.badge-crown {
+  position: absolute;
+  top: -0.6em; /* Adjust vertical position as needed */
+  left: 0.05em; /* Adjust horizontal position as needed */
+  font-size: 0.7em; /* Make crown slightly smaller */
+  transform: rotate(-15deg); /* Optional: Tilt the crown slightly */
 }
 .player-name-header .player-name-text {
   color: #ffffff; /* Solid white */
@@ -1145,8 +1158,11 @@ body {
 
 /* ========== Event Banner ========== */
 #event-banner {
-  position: relative; /* Change from absolute */
-  order: 1; /* Event banner is first */
+  position: absolute; /* Change from relative to absolute */
+  top: -4rem; /* Move banner further up */
+  left: 50%;
+  transform: translateX(-50%);
+  order: 1; /* Order might not be needed with absolute positioning */
   margin-bottom: 0; /* Rely on flex gap */
   padding: 0.8rem 1.5rem;
   border-radius: 8px;
@@ -1159,6 +1175,8 @@ body {
   transition: opacity 0.3s ease-in-out;
   pointer-events: none;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  width: fit-content; /* Ensure banner width fits content */
+  white-space: nowrap; /* Prevent wrapping */
 }
 
 #event-banner.event-banner-visible {

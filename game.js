@@ -218,12 +218,33 @@ export class Game {
     this.started = true;
     this.buildDeck();
     this.deal();
-    if (this.deck.length > 0) { // Ensure deck isn't empty before drawing for play pile
-        this.playPile.push(this.draw());
-    } else {
-        console.error("Deck is empty after dealing, cannot start play pile.");
-        // Handle this error state appropriately - maybe reset?
+
+    // Draw initial card, handling special cards (10)
+    let initialCard = null;
+    while (this.deck.length > 0) {
+        initialCard = this.draw();
+        if (initialCard.value === 10 || initialCard.value === '10') {
+            // If it's a 10, discard it and try again
+            this.discard = (this.discard || []).concat(initialCard);
+            this.io.emit('specialEffect', { value: 10, type: 'ten' }); // Notify clients of the burn
+            initialCard = null; // Reset initialCard to continue loop
+        } else {
+            // It's not a 10, break the loop
+            break;
+        }
     }
+
+    if (initialCard) {
+        this.playPile.push(initialCard);
+        // Set lastRealCard if the initial card isn't special
+        if (![2, 5, 10, '2', '5', '10'].includes(initialCard.value)) {
+            this.lastRealCard = initialCard;
+        }
+    } else {
+        console.error("Deck ran out while trying to draw a non-10 starting card.");
+        // Handle this edge case - maybe reset or end game? For now, playPile remains empty.
+    }
+
     this.turn = this.players[0].id; // Start with the first player
     this.pushState(); // Send initial state
     console.log(`Game started. First turn: ${this.players[0].name}`);
