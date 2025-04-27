@@ -700,6 +700,7 @@ body {
   height: 100%;
   padding: 1rem;
   box-sizing: border-box;
+  background: var(--bg); /* Use the dark green background */
 }
 
 .table-board {
@@ -714,10 +715,11 @@ body {
   max-width: 1600px;
   min-width: 900px;
   min-height: 700px;
-  gap: 1rem; /* Changed from 1.75rem to 1rem to pull panels in tighter */
+  gap: 0.5rem; /* Reduced from 1rem to bring areas closer */
   margin: 0 auto;
   box-sizing: border-box;
   place-items: center; /* Center all grid items */
+  background: var(--bg); /* Use the dark green background */
 }
 
 .table-slot-top, .table-slot-bottom, .table-slot-left, .table-slot-right, .table-slot-center {
@@ -787,13 +789,14 @@ body {
 #my-area {
   position: relative;
   /* bump top padding to make room for the header */
-  padding-top: 3rem !important;
+  padding-top: 4rem !important; /* Increased from 3rem to 4rem */
   min-width: calc(var(--card-w)*4 + 48px);
   max-width: calc(var(--card-w)*5 + 64px);
   min-height: 420px;
   max-height: 520px;
-  background: #1b2e3c;
-  border: 2.5px solid var(--accent2);
+  border: 3px solid #ffffff !important; /* White border */
+  background: var(--bg) !important; /* Green felt background */
+  box-shadow: none !important; /* Remove previous shadows */
   border-radius: 12px;
   margin-top: 0.8rem;
 }
@@ -881,11 +884,72 @@ body {
 }
 
 .player-area .hand {
-  margin-top: 2.2rem !important;
+  display: flex;
+  flex-direction: row; /* Ensure horizontal layout */
+  gap: 0; /* Remove gap between cards */
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  width: 100%;
+  justify-content: center; /* Center cards in hand */
+  align-items: center;
+  position: relative;
+  min-height: calc(var(--card-h) + 10px); /* Ensure height accommodates cards */
 }
 
-.player-area .button-container {
-  margin-top: 3.5rem !important;
+/* Ensure opponent hand is also horizontal */
+.player-area .opp-hand {
+  display: flex;
+  flex-direction: row; /* Ensure horizontal layout */
+  gap: 0; /* Remove gap between cards if needed, adjust shingling margin */
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  width: 100%;
+  justify-content: center; /* Center cards in hand */
+  align-items: center;
+  position: relative;
+  min-height: calc(var(--card-h) + 10px); /* Ensure height accommodates cards */
+}
+
+/* Player hand shingling */
+.player-area .hand .card-img {
+  margin-right: -25px; /* Negative margin for shingling effect */
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+.player-area .hand .card-img:last-child {
+  margin-right: 0;
+}
+.player-area .hand .card-img:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.5);
+  z-index: 5; /* Ensure hovered card appears above others */
+}
+
+/* Opponent hand shingling - Target the placeholder */
+.player-area .opp-hand .card-placeholder {
+  margin-right: -25px; /* Apply shingling to the placeholder */
+  position: relative; /* Needed for z-index */
+  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Add transitions here */
+}
+
+.player-area .opp-hand .card-placeholder:last-child {
+  margin-right: 0;
+}
+
+/* Apply hover effect to placeholder, which contains the card */
+.player-area .opp-hand .card-placeholder:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.5);
+  z-index: 5; /* Ensure hovered card appears above others */
+}
+
+/* Ensure the card image itself doesn't have conflicting margins */
+.player-area .opp-hand .card-placeholder .card-img {
+    margin-right: 0 !important; /* Override any inherited margin */
+    /* Opponent cards are not interactive */
+    cursor: default;
 }
 
 /* Remove all other borders from player panels */
@@ -941,8 +1005,8 @@ body {
 }
 
 /* Maintain hover effects for stacks */
-.stack.playable-stack:hover .card-img.up-card,
-.stack.playable-stack:hover .card-img.down-card {
+.stack .card-img.up-card:hover,
+.stack .card-img.down-card:hover {
   transform: translateX(-50%) translateY(-10px) scale(1.05);
   box-shadow: 0 5px 12px rgba(0,0,0,0.45);
   z-index: 3;
@@ -1130,7 +1194,7 @@ body {
     height: var(--card-h);
   }
   .stack .card-img.down-card {
-    top: -20px; /* Changed from var(--card-peek) to -20px to make it peek from the top */
+    top: var(--card-peek);
   }
   .stack .card-img.up-card {
      top: 0;
