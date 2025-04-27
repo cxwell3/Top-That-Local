@@ -714,7 +714,7 @@ body {
   max-width: 1600px;
   min-width: 900px;
   min-height: 700px;
-  gap: 1.75rem; /* Reduced from 2.5rem by 30% */
+  gap: 1rem; /* Changed from 1.75rem to 1rem to pull panels in tighter */
   margin: 0 auto;
   box-sizing: border-box;
   place-items: center; /* Center all grid items */
@@ -783,39 +783,32 @@ body {
   display: flex !important;
 }
 
-.player-area {
-  min-width: calc(var(--card-w) * 4 + 48px);
-  max-width: calc(var(--card-w) * 5 + 64px);
-  width: auto;
-  min-height: 420px;
-  max-height: 520px;
-  height: auto;
-  padding: 1.5rem 1.5rem 2.2rem 1.5rem;
-  gap: 1rem;
-  box-sizing: border-box;
-  border: 2.5px solid var(--accent2) !important;
-  border-radius: 12px !important;
-  background: #1b2e3c !important;
-  margin-top: 0.8rem;
-}
-
-.player-area.computer-player {
-  border: 2.5px solid var(--accent2) !important;
-  border-radius: 12px !important;
-  background: #1b2e3c !important;
-  margin-top: 0.8rem;
-}
-
+.player-area,
 #my-area {
-  min-width: calc(var(--card-w) * 4 + 48px);
-  max-width: calc(var(--card-w) * 5 + 64px);
+  position: relative;
+  /* bump top padding to make room for the header */
+  padding-top: 3rem !important;
+  min-width: calc(var(--card-w)*4 + 48px);
+  max-width: calc(var(--card-w)*5 + 64px);
   min-height: 420px;
   max-height: 520px;
-  padding-top: 1.5rem !important;
-  padding-bottom: 1.5rem !important;
-  border: 2.5px solid var(--accent2) !important;
-  border-radius: 12px !important;
+  background: #1b2e3c;
+  border: 2.5px solid var(--accent2);
+  border-radius: 12px;
   margin-top: 0.8rem;
+}
+
+.player-area .player-name-header,
+#my-area .player-name-header {
+  position: absolute;
+  top: 0; 
+  left: 0; 
+  width: 100%;
+  border-radius: 12px 12px 0 0;
+  background: var(--header-bg);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  padding: 0.7rem 1.2rem 0.2rem 1.2rem;
+  z-index: 2;
 }
 
 #my-area.active {
@@ -905,374 +898,11 @@ body {
   gap: 0.15rem !important;
 }
 
-.stack-row {            /* kill its extra top-margin */
-  margin-top: 0 !important;
-}
-
-.hand {                 /* kill any margin above the hand row */
-  margin-top: 0 !important;
-}
-
-.row-label {
-  margin-bottom: 0.15rem;  /* bring label down */
-}
-
-.row-label + .hand,
-.row-label + .stack-row {
-  margin-top:   0.15rem;   /* pull row up */
-}
-
-#my-area .player-name-header.player-human {
-  padding-bottom: 0.2rem;
-  min-height: 2.2rem;
-  margin-bottom: 0.4rem;
-}
-
-#hand-section {
-  margin-top: 0.5rem !important;
-}
-
-#my-area .player-section {
-  margin-bottom: 0.4rem !important;
-}
-
-#button-section {
-  margin-top: 1.2rem !important;
-  margin-bottom: 1.2rem !important;
-}
-
-#hand-section .row-label {
-  margin-bottom: 0 !important;
-}
-#stack-section .row-label {
-  margin-bottom: 0 !important;
-}
-#hand-section .hand {
-  padding-top: 1.2rem !important;
-  background: none !important;
-}
-#stack-section .stack-row {
-  padding-top: 1.2rem !important;
-  background: none !important;
-}
-
-#hand-section,
-#stack-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.4rem !important; /* Double the default gap between label and cards */
-}
-#hand-section .row-label,
-#stack-section .row-label {
-  margin-bottom: 0 !important;
-}
-#hand-section .hand,
-#stack-section .stack-row {
-  padding-top: 0 !important;
-  background: none !important;
-}
-
-.player-area, .player, #my-area, #my-area .player-name-header.player-human, .player-section, #my-area .hand, #my-area .stack-row, #my-area #dynamic-btn-container, #my-area .player-section, #my-area .button-container {
-  outline: none !important;
-}
-
-/* Ensure hand and stacks are inside borders */
-#my-area .hand, #my-area .stack-row,
-.player-area .hand, .player-area .stack-row {
-  margin: 0 auto;
-  width: 98%;
-  box-sizing: border-box;
-  overflow-x: auto;
-}
-
-.hand, .opp-hand, .stack-row {
-  overflow: visible !important;
-}
-
-.player {
-  background: none !important;
-}
-
-#my-area .button-container {
-  margin: 0 !important;
-  align-self: center;
-  display: flex !important;
-  outline: none !important;
-}
-/* Hide button container in .player-area (CPU side) by default */
-.player-area .button-container {
-  display: none !important;
-}
-
-#my-area .button-container {
-  display: flex !important;
-}
-
-#my-area .player-section:has(#my-stacks) .row-label {
-  margin-top: 2rem; /* Increase margin-top further (was 1rem) */
-}
-
-/* Responsive tweaks for game board */
-@media (max-width: 900px) {
-  .game-board {
-    flex-direction: column;
-    gap: 1.2rem;
-    min-height: 0;
-  }
-  .center-area {
-    min-width: 120px;
-    max-width: 100vw;
-    min-height: 120px;
-    margin: 0 auto;
-  }
-  .player-area {
-    min-width: 0;
-    max-width: 100vw;
-    min-height: 220px;
-  }
-}
-
-/* ========== Player Name Headers ========== */
-.player h3, #my-name {
-  margin: 0 0 0.8rem 0; /* Consistent margin */
-  font-size: 1.45rem; /* Increased size */
-  font-weight: 700;
-  color: var(--name);
-  text-align: center;
-  width: 100%;
-  min-height: 1.4em; /* Ensure space even if name is short */
-  padding-bottom: 0.4rem; /* Consistent padding */
-  border-bottom: 1px solid var(--panelBorder);
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); /* Added shadow */
-}
-
-/* --- Player Name Header Segments --- */
-.player-name-header {
-  width: 100%;
-  padding: 0.7rem 0.5rem 0.5rem;
-  margin-bottom: 0;
-  border: 2.5px solid var(--panelBorder);
-  border-bottom: none;
-  border-radius: 12px 12px 0 0;
-  font-size: 1.35rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.7rem;
-  box-shadow: 0 2px 8px #0002;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.18);
-  box-sizing: border-box;
-  padding-left: 0;
-  padding-right: 0;
-}
-.player-name-header .player-badge {
-  font-size: 2rem; /* Increased from 1.5rem */
-  filter: drop-shadow(0 1px 2px #0003);
-  position: relative; /* Establish positioning context */
-  display: inline-block; /* Ensure proper layout */
-}
-.badge-lion {
-  display: inline-block;
-}
-.badge-crown {
-  position: absolute;
-  top: -0.65em; /* Adjusted vertical position slightly */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%) rotate(-15deg); /* Center and rotate */
-  font-size: 0.75em; /* Adjusted size slightly */
-  line-height: 1; /* Ensure line height doesn't interfere */
-}
-.player-name-header .player-name-text {
-  color: #ffffff; /* Solid white */
-  font-family: sans-serif;
-  font-weight: 900;
-  font-size: 1.8rem; /* Make player name text bigger */
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-.player-name-header .player-role {
-  font-size: 1rem;
-  color: var(--accent2);
-  margin-left: 0.5rem;
-  font-weight: 700;
-  text-shadow: none;
-}
-.player-human.player-name-header {
-  background: linear-gradient(90deg, var(--header-bg) 80%, var(--accent) 100%); /* REVERTED to original gradient */
-  color: var(--name);
-}
-.player-cpu.player-name-header {
-  background: linear-gradient(90deg, var(--header-bg) 80%, var(--accent) 100%); /* CHANGED to match human player */
-  color: #fff;
-}
-.player-tutorial.player-name-header {
-  background: linear-gradient(90deg, var(--name) 80%, var(--accent2) 100%);
-  color: var(--header-bg);
-}
-
-/* Add a subtle border to the top of player panels for segmentation */
-#my-area, .player-area {
-  position: relative;
-}
-.player-area.computer-player {
-  border-top: none !important;
-}
-.player-area.tutorial-player {
-  border-top: none !important;
-}
-#my-area {
-  border: 2.5px solid var(--accent2) !important;
-  border-radius: 12px !important;
-  position: relative;
-  padding-top: 1.2rem !important; /* Adjusted padding */
-}
-#my-area .player-name-header.player-human {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  transform: none;
-  border-radius: 12px 12px 0 0;
-  background: var(--header-bg); /* REVERTED to use --header-bg variable */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  padding: 0.7rem 1.2rem 0.2rem 1.2rem;
-  z-index: 2;
-  min-height: 2.2rem;
-  font-size: 1.7rem;
-  letter-spacing: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  outline: none !important;
-  margin-bottom: 0.4rem;
-}
-
-/* ========== Section Layout (Label + Row) ========== */
-.player-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Center label and row */
-  gap: 0.15rem !important; /* Space between label and row */
-  margin-bottom: 0.4rem !important; /* Adjusted margin */
-  width: 100%;
-}
-
-.player-section:last-child {
-  margin-bottom: 0; /* No margin after the last section */
-}
-
-/* Row Labels */
-.row-label {
-  font-weight: 700;
-  font-size: 1.4rem; /* Larger size */
-  color: #fff; /* White color */
-  margin: 0.2rem 0 0.15rem 0; /* Adjusted margin */
-  letter-spacing: 0.5px; /* Added letter spacing */
-  text-transform: none; /* Remove text transformation */
-  text-align: center; /* Center align */
-}
-
-/* Pile Labels (Deck, Discard) */
-.pile-label {
-  font-weight: 700; /* Match .row-label */
-  font-size: 1.4rem; /* Match .row-label */
-  color: #fff; /* Match .row-label */
-  margin-bottom: 0.5rem; /* Space above the pile */
-  letter-spacing: 0.5px; /* Match .row-label */
-  text-transform: none; /* Match .row-label */
-  text-align: center; /* Match .row-label */
-}
-
-#my-area .row-label + .hand,
-#my-area .row-label + .stack-row {
-  margin-top: 0 !important;
-}
-
-/* ========== Card Row Containers (Hand, Stacks) ========== */
-#my-hand, .hand {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0;
-  overflow: visible;
-  min-height: 100px;
-  justify-content: center;
-  align-items: flex-end;
-  position: relative;
-  margin: 0 !important;
-}
-
-#my-hand > div {
-  width: var(--card-w);
-  height: var(--card-h);
-  position: relative;
-  transition: transform .2s;
-  /* No transform or z-index change on hover or select */
-  transform: none !important;
-  z-index: auto !important;
-}
-
-#my-hand > div.selected-container {
-  /* No raise, no scale */
-  z-index: auto !important;
-}
-
-#my-hand > div .card-img {
-  border: none !important;
-  box-shadow: none !important;
-  transition: border 0.13s, box-shadow 0.13s;
-}
-
-#my-hand > div:hover .card-img,
-#my-hand > div.selected-container .card-img {
-  border: 3px solid #f472b6 !important; /* Subtle but viewable pink/magenta */
-  box-shadow: 0 0 12px 3px rgba(244, 114, 182, 0.28) !important; /* Soft pink glow */
-}
-
-/* Set specific z-index for cards based on position (later cards on top) */
-#my-hand > div:nth-child(1) { z-index: 1; }
-#my-hand > div:nth-child(2) { z-index: 2; }
-#my-hand > div:nth-child(3) { z-index: 3; }
-#my-hand > div:nth-child(4) { z-index: 4; }
-#my-hand > div:nth-child(5) { z-index: 5; }
-#my-hand > div:nth-child(6) { z-index: 6; }
-#my-hand > div:nth-child(7) { z-index: 7; }
-#my-hand > div:nth-child(8) { z-index: 8; }
-#my-hand > div:nth-child(9) { z-index: 9; }
-#my-hand > div:nth-child(10) { z-index: 10; }
-
-#my-hand > div:not(:first-child) {
-  margin-left: -47px !important;
-}
-
-.opp-hand {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0px;
-  overflow: visible;
-  min-height: 90px;
-  justify-content: center;
-  align-items: flex-end;
-}
-.opp-hand > div {
-  width: var(--card-w);
-  height: var(--card-h);
-  margin-left: -47px !important;
-  position: relative;
-  z-index: 1;
-  transition: none;
-}
-.opp-hand > div:first-child {
-  margin-left: 0 !important;
-}
-
 .stack-row {
   display: flex;
   gap: 21px; /* Reduced from 42px to 21px for closer up/down cards */
   overflow: visible;
-  min-height: 156px;
+  min-height: 120px; /* Reduced from 156px to remove extra space */
   align-items: flex-start; /* Align stacks to the top so cards are right below label */
   justify-content: center;
   margin: 0 !important; /* Kill the extra top-margin */
@@ -1285,7 +915,7 @@ body {
   flex-shrink: 0;
   position: relative;
   width: var(--card-w);
-  height: calc(var(--card-h) + 20px); /* Height adjusted for top peeking */
+  height: var(--card-h); /* Reduced from calc(var(--card-h) + 20px) to just the card height */
   margin-top: 20px; /* Space for down card to peek out */
 }
 
@@ -1500,7 +1130,7 @@ body {
     height: var(--card-h);
   }
   .stack .card-img.down-card {
-    top: var(--card-peek);
+    top: -20px; /* Changed from var(--card-peek) to -20px to make it peek from the top */
   }
   .stack .card-img.up-card {
      top: 0;
