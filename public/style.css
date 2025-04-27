@@ -1051,6 +1051,15 @@ body {
   z-index: 3; /* Ensure hovered stack is above others */
 }
 
+/* --- Only one authoritative rule for peeking down cards in stack --- */
+.stack .card-img.down-card {
+  position: absolute !important;
+  top: -20px !important;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
 /* ========== Event Banner ========== */
 #event-banner {
   position: absolute; /* Change from relative to absolute */
