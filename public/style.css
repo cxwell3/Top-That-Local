@@ -739,6 +739,25 @@ body {
   transform: translateY(-10px) !important;
   box-shadow: 0 8px 16px rgba(0,0,0,0.5) !important;
   z-index: 20 !important;
+  outline: 3px solid gold !important; /* Persistent outline for selected cards */
+}
+
+.card-img.selectable {
+  transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.card-img.selectable:hover {
+  transform: translateY(-12px) scale(1.08) !important;
+  box-shadow: 0 0 0 3px gold, 0 8px 20px rgba(255, 215, 0, 0.6) !important;
+  outline: none !important; /* remove solid outline in favor of glow */
+}
+
+/* Subtle alternating tilt on hover for natural feel */
+.card-img.selectable:nth-child(odd):hover {
+  transform: translateY(-12px) scale(1.08) rotate(-1deg) !important;
+}
+.card-img.selectable:nth-child(even):hover {
+  transform: translateY(-12px) scale(1.08) rotate(1deg) !important;
 }
 
 /* ========== Selection Hover Override: only selectable cards react ========== */
@@ -758,6 +777,27 @@ body {
   transform: none !important;
   box-shadow: none !important;
   outline: none !important;
+}
+
+/* Click state: slight deeper lift with stronger glow */
+.card-img.selectable:active {
+  transform: translateY(-12px) scale(1.06) !important;
+  box-shadow: 0 0 6px gold, 0 6px 16px rgba(255,215,0,0.6) !important;
+}
+
+/* Hover brightness boost */
+.card-img.selectable:hover {
+  filter: brightness(1.08) !important;
+}
+
+/* Pulse animation for selected cards */
+@keyframes selectedPulse {
+  0% { box-shadow: 0 8px 16px rgba(255,215,0,0.4), 0 0 4px gold; }
+  100% { box-shadow: 0 12px 24px rgba(255,215,0,0.8), 0 0 8px gold; }
+}
+.card-img.selected {
+  animation: selectedPulse 1.5s ease-in-out infinite alternate;
+  transition: none !important; /* rely on animation */
 }
 
 /* ========== Table Layout ========== */
