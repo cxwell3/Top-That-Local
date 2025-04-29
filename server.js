@@ -46,7 +46,7 @@ function createServer() {
       }
     };
 
-    socket.on('join', (name, withComputer, numComputers = 1) => { // Add numComputers parameter
+    socket.on('join', (name, withComputer, numComputers = 3) => { // Always default to 3 CPUs
       try {
         const url = new URL(socket.handshake.headers.referer);
         const urlRoomId = url.searchParams.get('room');

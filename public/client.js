@@ -33,76 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const rulesButton = $('rules-button');
   const rulesModalCloseButton = rulesModal ? rulesModal.querySelector('.modal-close-button') : null;
 
-  // Add a dev/test restart button
-  function addRestartButton() {
-    if (document.getElementById('dev-restart-btn')) return;
-    const btn = document.createElement('button');
-    btn.id = 'dev-restart-btn';
-    btn.textContent = 'Restart Game (Dev)';
-    btn.className = 'btn btn-tertiary';
-    btn.style.position = 'fixed';
-    btn.style.bottom = '24px';
-    btn.style.right = '24px';
-    btn.style.zIndex = 2000;
-    btn.onclick = () => {
-      socket.emit('adminReset');
-      // After reload, auto-trigger Play vs Computer
-      sessionStorage.setItem('autoPlayVsComputer', '1');
-      window.location.reload();
-    };
-    document.body.appendChild(btn);
-  }
-
-  addRestartButton();
-
-  /* ---------- Dev/Test Buttons ---------- */
-  function addRestartButtons() {
-    if (document.getElementById('dev-restart-btn-soft') || document.getElementById('dev-restart-btn-hard')) return;
-    // Soft Reset Button
-    const btnSoft = document.createElement('button');
-    btnSoft.id = 'dev-restart-btn-soft';
-    btnSoft.textContent = 'Soft Reset';
-    btnSoft.className = 'btn btn-tertiary'; // Use tertiary style for less emphasis
-    btnSoft.style.position = 'fixed'; // Position relative to viewport
-    btnSoft.style.bottom = '24px';
-    btnSoft.style.right = '130px'; // Position left of the hard reset
-    btnSoft.style.zIndex = 2000;
-    btnSoft.style.width = '90px';
-    btnSoft.style.fontSize = '1rem';
-    btnSoft.onclick = () => {
-      socket.emit('adminReset');
-      myId = null;
-      currentRoom = null;
-      sessionStorage.removeItem('myId');
-      sessionStorage.removeItem('currentRoom');
-      window.history.pushState({}, '', window.location.pathname);
-      window.location.reload();
-    };
-    // Hard Reset Button
-    const btnHard = document.createElement('button');
-    btnHard.id = 'dev-restart-btn-hard';
-    btnHard.textContent = 'Hard Reset';
-    btnHard.className = 'btn btn-tertiary'; // Use tertiary style
-    btnHard.style.position = 'fixed'; // Position relative to viewport
-    btnHard.style.bottom = '24px';
-    btnHard.style.right = '24px';
-    btnHard.style.zIndex = 2000;
-    btnHard.style.width = '90px';
-    btnHard.style.fontSize = '1rem';
-    btnHard.onclick = () => {
-      socket.emit('adminReset');
-      myId = null;
-      currentRoom = null;
-      sessionStorage.removeItem('myId');
-      sessionStorage.removeItem('currentRoom');
-      sessionStorage.removeItem('autoPlayVsComputer');
-      window.history.pushState({}, '', window.location.pathname);
-      window.location.reload();
-    };
-    // Append directly to body
-    document.body.appendChild(btnSoft);
-    document.body.appendChild(btnHard);
-  }
+  // Remove dev restart functionality
+  function addRestartButton() {}
+  function addRestartButtons() {}
 
   // After reload, auto-trigger Play vs Computer if requested
   if (sessionStorage.getItem('autoPlayVsComputer') === '1') {
@@ -165,7 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (joinBtn) joinBtn.disabled = false;
     if (joinComputerBtn) joinComputerBtn.disabled = false;
-    if (computerCountInput) computerCountInput.disabled = false;
+    if (computerCountInput) {
+      computerCountInput.value = 3;  // Force always 3 CPUs
+      computerCountInput.disabled = true;
+    }
     clearNameError(); // Check inside this function if errors persist
 
     const lobbyCard = $('lobby-form-card');
@@ -209,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (table) table.classList.remove('hidden'); // Ensure table is visible
     hideOverlay(); // Hide overlay when game starts
     closeModal(); // Ensure any open modals are closed
-    addRestartButtons(); // Add buttons AFTER table is shown
   }
 
   /* ---------- Modal Handling ---------- */
@@ -499,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
     joinComputerBtn.onclick = () => {
       const name = validateName();
       if (name) {
-        const numComputers = parseInt(computerCountInput.value, 10) || 1;
+        const numComputers = 3;
         console.log(`[Debug] Emitting join event: name=${name}, vsComputer=true, numComputers=${numComputers}`);
         socket.emit('join', name, true, numComputers);
       }
@@ -801,32 +736,6 @@ document.addEventListener('DOMContentLoaded', () => {
     pileTransition = active;
     const playBtn = document.getElementById('play');
     if (playBtn) playBtn.disabled = active;
-    // Show or hide a transition overlay/banner
-    let transitionBanner = document.getElementById('pile-transition-banner');
-    if (active) {
-      if (!transitionBanner) {
-        transitionBanner = document.createElement('div');
-        transitionBanner.id = 'pile-transition-banner';
-        transitionBanner.className = 'banner';
-        transitionBanner.style.position = 'absolute';
-        transitionBanner.style.top = '50%';
-        transitionBanner.style.left = '50%';
-        transitionBanner.style.transform = 'translate(-50%, -50%)';
-        transitionBanner.style.zIndex = 2000;
-        transitionBanner.style.background = 'rgba(0,0,0,0.7)';
-        transitionBanner.style.color = '#fff';
-        transitionBanner.style.fontWeight = 'bold';
-        transitionBanner.style.fontSize = '2rem';
-        transitionBanner.style.padding = '1.5rem 3rem';
-        transitionBanner.style.borderRadius = '12px';
-        transitionBanner.textContent = 'Pile in transition...';
-        document.body.appendChild(transitionBanner);
-      } else {
-        transitionBanner.classList.remove('hidden');
-      }
-    } else if (transitionBanner) {
-      transitionBanner.classList.add('hidden');
-    }
   }
 
   function showError(msg) {
