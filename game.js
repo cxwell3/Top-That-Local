@@ -109,17 +109,17 @@ export class Game {
         this.pushState();
         const nextPlayer = this.byId(this.turn);
         if (nextPlayer && nextPlayer.isComputer) {
-            // Wait 2 seconds after a special effect, otherwise 1.5s
-            const delay = (String(playedValue) === '10' || isFourOfAKind || String(playedValue) === '5') ? 2000 : 1500;
+            // Wait 1.62 seconds after a special effect, otherwise 1.095s
+            const delay = (String(playedValue) === '10' || isFourOfAKind || String(playedValue) === '5') ? effectDelay : 1095;
             setTimeout(() => this.computerTurn(nextPlayer.id), delay);
         }
     };
 
-    const effectDelay = 2000; // 2 seconds for 10/four-of-a-kind burn
+    const effectDelay = 1620; // 1.62 seconds for burn (another 10% faster)
 
     if (String(playedValue) === '10' || isFourOfAKind) {
         this.io.emit('specialEffect', { value: 10, type: isFourOfAKind ? 'four' : 'ten' });
-        this.pushState();
+        // defer UI update until after burn effect to avoid skip
         setTimeout(() => {
             console.log(`[DEBUG play] Applying delayed burn effect.`);
             this.discard = (this.discard || []).concat(this.playPile.splice(0));
@@ -210,7 +210,7 @@ export class Game {
         return;
       }
       this.takePile({ id: computerId });
-    }, 1500); // Changed delay to 1500ms (1.5 seconds)
+    }, 1095); // CPU decision delay now ~1.095s (10% faster)
   }
 
   takePile(sock) {
@@ -258,9 +258,9 @@ export class Game {
     this.playPile = []; // Ensure play pile is empty initially
     this.lastRealCard = null;
     this.pushState(); // Push state with hands dealt, empty pile
-    console.log(`Initial empty state pushed. Waiting 2 seconds before placing first card.`);
+    console.log(`Initial empty state pushed. Waiting 1.62 seconds before placing first card.`);
 
-    // --- Wait 2 seconds before placing the first card ---
+    // --- Wait 1.62 seconds before placing the first card ---
     setTimeout(() => {
       if (!this.started) return; // Check if game was reset during delay
       console.log(`Placing initial card...`);
@@ -268,7 +268,7 @@ export class Game {
       while (this.deck.length > 0) {
         initialCard = this.draw();
         if (String(initialCard.value) === '10') {
-          // Place the 10 on the pile, push state, then burn after 2 seconds
+          // Place the 10 on the pile, push state, then burn after 1.62 seconds
           this.playPile.push(initialCard);
           this.lastRealCard = null;
           this.pushState();
@@ -293,7 +293,7 @@ export class Game {
               this.lastRealCard = null;
             }
             this.pushState();
-            // Wait 2 seconds before starting the first turn
+            // Wait 1.62 seconds before starting the first turn
             setTimeout(() => {
               if (!this.started || !this.players.length) return;
               this.turn = this.players[0].id;
@@ -302,8 +302,8 @@ export class Game {
               if (firstPlayer && firstPlayer.isComputer) {
                 this.computerTurn(firstPlayer.id);
               }
-            }, 2000);
-          }, 2000); // Show the 10 for 2 seconds before burning
+            }, 1620);
+          }, 1620); // Show the 10 for ~1.62 seconds before burning (10% faster)
           return;
         } else {
           break;
@@ -318,7 +318,7 @@ export class Game {
       } else {
         this.lastRealCard = null;
       }
-      // Wait 2 seconds before starting the first turn
+      // Wait 1.62 seconds before starting the first turn
       setTimeout(() => {
         if (!this.started || !this.players.length) return;
         this.turn = this.players[0].id;
@@ -327,8 +327,8 @@ export class Game {
         if (firstPlayer && firstPlayer.isComputer) {
           this.computerTurn(firstPlayer.id);
         }
-      }, 2000);
-    }, 2000); // 2-second delay before placing the first card
+      }, 1620); // ~1.62-second delay before placing the first card (10% faster)
+    }, 1620); // ~1.62-second delay before placing the first card (10% faster)
   }
 
   buildDeck() {
@@ -488,8 +488,7 @@ export class Game {
         const noticeMsg = `${currentPlayer.name} must take the pile.`;
         currentPlayer.sock.emit('notice', noticeMsg);
       } else if (currentPlayer.isComputer) {
-        // Do not emit notice here, just trigger the computer to take the pile
-        setTimeout(() => this.takePile({ id: currentPlayer.id, skipNotice: true }), 50);
+        setTimeout(() => this.takePile({ id: currentPlayer.id, skipNotice: true }), 108);
         // Do not emit notice here
         return; // Prevent further state push until after takePile
       }

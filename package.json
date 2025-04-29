@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon --delay 4 --watch restart-server.js --watch server.js --watch game.js --watch public --exec \"node restart-server.js\""
+    "dev": "npx kill-port 3000 && sleep 1 && nodemon --watch server.js --watch game.js --watch public --exec \"node server.js\""
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -12,6 +12,7 @@
     "socket.io": "^4.7.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "kill-port": "^1.6.1"
   }
 }

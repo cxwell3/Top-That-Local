@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentRoom = null;
   let activeModal = null; // Keep track of the currently open modal
   let pileTransition = false; // Track if the pile is in a transition state (e.g., after 5, 10, or four-of-a-kind)
+  let pendingSpecialEffect = null; // Track any pending specialEffect for banner display after render
 
   /* ---------- UI State Functions ---------- */
 
@@ -319,17 +320,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Track previous started state to prevent multiple showGameTable() calls
   let prevStarted = false;
 
+  // Previous client-side CPU delay logic removed; rendering immedately on each state
   socket.on('state', s => {
-    console.log('[Debug] Received state event:', s); // Debug log for state event
-    // Only call showGameTable() when transitioning from not started to started
-    if (s.started && !prevStarted) {
-      showGameTable();
-    }
+    console.log('[Debug] Received state event:', s);
+
+    if (s.started && !prevStarted) showGameTable();
     prevStarted = s.started;
+
     if (s.started) {
       renderGameState(s);
     } else {
-      // Show lobby waiting state if game not started
       if (s.players && s.players.length && currentRoom) {
         showWaitingState(currentRoom, s.players.length, s.players.length > 0 ? 4 : 0);
       }
@@ -405,18 +405,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   socket.on('specialEffect', ({ value, type }) => {
-    if (value === 10 || type === 'four' || (value === 5 && type === 'five')) {
+    // Always run pile-transition immediately on special card
+    if (value === 10 || type === 'four' || (value === 'five' || value === 5)) {
       setPileTransition(true);
-      setTimeout(() => setPileTransition(false), 2000); // Match server delay
+      setTimeout(() => setPileTransition(false), 2000);
     }
-    showCardEvent(value, type);
-  });
-
-  socket.on('opponentTookPile', ({ playerId }) => {
-    const playerPanel = document.querySelector(`.player[data-player-id="${playerId}"]`);
-    if (playerPanel) {
-      showTookPileBanner(playerPanel);
-    }
+    // Queue banner to show after next renderGameState
+    pendingSpecialEffect = { value, type };
   });
 
   /* ---------- Event Listeners ---------- */
@@ -1141,6 +1136,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Create center piles AFTER players are rendered
     createCenterPiles(s);
+    // Show any pending specialEffect banner now that cards are rendered
+    if (pendingSpecialEffect) {
+      showCardEvent(pendingSpecialEffect.value, pendingSpecialEffect.type);
+      pendingSpecialEffect = null;
+    }
   }
 
   function showGameOverMessage(didIWin, winnerName) {
