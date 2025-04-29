@@ -868,13 +868,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.createElement('div');
     const img = new Image();
     img.className = 'card-img';
+    img.style.visibility = 'hidden';  // Hide alt text until image loads
     img.src = card.back
       ? 'https://deckofcardsapi.com/static/img/back.png'
       : `https://deckofcardsapi.com/static/img/${code(card)}.png`;
     img.alt = card.back ? 'Card back' : `${card.value} of ${card.suit}`;
-    if (typeof onCardLoad === 'function') {
-      img.onload = () => onCardLoad(img);
-    }
+    img.onload = () => {
+      img.style.visibility = 'visible';
+      if (typeof onCardLoad === 'function') onCardLoad(img);
+    };
     if (sel) {
       img.classList.add('selectable');  // mark image as selectable
       img.style.cursor = 'pointer';
@@ -895,9 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       img.style.cursor = 'default';
     }
-
     container.appendChild(img);
-
     return container;
   }
 
