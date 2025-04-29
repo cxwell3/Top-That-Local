@@ -295,7 +295,7 @@ body {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, background-color 0.2s;
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, background-color 0.15s;
   width: 100%; /* Make buttons fill container in group */
   text-align: center;
 }
@@ -743,7 +743,7 @@ body {
 }
 
 .card-img.selectable {
-  transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
 }
 
 .card-img.selectable:hover {
@@ -926,13 +926,13 @@ body {
 #my-area.active {
   border-color: #00CCCC !important; /* Changed to brighter teal (#00CCCC) */
   box-shadow: 0 0 20px 5px rgba(0, 204, 204, 0.4) !important; /* Updated glow color to match */
-  animation: activePulse 2s infinite; /* Add pulsing animation for active state */
+  animation: activePulse 1s infinite; /* Add pulsing animation for active state */
 }
 
 .player-area.active, .player.active {
   border-color: #00CCCC !important; /* Changed to brighter teal (#00CCCC) */
   box-shadow: 0 0 20px 5px rgba(0, 204, 204, 0.4) !important; /* Updated glow color to match */
-  animation: activePulse 2s infinite; /* Add pulsing animation for active state */
+  animation: activePulse 1s infinite; /* Add pulsing animation for active state */
 }
 
 @keyframes activePulse {
@@ -1238,7 +1238,7 @@ body {
   border-radius: 6px;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 #play {

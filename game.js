@@ -109,13 +109,13 @@ export class Game {
         this.pushState();
         const nextPlayer = this.byId(this.turn);
         if (nextPlayer && nextPlayer.isComputer) {
-            // Wait 1.62 seconds after a special effect, otherwise 1.095s
-            const delay = (String(playedValue) === '10' || isFourOfAKind || String(playedValue) === '5') ? effectDelay : 1095;
+            // Wait 2 seconds after a special effect, otherwise 0.84s
+            const delay = (String(playedValue) === '10' || isFourOfAKind || String(playedValue) === '5') ? effectDelay : 840;
             setTimeout(() => this.computerTurn(nextPlayer.id), delay);
         }
     };
 
-    const effectDelay = 1620; // 1.62 seconds for burn (another 10% faster)
+    const effectDelay = 2000; // 2 seconds for burn effect (longer visibility)
 
     if (String(playedValue) === '10' || isFourOfAKind) {
         this.io.emit('specialEffect', { value: 10, type: isFourOfAKind ? 'four' : 'ten' });
@@ -209,14 +209,21 @@ export class Game {
         this.play({ id: computerId }, [2000]);
         return;
       }
-      this.takePile({ id: computerId });
-    }, 1095); // CPU decision delay now ~1.095s (10% faster)
+      // No moves: take the pile then schedule next CPU turn if any
+      this.takePile({ id: computerId, skipNotice: true });
+      // After auto-pickup, schedule the next CPU turn
+      setTimeout(() => this.computerTurn(this.turn), 840);
+      return;
+    }, 840); // CPU decision delay now ~0.84s (15% faster)
   }
 
   takePile(sock) {
     const p = this.findPlayerById(sock.id);
-    if (!p || p.disconnected || this.turn !== p.id) return;
+    console.log(`[DEBUG takePile] called by ${sock.id}, turn before givePile: ${this.turn}`);
+
     this.givePile(p, 'You picked up the pile');
+    console.log(`[DEBUG takePile] turn after givePile: ${this.turn}`);
+    // Notify players of the take-pile event
     if (p.sock && !p.isComputer) {
       this.players.forEach(other => {
         if (other.id !== p.id && other.sock) {
@@ -230,12 +237,13 @@ export class Game {
         }
       });
     }
+    // Finally, push the updated game state
     this.pushState();
-
-    // Prevent immediate re-invocation of computerTurn for the same computer
+    // If next player is a computer, schedule their turn
     const nextPlayer = this.byId(this.turn);
-    if (nextPlayer && nextPlayer.isComputer && nextPlayer.id !== p.id) {
-      this.computerTurn(nextPlayer.id);
+    if (nextPlayer && nextPlayer.isComputer) {
+      // Use the same CPU decision delay
+      setTimeout(() => this.computerTurn(nextPlayer.id), 840);
     }
   }
 
@@ -258,9 +266,9 @@ export class Game {
     this.playPile = []; // Ensure play pile is empty initially
     this.lastRealCard = null;
     this.pushState(); // Push state with hands dealt, empty pile
-    console.log(`Initial empty state pushed. Waiting 1.62 seconds before placing first card.`);
+    console.log(`Initial empty state pushed. Waiting 1.24 seconds before placing first card.`);
 
-    // --- Wait 1.62 seconds before placing the first card ---
+    // --- Wait 1.24 seconds before placing the first card ---
     setTimeout(() => {
       if (!this.started) return; // Check if game was reset during delay
       console.log(`Placing initial card...`);
@@ -268,7 +276,7 @@ export class Game {
       while (this.deck.length > 0) {
         initialCard = this.draw();
         if (String(initialCard.value) === '10') {
-          // Place the 10 on the pile, push state, then burn after 1.62 seconds
+          // Place the 10 on the pile, push state, then burn after 1.24 seconds
           this.playPile.push(initialCard);
           this.lastRealCard = null;
           this.pushState();
@@ -293,7 +301,7 @@ export class Game {
               this.lastRealCard = null;
             }
             this.pushState();
-            // Wait 1.62 seconds before starting the first turn
+            // Wait 1.24 seconds before starting the first turn
             setTimeout(() => {
               if (!this.started || !this.players.length) return;
               this.turn = this.players[0].id;
@@ -302,8 +310,8 @@ export class Game {
               if (firstPlayer && firstPlayer.isComputer) {
                 this.computerTurn(firstPlayer.id);
               }
-            }, 1620);
-          }, 1620); // Show the 10 for ~1.62 seconds before burning (10% faster)
+            }, 1240);
+          }, 1240); // Show burn for ~1.24 seconds (15% faster)
           return;
         } else {
           break;
@@ -318,7 +326,7 @@ export class Game {
       } else {
         this.lastRealCard = null;
       }
-      // Wait 1.62 seconds before starting the first turn
+      // Wait 1.24 seconds before starting the first turn
       setTimeout(() => {
         if (!this.started || !this.players.length) return;
         this.turn = this.players[0].id;
@@ -327,8 +335,8 @@ export class Game {
         if (firstPlayer && firstPlayer.isComputer) {
           this.computerTurn(firstPlayer.id);
         }
-      }, 1620); // ~1.62-second delay before placing the first card (10% faster)
-    }, 1620); // ~1.62-second delay before placing the first card (10% faster)
+      }, 1240); // ~1.24-second delay before placing the first card (15% faster)
+    }, 1240); // ~1.24-second delay before placing the first card (15% faster)
   }
 
   buildDeck() {
@@ -434,12 +442,14 @@ export class Game {
   }
 
   advanceTurn() {
+    const prevTurn = this.turn;
     const currentIndex = this.players.findIndex(p => p.id === this.turn);
     if (currentIndex !== -1) {
       this.turn = this.players[(currentIndex + 1) % this.players.length].id;
     } else if (this.players.length > 0) {
       this.turn = this.players[0].id;
     }
+    console.log(`[DEBUG advanceTurn] ${prevTurn} -> ${this.turn}`);
   }
 
   hasMove(p) {
@@ -488,9 +498,9 @@ export class Game {
         const noticeMsg = `${currentPlayer.name} must take the pile.`;
         currentPlayer.sock.emit('notice', noticeMsg);
       } else if (currentPlayer.isComputer) {
-        setTimeout(() => this.takePile({ id: currentPlayer.id, skipNotice: true }), 108);
-        // Do not emit notice here
-        return; // Prevent further state push until after takePile
+        // Auto-pickup for CPU when no moves
+        setTimeout(() => this.takePile({ id: currentPlayer.id, skipNotice: true }), 97);
+        return; // Skip further state push until after pickup
       }
     } else if (currentPlayer && currentPlayer.sock) {
       currentPlayer.sock.emit('notice', '');

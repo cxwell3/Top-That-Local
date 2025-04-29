@@ -2,6 +2,18 @@
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM fully loaded and parsed'); // New log
 
+  // Preload all card images to eliminate first-render flash
+  (function preloadAllCardImages() {
+    const suits = ['H','D','C','S'];
+    const values = ['2','3','4','5','6','7','8','9','0','J','Q','K','A'];
+    suits.forEach(s => values.forEach(v => {
+      const img = new Image();
+      img.src = `https://deckofcardsapi.com/static/img/${v}${s}.png`;
+    }));
+    const back = new Image();
+    back.src = 'https://deckofcardsapi.com/static/img/back.png';
+  })();
+
   const socket = io({
     reconnectionDelayMax: 10000,
     reconnection: true,
@@ -751,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
     errorBanner._hideTimeout = setTimeout(() => {
       errorBanner.classList.add('hidden');
       errorBanner.textContent = '';
-    }, 4000);
+    }, 2000); // shorten error banner display from 4000ms to 2000ms
   }
 
   function clearError() {
@@ -855,7 +867,7 @@ document.addEventListener('DOMContentLoaded', () => {
         banner.classList.remove('event-banner-visible');
         setTimeout(() => { banner.textContent = ''; }, 400);
       }
-    }, 3000);
+    }, 1000); // shorten banner display from 3000ms to 1000ms
   }
 
   function showTookPileBanner(panel) {
