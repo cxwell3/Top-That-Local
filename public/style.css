@@ -691,6 +691,75 @@ body {
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
+/* ======================= Disable non-playable interactivity ======================= */
+/* Disable pointer events for all non-selectable card images */
+.card-img:not(.selectable) {
+  pointer-events: none !important;
+}
+
+/* Prevent hover effects on decks, discard, and opponent placeholders */
+.deck:hover,
+.discard:hover,
+.player-area .opp-hand .card-placeholder:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+/* Prevent interaction on opponent hand placeholders */
+.player-area .opp-hand .card-placeholder {
+  pointer-events: none !important;
+}
+/* Prevent interaction on draw and discard piles */
+.deck, .discard {
+  pointer-events: none !important;
+}
+
+/* ======================= Stack interactivity rules ======================= */
+/* Disable all stack hover for non-playable stacks */
+.stack {
+  pointer-events: none !important;
+}
+/* Enable interaction only on playable stacks */
+.stack.playable-stack {
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+.stack.playable-stack .card-img {
+  pointer-events: auto !important;
+}
+
+/* Ensure selectable cards always show gold outline on hover */
+.card-img.selectable:hover {
+  outline: 3px solid gold !important;
+}
+
+/* ======================= Selectable card styles ======================= */
+.card-img.selected {
+  transform: translateY(-10px) !important;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.5) !important;
+  z-index: 20 !important;
+}
+
+/* ========== Selection Hover Override: only selectable cards react ========== */
+.card-img.selectable:hover {
+  transform: translateY(-10px) scale(1.05) !important;
+  box-shadow: 0 5px 12px rgba(0,0,0,0.5) !important;
+  outline: 3px solid gold !important;
+  z-index: 10 !important;
+}
+
+/* Disable all other hover-based transforms */
+.card-img:hover,
+.stack:hover .card-img,
+.deck:hover,
+.discard:hover,
+.player-area .opp-hand .card-placeholder:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 /* ========== Table Layout ========== */
 .table {
   display: flex;

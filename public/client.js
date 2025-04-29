@@ -876,6 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
       img.onload = () => onCardLoad(img);
     }
     if (sel) {
+      img.classList.add('selectable');  // mark image as selectable
       img.style.cursor = 'pointer';
       // Attach handlers directly on the image so click always registers
       img.addEventListener('click', (e) => {
@@ -1196,6 +1197,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (p.id === myId) upCardImg.dataset.idx = i + 1000;
           }
           col.append(downCard, upCard);
+          if (p.id === myId && s.turn === myId && p.hand.length === 0) {
+            col.classList.add('playable-stack'); // mark stack as playable
+          }
           stackRow.appendChild(col);
         });
       } else if (p.downCount && p.downCount > 0) {
@@ -1209,6 +1213,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (p.id === myId) downCardImg.dataset.idx = i + 2000;
           }
           col.appendChild(downCard);
+          if (p.id === myId && s.turn === myId && (!p.up || p.up.length === 0) && i === 0) {
+            col.classList.add('playable-stack'); // mark stack as playable
+          }
           stackRow.appendChild(col);
         }
       }
