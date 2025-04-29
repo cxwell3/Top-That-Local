@@ -979,6 +979,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (slotLeft) slotLeft.innerHTML = '';
     if (slotRight) slotRight.innerHTML = '';
 
+    // Remove any previous active highlights
+    document.querySelectorAll('.player-area.active').forEach(el => el.classList.remove('active'));
+
     // --- Robust seat assignment for 2-4 players ---
     const meIdx = s.players.findIndex(p => p.id === myId);
     const playerCount = s.players.length;
@@ -1008,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (seat === 'bottom' && p.id === myId) panel.id = 'my-area';
       if (p.isComputer) panel.classList.add('computer-player');
       if (p.disconnected) panel.classList.add('disconnected');
-      if (p.id === myId) panel.classList.add('active');
+      if (p.id === s.turn) panel.classList.add('active');
       // All player panels: vertical stacking (banner, hand, up/down)
       panel.style.display = 'flex';
       panel.style.flexDirection = 'column';
