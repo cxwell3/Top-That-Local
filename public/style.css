@@ -898,8 +898,9 @@ body {
 .player-area,
 #my-area {
   position: relative;
-  /* bring hand closer to name banner */
-  padding-top: 2rem !important; /* reduced from 4rem */
+  /* match CPU padding */
+  padding-top: 1.5rem !important; /* was 2rem */
+  gap: 1.2rem !important;
   min-width: calc(var(--card-w)*4 + 48px);
   max-width: calc(var(--card-w)*5 + 64px);
   min-height: 420px;
@@ -911,26 +912,11 @@ body {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   justify-content: center;
-  gap: 1rem; /* uniform spacing between banner, hand, buttons, and up/down */
 }
 
-.player-area .player-name-header,
-#my-area .player-name-header {
-  text-align: center;
-  font-size: 1.4rem; /* bumped up one more level */
-  font-weight: 700;
-  display: flex; /* center content */
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  top: 0; 
-  left: 0; 
-  width: 100%;
-  border-radius: 12px 12px 0 0;
-  background: var(--header-bg);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  padding: 0.7rem 1.2rem 0.2rem 1.2rem;
-  z-index: 2;
+#my-area .player-section:first-of-type,
+#my-area .player-section:last-of-type {
+  margin-top: 1rem !important;
 }
 
 #my-area.active {
@@ -983,7 +969,7 @@ body {
 }
 
 #my-area .hand {
-  margin-top: 2.2rem !important;
+  margin-top: 0 !important;
 }
 
 #my-area .button-container {
@@ -1486,4 +1472,35 @@ body {
 }
 .computer-player .player-section:last-of-type {
   gap: 1rem !important;    /* space between Up/Down label and cards */
+}
+
+/* Human-specific spacing tweaks */
+#my-area {
+  gap: 1.2rem !important;
+  min-height: 460px !important;
+}
+#my-area .player-section:first-of-type {
+  margin-top: 1rem !important;
+}
+#my-area .player-section:last-of-type {
+  gap: 1rem !important;
+}
+#my-area .hand {
+  margin-top: 0 !important;
+}
+
+/* ========== Human player banner & section spacing fixes ========== */
+#my-area .player-name-header {
+  margin-bottom: 0.5rem !important;  /* restore space below banner */
+}
+#my-area .player-section:first-of-type {
+  margin-top: 1rem !important;      /* move Hand label/row down */
+}
+#my-area #dynamic-btn-container {
+  margin-top: 1rem !important;      /* space between Hand and buttons */
+  margin-bottom: 0 !important;
+}
+#my-area .player-section:last-of-type {
+  margin-top: 1rem !important;      /* space between buttons and Up/Down section */
+  gap: 1rem !important;             /* space between Up/Down label and cards */
 }

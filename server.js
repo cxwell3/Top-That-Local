@@ -46,7 +46,7 @@ function createServer() {
       }
     };
 
-    socket.on('join', (name, withComputer, numComputers = 3) => { // Always default to 3 CPUs
+    socket.on('join', (name, withComputer, numComputers) => {
       try {
         const url = new URL(socket.handshake.headers.referer);
         const urlRoomId = url.searchParams.get('room');
@@ -98,8 +98,8 @@ function createServer() {
             socket.emit('gameRoom', targetRoomId); // Confirm room created/joined
 
             if (withComputer) {
-              // Validate numComputers against MAX_PLAYERS
-              const requestedComputers = Math.max(1, Math.min(numComputers, game.MAX_PLAYERS - 1)); // Ensure at least 1 and not exceeding max
+              // Use user-specified number of computers
+              const requestedComputers = Math.max(1, Math.min(parseInt(numComputers, 10) || 1, game.MAX_PLAYERS - 1));
               console.log(`Filling room ${targetRoomId} with ${requestedComputers} computer players (requested: ${numComputers}) up to ${game.MAX_PLAYERS}`);
               const computersToAdd = Math.min(requestedComputers, game.MAX_PLAYERS - game.players.length);
 

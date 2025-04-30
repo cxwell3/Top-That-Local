@@ -111,9 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (joinBtn) joinBtn.disabled = false;
     if (joinComputerBtn) joinComputerBtn.disabled = false;
+    // allow user to choose number of computer opponents
     if (computerCountInput) {
-      computerCountInput.value = 3;  // Force always 3 CPUs
-      computerCountInput.disabled = true;
+      computerCountInput.disabled = false;
     }
     clearNameError(); // Check inside this function if errors persist
 
@@ -441,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
     joinComputerBtn.onclick = () => {
       const name = validateName();
       if (name) {
-        const numComputers = 3;
+        const numComputers = parseInt(computerCountInput.value, 10) || 1;
         console.log(`[Debug] Emitting join event: name=${name}, vsComputer=true, numComputers=${numComputers}`);
         socket.emit('join', name, true, numComputers);
       }
