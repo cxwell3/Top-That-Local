@@ -914,6 +914,12 @@ body {
 
 .player-area .player-name-header,
 #my-area .player-name-header {
+  text-align: center;
+  font-size: 1.4rem; /* bumped up one more level */
+  font-weight: 700;
+  display: flex; /* center content */
+  align-items: center;
+  justify-content: center;
   position: absolute;
   top: 0; 
   left: 0; 
