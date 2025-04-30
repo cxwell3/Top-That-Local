@@ -820,10 +820,8 @@ body {
     '.... bottom ....';
   grid-template-columns: 1fr 2fr 1fr;
   grid-template-rows: 1fr 2fr 1fr;
-  width: 100%;
-  max-width: 1600px;
-  min-width: 900px;
-  min-height: 700px;
+  /* Shrink grid to content, remove forced sizing */
+  width: fit-content;
   gap: 0.5rem; /* Reduced from 1rem to bring areas closer */
   margin: 0 auto;
   box-sizing: border-box;
