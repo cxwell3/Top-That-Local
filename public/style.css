@@ -1476,3 +1476,14 @@ body {
     padding: 1rem; /* Further reduce padding */
   }
 }
+
+/* CPU-specific spacing tweaks */
+.computer-player {
+  gap: 1.2rem !important;  /* larger space between banner, hand, and up/down */
+}
+.computer-player .player-section:first-of-type {
+  margin-top: 1rem !important; /* push hand label down from banner */
+}
+.computer-player .player-section:last-of-type {
+  gap: 1rem !important;    /* space between Up/Down label and cards */
+}
