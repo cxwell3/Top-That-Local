@@ -341,10 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (s.started) {
       renderGameState(s);
-    } else {
-      if (s.players && s.players.length && currentRoom) {
-        showWaitingState(currentRoom, s.players.length, s.players.length > 0 ? 4 : 0);
-      }
     }
   });
 
