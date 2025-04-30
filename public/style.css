@@ -898,8 +898,8 @@ body {
 .player-area,
 #my-area {
   position: relative;
-  /* bump top padding to make room for the header */
-  padding-top: 4rem !important; /* Increased from 3rem to 4rem */
+  /* bring hand closer to name banner */
+  padding-top: 2rem !important; /* reduced from 4rem */
   min-width: calc(var(--card-w)*4 + 48px);
   max-width: calc(var(--card-w)*5 + 64px);
   min-height: 420px;
