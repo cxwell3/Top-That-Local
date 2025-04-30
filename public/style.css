@@ -910,6 +910,8 @@ body {
   border-radius: 12px;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
+  justify-content: center;
+  gap: 1rem; /* uniform spacing between banner, hand, buttons, and up/down */
 }
 
 .player-area .player-name-header,
@@ -954,7 +956,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.15rem;
-  margin-bottom: 0.4rem !important; /* Adjusted margin */
+  margin: 0 !important; /* remove extra margins between sections */
   outline: none !important;
 }
 
@@ -988,12 +990,12 @@ body {
   display: flex !important;
   justify-content: center;
   align-items: center;
-  margin-top: 3.5rem !important;
-  margin-bottom: 1.1rem !important;
+  margin: 0 !important; /* remove custom top/bottom margins on buttons */
 }
 
 .player-area .button-container {
   display: none !important;
+  margin: 0 !important; /* remove custom top/bottom margins on buttons */
 }
 
 .table-slot-bottom .button-container {
@@ -1087,7 +1089,7 @@ body {
   align-items: flex-start; /* Align stacks to the top so cards are right below label */
   justify-content: center;
   margin: 0 !important; /* Kill the extra top-margin */
-  padding-top: 1.2rem !important;
+  padding-top: 0 !important; /* remove extra padding above stacks */
   background: none !important;
 }
 

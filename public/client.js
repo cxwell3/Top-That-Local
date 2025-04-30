@@ -1031,12 +1031,6 @@ document.addEventListener('DOMContentLoaded', () => {
       nameHeader.className = 'player-name-header ' + (p.isComputer ? 'player-cpu' : 'player-human');
       nameHeader.innerHTML = `<span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span>`;
       panel.appendChild(nameHeader);
-      // Spacer for human
-      if (p.id === myId) {
-        const spacer = document.createElement('div');
-        spacer.style.height = '40px';
-        panel.appendChild(spacer);
-      }
       // Hand row
       const handRow = document.createElement('div');
       if (p.id === myId) handRow.id = 'my-hand';
