@@ -805,9 +805,10 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
-  height: 100%;
-  padding: 1rem;
+  width: fit-content;
+  height: fit-content;
+  margin: auto;
+  padding: 0; /* Remove outer padding to bring board edges closer */
   box-sizing: border-box;
   background: var(--bg); /* Use the dark green background */
 }
@@ -818,11 +819,9 @@ body {
     '....  top    ....'
     'left center right'
     '.... bottom ....';
-  grid-template-columns: 1fr 2fr 1fr;
-  grid-template-rows: 1fr 2fr 1fr;
-  /* Shrink grid to content, remove forced sizing */
-  width: fit-content;
-  gap: 0.5rem; /* Reduced from 1rem to bring areas closer */
+  grid-template-columns: auto auto auto;
+  grid-template-rows: auto auto auto;
+  gap: 0; /* Eliminate grid gap entirely */
   margin: 0 auto;
   box-sizing: border-box;
   place-items: center; /* Center all grid items */
@@ -834,7 +833,7 @@ body {
   align-items: center;
   padding: 0;
   margin: 0;
-  width: 100%;
+  width: auto; /* Let each slot shrink to its content rather than full width */
   display: flex;
   justify-content: center;
 }
@@ -847,18 +846,22 @@ body {
 
 .table-slot-top {
   grid-area: top;
+  margin-bottom: -1.5rem;
 }
 
 .table-slot-bottom {
   grid-area: bottom;
+  margin-top: -1.5rem;
 }
 
 .table-slot-left {
   grid-area: left;
+  margin-right: -1.5rem;
 }
 
 .table-slot-right {
   grid-area: right;
+  margin-left: -1.5rem;
 }
 
 @media (max-width: 1200px) {
@@ -905,7 +908,8 @@ body {
   background: var(--bg) !important; /* Green felt background */
   box-shadow: none !important; /* Remove previous shadows */
   border-radius: 12px;
-  margin-top: 0.8rem;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .player-area .player-name-header,
