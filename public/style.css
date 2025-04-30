@@ -899,7 +899,7 @@ body {
 #my-area {
   position: relative;
   /* match CPU padding */
-  padding-top: 1.5rem !important; /* was 2rem */
+  padding-top: 4.5rem !important; /* Bump to 4.5rem for extra space under banner */
   gap: 1.2rem !important;
   min-width: calc(var(--card-w)*4 + 48px);
   max-width: calc(var(--card-w)*5 + 64px);
@@ -1503,4 +1503,24 @@ body {
 #my-area .player-section:last-of-type {
   margin-top: 1rem !important;      /* space between buttons and Up/Down section */
   gap: 1rem !important;             /* space between Up/Down label and cards */
+}
+
+/* Player name header banners */
+.player-area .player-name-header,
+#my-area .player-name-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  border-radius: 12px 12px 0 0;
+  background: var(--header-bg);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  padding: 0.7rem 1.2rem 0.2rem 1.2rem;
+  z-index: 2;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.75rem !important;
+  height: 3rem !important;
+  padding: 0 1.2rem !important;
 }
