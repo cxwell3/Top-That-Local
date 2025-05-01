@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Game } from './game.js';
+import fs from 'fs'; // add at top
 
 console.log("File saved!"); // Fixed typo in debug message
 console.log("[Test Restart] Server started at: " + new Date().toISOString());
@@ -27,7 +28,20 @@ function createServer() {
     next();
   });
 
-  app.use(express.static(path.join(__dirname, 'public')));
+  app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0 }));
+
+  // Admin endpoint to stop all games
+  app.post('/admin/stopAllGames', (req, res) => {
+    console.log('🛑 Admin requested stopAllGames. Clearing all rooms.');
+    games.forEach((game, roomId) => {
+      // notify players
+      io.to(roomId).emit('notice', 'Server is stopping all games.');
+      // reset and delete game
+      game.reset();
+      games.delete(roomId);
+    });
+    return res.send('All games stopped');
+  });
 
   io.on('connection', socket => {
     console.log(`🧩 Socket connected: ${socket.id}`);
@@ -46,98 +60,81 @@ function createServer() {
       }
     };
 
-    socket.on('join', (name, withComputer, numComputers) => {
+    socket.on('join', (name, totalPlayers, numComputers, roomParam) => {
       try {
-        const url = new URL(socket.handshake.headers.referer);
-        const urlRoomId = url.searchParams.get('room');
-        let joinedGame = false;
-        let targetRoomId = null;
+        // Normalize inputs
+        const requestedTotal = Math.min(Math.max(parseInt(totalPlayers, 10) || 2, 2), 4);
+        const cpuCount = Math.min(Math.max(parseInt(numComputers, 10) || 0, 0), requestedTotal - 1);
+        const withComputer = cpuCount > 0;
+        // Use roomParam to target existing room if provided
+        let targetRoomId = roomParam || null;
 
-        // If playing with computer, ALWAYS create a new game
-        if (withComputer) {
-          console.log(`Player ${name} requested a game with computer. Forcing new room creation.`);
-          // Skip joining existing room logic
-        } else if (urlRoomId && games.has(urlRoomId)) { // Try joining existing room from URL ONLY if not playing vs computer
-          const game = games.get(urlRoomId);
-          // Check if game exists, is not started, and not full
-          if (!game.started && game.players.length < game.MAX_PLAYERS) {
-            if (game.addPlayer(socket, name)) {
-              targetRoomId = urlRoomId;
-              socket.join(targetRoomId);
-              socketToRoom.set(socket.id, targetRoomId);
-              socket.emit('gameRoom', targetRoomId); // Confirm room joined
-              joinedGame = true;
-              console.log(`Player ${name} joined existing room ${targetRoomId}`);
-            } else {
-              // addPlayer failed (e.g., room became full just now)
-              socket.emit('err', 'Failed to join room. It might be full.');
-              return;
-            }
-          } else if (game.started) {
-            socket.emit('err', 'Cannot join game: Already started.');
-            return;
-          } else { // Game not started but full
-            socket.emit('err', 'Cannot join game: Room is full.');
-            return;
+        // Unified lobby creation/join logic for humans and computers
+        // Attempt to join existing room if roomParam provided and valid
+        let game = null;
+        if (targetRoomId && games.has(targetRoomId)) {
+          const existing = games.get(targetRoomId);
+          if (!existing.started && existing.players.length < existing.MAX_PLAYERS) {
+            game = existing;
+          } else {
+            targetRoomId = null;
           }
         }
-
-        // If couldn't join existing or no URL room, or if forced new game for computer
-        if (!joinedGame) {
+        // Fallback: if no URL room specified and exactly one open room exists, join it
+        if (!game) {
+          const open = Array.from(games.entries())
+            .filter(([, g]) => !g.started && g.players.length < g.MAX_PLAYERS);
+          if (open.length === 1) {
+            const [id, existing] = open[0];
+            game = existing;
+            targetRoomId = id;
+          }
+        }
+        // Create new room if no valid existing
+        if (!game) {
           const newRoomId = Math.random().toString(36).substring(2, 8);
-          const game = new Game(io); // Pass io instance
+          game = new Game(io);
+          // limit players to requested total
+          game.MAX_PLAYERS = requestedTotal;
           games.set(newRoomId, game);
           targetRoomId = newRoomId;
-
-          socket.join(targetRoomId);
-          socketToRoom.set(socket.id, targetRoomId);
-
-          // Add the human player first
-          if (game.addPlayer(socket, name)) {
-            console.log(`Player ${name} created and joined new room ${targetRoomId}`);
-            socket.emit('gameRoom', targetRoomId); // Confirm room created/joined
-
-            if (withComputer) {
-              // Use user-specified number of computers
-              const requestedComputers = Math.max(1, Math.min(parseInt(numComputers, 10) || 1, game.MAX_PLAYERS - 1));
-              console.log(`Filling room ${targetRoomId} with ${requestedComputers} computer players (requested: ${numComputers}) up to ${game.MAX_PLAYERS}`);
-              const computersToAdd = Math.min(requestedComputers, game.MAX_PLAYERS - game.players.length);
-
-              for (let i = 0; i < computersToAdd; i++) {
-                if (!game.addComputerPlayer()) {
-                  console.warn(`Could not add computer player ${i + 1} to room ${targetRoomId}`);
-                }
-              }
-              // Start game ONLY if enough players (human + added computers) are present
-              if (game.players.length >= 2) { // Start if at least 2 players total
-                 console.log(`Starting game in room ${targetRoomId} with ${game.players.length} players.`);
-                 game.startGame(); // Start the game now
-              } else {
-                 console.warn(`Not enough players (${game.players.length}) to start game in room ${targetRoomId} even after adding computers.`);
-                 updateLobby(targetRoomId); // Update lobby if game didn't start
-              }
-            } else {
-              // If not playing with computer, just update lobby
-              updateLobby(targetRoomId);
-            }
-          } else {
-            // Handle human player add failure
-            games.delete(newRoomId);
-            socketToRoom.delete(socket.id);
-            socket.leave(targetRoomId);
-            socket.emit('err', 'Failed to create or join game.');
-            return;
-          }
-        } else if (!withComputer) { // Added this else if
-           // If joined existing game (human only), update lobby
-           updateLobby(targetRoomId);
         }
-
+        // Join socket to room
+        socket.join(targetRoomId);
+        socketToRoom.set(socket.id, targetRoomId);
+        // Add the human player
+        if (!game.addPlayer(socket, name)) {
+          socket.emit('err', 'Failed to join game: Room may be full or started.');
+          return;
+        }
+        socket.emit('gameRoom', targetRoomId);
+        console.log(`Player ${name} joined room ${targetRoomId}`);
+        // Add computer players if requested
+        if (withComputer) {
+          console.log(`Adding ${cpuCount} computer players to room ${targetRoomId}`);
+          for (let i = 0; i < cpuCount; i++) game.addComputerPlayer();
+        }
+        // Update lobby view
+        updateLobby(targetRoomId);
+        // Await client 'startGame' action to begin game
+        return;
       } catch (err) {
         console.error('❌ Join error:', err.message, err.stack);
         socket.emit('err', err.message);
       }
     });
+
+    // Add listener for manual start request
+    socket.on('startGame', () => {
+      const roomId = socketToRoom.get(socket.id);
+      if (!roomId || !games.has(roomId)) return;
+      const game = games.get(roomId);
+      if (!game.started && game.players.length >= 2) {
+        console.log(`Game start triggered by player in room ${roomId}`);
+        game.startGame();
+      }
+    });
+
     socket.on('playCards', idxs => {
       const roomId = socketToRoom.get(socket.id);
       try {
@@ -262,6 +259,13 @@ function createServer() {
       console.log(`🗑️ Game room ${roomId} deleted after reset.`);
     });
   }); // End of io.on('connection')
+
+  // Watch public assets and broadcast reload to clients
+  const publicPath = path.join(__dirname, 'public');
+  fs.watch(publicPath, { recursive: true }, (eventType, filename) => {
+    console.log(`🔄 Public file changed (${filename}), sending reload to clients.`);
+    io.emit('reload');
+  });
 
   return httpServer;
 }

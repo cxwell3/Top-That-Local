@@ -69,6 +69,22 @@ document.addEventListener('DOMContentLoaded', () => {
   let pileTransition = false; // Track if the pile is in a transition state (e.g., after 5, 10, or four-of-a-kind)
   let pendingSpecialEffect = null; // Track any pending specialEffect for banner display after render
 
+  // Read room parameter from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialRoom = urlParams.get('room') || null;
+
+  // If joining an existing room, hide setup inputs
+  if (initialRoom) {
+    const setup = $('setup-fields');
+    if (setup) setup.classList.add('hidden');
+    const totalField = $('total-players');
+    if (totalField) totalField.disabled = true;
+    const cpuField = $('computer-count');
+    if (cpuField) cpuField.disabled = true;
+    const btn = $('create-join');
+    if (btn) btn.textContent = 'Join Game';
+  }
+
   /* ---------- UI State Functions ---------- */
 
   function showOverlay() {
@@ -104,9 +120,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lobbyFormContent) lobbyFormContent.classList.remove('hidden');
     if (waitingStateDiv) waitingStateDiv.classList.add('hidden');
     if (nameIn) {
-      nameIn.value = 'Player 1';
-      nameIn.placeholder = 'Player 1';
-      nameIn.readOnly = true;
+      nameIn.value = '';
+      nameIn.placeholder = 'Enter your name';
+      nameIn.readOnly = false;
       nameIn.disabled = false;
     }
     if (joinBtn) joinBtn.disabled = false;
@@ -150,6 +166,18 @@ document.addEventListener('DOMContentLoaded', () => {
     url.searchParams.set('room', roomId);
     window.history.pushState({}, '', url);
     hideOverlay(); // Ensure overlay is hidden
+
+    const startBtn = $('start-game-button');
+    if (startBtn) {
+      // Show start button once at least 2 players are in the room
+      if (playersLength >= 2) {
+        startBtn.classList.remove('hidden');
+        startBtn.disabled = false;
+      } else {
+        startBtn.classList.add('hidden');
+        startBtn.disabled = true;
+      }
+    }
   }
 
   function showGameTable() {
@@ -235,6 +263,28 @@ document.addEventListener('DOMContentLoaded', () => {
   if (rulesModalCloseButton) {
     rulesModalCloseButton.addEventListener('click', closeModal);
   }
+  // Listener for back-to-lobby button
+  const backToLobbyButton = $('back-to-lobby-button');
+  if (backToLobbyButton) {
+    backToLobbyButton.addEventListener('click', () => {
+      // Reset user/session state
+      myId = null;
+      currentRoom = null;
+      sessionStorage.removeItem('myId');
+      sessionStorage.removeItem('currentRoom');
+      // Remove room param from URL
+      const url = new URL(window.location);
+      url.searchParams.delete('room');
+      window.history.pushState({}, '', url);
+      // Hide game table and any game-over overlay
+      const tableEl = document.getElementById('table');
+      if (tableEl) tableEl.classList.add('hidden');
+      const gameOver = document.getElementById('game-over-container');
+      if (gameOver) gameOver.remove();
+      // Show the lobby form
+      showLobbyForm();
+    });
+  }
 
   // Close modal if overlay is clicked
   if (modalOverlay) {
@@ -270,10 +320,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (nameIn) {
-    nameIn.value = 'Player 1'; // Always pre-fill as Player 1
-    nameIn.placeholder = 'Player 1';
-    nameIn.disabled = false; // Allow editing so the value is submitted
-    nameIn.readOnly = true; // Prevent user from changing, but value is included in form
+    nameIn.value = '';
+    nameIn.placeholder = 'Enter your name';
+    nameIn.disabled = false;
+    nameIn.readOnly = false;
   }
 
   /* ---------- Socket Event Handlers ---------- */
@@ -309,6 +359,12 @@ document.addEventListener('DOMContentLoaded', () => {
     showError('Disconnected. Attempting to reconnect...');
   });
 
+  // Auto-reload page when server signals public file change
+  socket.on('reload', () => {
+    console.log('🔄 Reloading page due to asset change');
+    window.location.reload();
+  });
+
   socket.on('joined', d => {
     myId = d.id;
     sessionStorage.setItem('myId', myId);
@@ -342,6 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (s.started) {
       renderGameState(s);
     }
+    // Do not override waiting state here; lobby event controls showing the waiting UI
   });
 
   socket.on('gameOver', ({ winnerId, winnerName }) => {
@@ -423,24 +480,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ---------- Event Listeners ---------- */
-  if (joinBtn) {
-    joinBtn.onclick = () => {
+  // Unified Create / Join game
+  const createJoinBtn = $('create-join');
+  if (createJoinBtn) {
+    createJoinBtn.onclick = () => {
       const name = validateName();
-      if (name) {
-        console.log(`Attempting to join as ${name} (vs Human)`);
-        socket.emit('join', name, false);
-      }
-    };
-  }
-
-  if (joinComputerBtn) {
-    joinComputerBtn.onclick = () => {
-      const name = validateName();
-      if (name) {
-        const numComputers = parseInt(computerCountInput.value, 10) || 1;
-        console.log(`[Debug] Emitting join event: name=${name}, vsComputer=true, numComputers=${numComputers}`);
-        socket.emit('join', name, true, numComputers);
-      }
+      if (!name) return;
+      const totalPlayers = parseInt($('total-players').value, 10) || 2;
+      const cpuCount = parseInt($('computer-count').value, 10) || 0;
+      console.log(`Creating/joining game as ${name} with ${totalPlayers} total, ${cpuCount} CPUs`);
+      socket.emit('join', name, totalPlayers, cpuCount, initialRoom);
+      createJoinBtn.disabled = true;
     };
   }
 
@@ -450,6 +500,15 @@ document.addEventListener('DOMContentLoaded', () => {
       injectTutorialGameState();
       startTutorial();
     };
+  }
+
+  // Manual start game button
+  const startGameBtn = $('start-game-button');
+  if (startGameBtn) {
+    startGameBtn.addEventListener('click', () => {
+      socket.emit('startGame');
+      startGameBtn.disabled = true; // prevent double sends
+    });
   }
 
   // Inject a fake game state for tutorial mode

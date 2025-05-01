@@ -117,6 +117,16 @@ body {
   color: var(--name);
 }
 
+/* ========== Header & Navigation tweaks for nav buttons ========= */
+#main-header nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#main-header nav .btn {
+  width: auto;
+}
+
 /* Rules widget */
 #rules summary {
   list-style: none;
@@ -152,6 +162,17 @@ body {
 
 #rules-button:hover {
   background: #ffd54f; /* Slightly lighter gold for hover effect */
+}
+
+/* Back to Lobby button styling */
+#back-to-lobby-button {
+  background: #FFC300; /* Match primary accent */
+  color: #000000;
+  margin-left: 0.5rem; /* Space from How to Play */
+  transition: background-color 0.2s;
+}
+#back-to-lobby-button:hover {
+  background: #ffd54f;
 }
 
 /* ========== Main Content & Lobby ========== */
@@ -821,7 +842,7 @@ body {
     '.... bottom ....';
   grid-template-columns: auto auto auto;
   grid-template-rows: auto auto auto;
-  gap: 0; /* Eliminate grid gap entirely */
+  gap: 0.75rem; /* Reduced spacing between player boards by half */
   margin: 0 auto;
   box-sizing: border-box;
   place-items: center; /* Center all grid items */
@@ -846,22 +867,22 @@ body {
 
 .table-slot-top {
   grid-area: top;
-  margin-bottom: 0;
+  margin-bottom: 0; /* Remove overlap */
 }
 
 .table-slot-bottom {
   grid-area: bottom;
-  margin-top: 0;
+  margin-top: 0; /* Remove overlap */
 }
 
 .table-slot-left {
   grid-area: left;
-  margin-right: 0;
+  margin-right: 0; /* Remove overlap */
 }
 
 .table-slot-right {
   grid-area: right;
-  margin-left: 0;
+  margin-left: 0; /* Remove overlap */
 }
 
 @media (max-width: 1200px) {
@@ -1465,13 +1486,10 @@ body {
 
 /* CPU-specific spacing tweaks */
 .computer-player {
-  gap: 1.2rem !important;  /* larger space between banner, hand, and up/down */
+  gap: 1.2rem !important;  /* larger space between up/down sections */
 }
 .computer-player .player-section:first-of-type {
-  margin-top: 1rem !important; /* push hand label down from banner */
-}
-.computer-player .player-section:last-of-type {
-  gap: 1rem !important;    /* space between Up/Down label and cards */
+  margin-top: 1rem !important; /* restore original spacing under banner */
 }
 
 /* Human-specific spacing tweaks */

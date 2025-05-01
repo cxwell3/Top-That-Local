@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>Top That! – Card Game</title>
-  <link rel="stylesheet" href="style.css?v=20250426_centered_piles" />
+  <link rel="stylesheet" href="style.css" />
   <script defer src="/socket.io/socket.io.js"></script>
-  <script defer type="module" src="client.js?v=20250426_centered_piles"></script>
+  <script defer type="module" src="client.js"></script>
 </head>
 <body>
   <header id="main-header">
@@ -16,6 +16,7 @@
       </div>
       <nav>
         <button id="rules-button" class="btn btn-secondary" aria-haspopup="dialog">How to Play</button>
+        <button id="back-to-lobby-button" class="btn btn-secondary">Lobby</button>
       </nav>
     </div>
   </header>
@@ -34,14 +35,19 @@
             <input type="text" id="name" placeholder="Enter your name" aria-required="true" />
             <div id="name-error" class="error-message hidden">Please enter your name.</div>
           </div>
-          <div class="form-group button-group">
-            <button id="join" class="btn btn-primary">Join Game</button>
-            <button id="join-computer" class="btn btn-secondary">Play vs Computer</button>
-            <button id="tutorial-btn" class="btn btn-tertiary">Tutorial</button>
+          <!-- Unified game setup: total players and CPU count -->
+          <div id="setup-fields">
+            <div class="form-group">
+              <label for="total-players">Total Players <small>(max 4)</small></label>
+              <input type="number" id="total-players" min="2" max="4" value="2" />
+            </div>
+            <div class="form-group">
+              <label for="computer-count">Computer Opponents</label>
+              <input type="number" id="computer-count" min="0" max="3" value="0" />
+            </div>
           </div>
-          <div class="form-group computer-options">
-            <label for="computer-count">Opponents:</label>
-            <input type="number" id="computer-count" name="computer-count" min="1" max="3" value="1" aria-label="Number of computer opponents">
+          <div class="form-group button-group">
+            <button id="create-join" class="btn btn-primary">Create / Join Game</button>
           </div>
         </div>
         <div id="waiting-state" class="hidden">
@@ -52,6 +58,7 @@
           </div>
           <p id="share-link-message">Share the link to invite others!</p>
           <button id="copy-link-button" class="btn btn-tertiary">Copy Invite Link</button>
+          <button id="start-game-button" class="btn btn-primary hidden">Start Game</button>
         </div>
       </div>
     </div>
