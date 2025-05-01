@@ -1090,30 +1090,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const handRow = document.createElement('div');
       if (p.id === myId) handRow.id = 'my-hand';
       handRow.className = p.id === myId ? 'hand' : 'opp-hand';
-      if (p.hand && p.hand.length > 0) {
-        const visualHandCount = p.id === myId ? p.hand.length : Math.min(p.handCount, 3);
+      if (p.id === myId && p.hand && p.hand.length > 0) {
+        // Show own cards fully
+        const visualHandCount = p.hand.length;
         for (let i = 0; i < visualHandCount; i++) {
-          const card = p.id === myId ? p.hand[i] : { back: true };
-          const canInteract = p.id === myId && s.turn === myId;
-          const el = document.createElement('div');
-          el.className = 'card-placeholder';
-          const cardEl = cardImg(card, canInteract, () => {
-            el.innerHTML = '';
-            el.appendChild(cardEl);
+          const card = p.hand[i];
+          const canInteract = s.turn === myId;
+          const placeholder = document.createElement('div');
+          placeholder.className = 'card-img selectable';
+          placeholder.dataset.idx = i;
+          const img = cardImg(card, canInteract, () => {
+            placeholder.innerHTML = '';
+            placeholder.appendChild(cardImg(card, canInteract));
           });
-          if (p.id === myId) {
-            const cardElement = cardEl.querySelector('.card-img');
-            if (cardElement) {
-              cardElement.dataset.idx = i;
-              if (canInteract) cardEl.classList.add('playable-card-container');
-            }
-          }
-          el.appendChild(cardEl);
-          handRow.appendChild(el);
+          handRow.appendChild(img);
         }
-      } else if (p.isComputer && p.handCount > 0) {
-        const visualHandCount = Math.min(p.handCount, 3);
-        for (let i = 0; i < visualHandCount; i++) {
+      } else if (p.handCount > 0) {
+        // Show placeholder backs for opponents (human or CPU)
+        for (let i = 0; i < p.handCount; i++) {
           const el = document.createElement('div');
           el.className = 'card-placeholder';
           const cardEl = cardImg({ back: true }, false);

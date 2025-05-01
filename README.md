@@ -2,9 +2,6 @@ UI & Visual Enhancements
 
 Animations (card flips, pile clears, invalid plays)
 
-Hover effects for up cards over down cards
-
-Improved card layout spacing and positioning consistency
 
     Responsive design for mobile and desktop
 
@@ -13,10 +10,6 @@ Player Features
 Avatars for each player (upload or preset options)
 
 Nickname customization
-
-Visual feedback when it’s your turn
-
-    Visual cue for special cards being played (e.g. fire for 10)
 
 Sound & Music
 
@@ -40,15 +33,12 @@ Game Flow & UX
 
 Error messages that persist until acknowledged
 
-Rule popover or pinned panel in-game
-
 Game lobby and game over screen
 
     Option to rematch without full reload
 
 Polish & Deployment
 
-Game title and tagline visually styled (“Top That” with “One pile. One winner. No mercy.”)
 
 Host via Replit or deploy to Vercel/Render for persistent access
 
@@ -155,3 +145,34 @@ npm run dev
 
 This uses nodemon to watch and restart server.js. The custom restart-server.js script is not needed for local dev.
 
+
+
+Add Audio Feedback
+• Play card‑flip, deal, burn/reset sound effects and subtle background music to make turns feel more tactile.
+
+Card‑Play Animations
+• Animate cards moving from hand to the central pile (CSS transforms or a small JS tween library) for smoother feedback.
+
+Mobile‑First & Responsive Refinements
+• Tighten up media‑queries so banners, piles, and buttons reflow cleanly on narrower phones and tablets.
+
+Accessibility & ARIA
+• Add proper ARIA roles/labels to cards, buttons, and modals; ensure high‑contrast mode; keyboard‑only play.
+
+Theming & Customization
+• Offer light/dark mode or alternate color palettes via CSS variables, letting players choose their look.
+
+Persistent Leaderboard & Stats
+• Track wins, streaks, average game length server‑side and display on a “Hall of Fame” or post‑game screen.
+
+In‑Game Chat or Emotes
+• Allow quick chat or emoji reactions so human players can taunt or cheer each other.
+
+Refactor & Modularize CSS
+• Break the monolithic style.css into components (e.g. cards.css, layout.css) or adopt a utility framework (Tailwind, BEM) for maintainability.
+
+Lazy‑Load & Cache Assets
+• Preload only a subset of card images; dynamically fetch more as needed to speed initial load.
+
+Enhanced Error/Notice UI
+• Replace the plain error banner with sliding toast notifications or snackbars that stack neatly and time out more gracefully.
