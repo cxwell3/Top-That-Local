@@ -851,14 +851,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sel) {
       img.classList.add('selectable');  // mark image as selectable
       img.style.cursor = 'pointer';
-      // Attach handlers directly on the image so click always registers
-      img.addEventListener('click', (e) => {
-        e.stopPropagation();
+      img.style.touchAction = 'manipulation';
+      // Use pointerdown for selection to support touch
+      img.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); e.stopPropagation();
         const isSelected = img.classList.toggle('selected');
         container.classList.toggle('selected-container', isSelected);
       });
+      // Keep double-click to play with touch-to-click devices falling back
       img.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         if (!img.classList.contains('selected')) {
           img.classList.add('selected');
           container.classList.add('selected-container');
