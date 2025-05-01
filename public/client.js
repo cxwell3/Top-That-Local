@@ -837,6 +837,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function cardImg(card, sel = false, onCardLoad) {
     const container = document.createElement('div');
+    container.classList.add('card-container');
     const img = new Image();
     img.className = 'card-img';
     img.style.visibility = 'hidden';  // Hide alt text until image loads
@@ -946,6 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedCards.length === 0) return;
 
     const indexes = Array.from(selectedCards).map(img => parseInt(img.dataset.idx));
+    console.log('Debug playSelectedCards:', { indexes, isHandPlay: indexes.every(idx => idx < 1000), isUpPlay: indexes.every(idx => idx >= 1000 && idx < 2000), isDownPlay: indexes.every(idx => idx >= 2000) });
 
     const isHandPlay = indexes.every(idx => idx < 1000);
     const isUpPlay = indexes.every(idx => idx >= 1000 && idx < 2000);
@@ -953,13 +955,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!(isHandPlay || isUpPlay || isDownPlay)) {
       showError("You can only play cards from one area (Hand, Up, or Down) at a time.");
-      selectedCards.forEach(img => img.classList.remove('selected'));
+      selectedCards.forEach(img => {
+        img.classList.remove('selected');
+        const cont = img.closest('.card-container');
+        if (cont) cont.classList.remove('selected-container');
+      });
       return;
     }
 
     if (isDownPlay && indexes.length > 1) {
       showError("You can only play one face-down card at a time.");
-      selectedCards.forEach(img => img.classList.remove('selected'));
+      selectedCards.forEach(img => {
+        img.classList.remove('selected');
+        const cont = img.closest('.card-container');
+        if (cont) cont.classList.remove('selected-container');
+      });
       return;
     }
 
@@ -992,8 +1002,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const deckContainer = document.createElement('div');
     deckContainer.className = 'center-pile-container';
     const deckLabel = document.createElement('div');
-    deckLabel.className = 'pile-label';
     deckLabel.textContent = `Deck (${state.deckCount})`;
+    deckLabel.className = 'pile-label';
     const deckPile = document.createElement('div');
     deckPile.className = 'deck pile';
     if (state.deckCount > 0) {
@@ -1093,19 +1103,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (p.id === myId) handRow.id = 'my-hand';
       handRow.className = p.id === myId ? 'hand' : 'opp-hand';
       if (p.id === myId && p.hand && p.hand.length > 0) {
-        // Show own cards fully
-        const visualHandCount = p.hand.length;
-        for (let i = 0; i < visualHandCount; i++) {
+        // Render hand cards and tag each img with its index for play detection
+        for (let i = 0; i < p.hand.length; i++) {
           const card = p.hand[i];
           const canInteract = s.turn === myId;
-          const placeholder = document.createElement('div');
-          placeholder.className = 'card-img selectable';
-          placeholder.dataset.idx = i;
-          const img = cardImg(card, canInteract, () => {
-            placeholder.innerHTML = '';
-            placeholder.appendChild(cardImg(card, canInteract));
-          });
-          handRow.appendChild(img);
+          const container = cardImg(card, canInteract);
+          const imgEl = container.querySelector('.card-img');
+          if (imgEl) imgEl.dataset.idx = i;
+          handRow.appendChild(container);
         }
       } else if (p.handCount > 0) {
         // Show placeholder backs for opponents (human or CPU)

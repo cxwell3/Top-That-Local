@@ -1022,6 +1022,25 @@ body {
   min-height: calc(var(--card-h) + 10px); /* Ensure height accommodates cards */
 }
 
+/* Hand cards shingling: apply to container, not image */
+.player-area .hand .card-container {
+  display: inline-block;
+  position: relative;
+  margin-right: -25px;
+}
+.player-area .hand .card-container:last-child {
+  margin-right: 0;
+}
+/* Remove negative margin on images themselves to avoid conflicts */
+.player-area .hand .card-img {
+  margin-right: 0 !important;
+}
+/* Selected container bubbles forward and resets margin */
+.card-container.selected-container {
+  z-index: 50;
+  margin-right: 5px;
+}
+
 /* Ensure opponent hand is also horizontal */
 .player-area .opp-hand {
   display: flex;
