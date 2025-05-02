@@ -575,7 +575,6 @@ body {
   position: relative; /* Keep relative positioning */
   z-index: 30;
   animation: tookPileFadeIn 0.2s, tookPileFadeOut 0.4s 1.6s forwards;
-  order: 2.5; /* Try to position it after #center if they share a flex container */
 }
 @keyframes tookPileFadeIn {
   from { opacity: 0; transform: translateY(-10px); }
@@ -1358,6 +1357,11 @@ body {
 .special-icon {
   pointer-events: none;
   user-select: none;
+  background: transparent !important;
+}
+.special-icon img {
+  background: transparent !important;
+  display: block;
 }
 
 /* ========== Responsive Styles ========== */
