@@ -68,9 +68,8 @@
         <div class="table-slot-left"></div>
         <div class="table-slot-center">
           <div id="center" class="center-area">
-            <div id="event-banner"></div>
-            <div id="error-banner" class="error-banner hidden" role="alert"></div>
             <!-- createCenterPiles() will insert deck and discard piles here -->
+            <!-- special effects are now overlaid on cards; errors shown as toast -->
           </div>
         </div>
         <div class="table-slot-right"></div>
@@ -129,7 +128,8 @@
         </li>
       </ul>
     </div>
-  </div>
-
+  </div> <!-- end rules-modal -->
+  <!-- Toast container for error messages -->
+  <div id="toast-container"></div>
 </body>
 </html>

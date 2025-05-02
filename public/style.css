@@ -614,9 +614,8 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 3rem;
+  gap: 1.5rem; /* closer piles */
   position: relative;
-  z-index: 10;
 }
 
 .center-pile-container {
@@ -656,28 +655,34 @@ body {
   box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
 }
 
-/* Position banners in center area */
-#event-banner {
-  position: absolute;
-  top: -60px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
+/* Align special and error banners directly above the piles */
+.center-piles-wrapper {
+  position: relative;
+}
+#event-banner,
+#error-banner {
+  position: absolute !important;
+  bottom: calc(100% + 4px) !important;
+  top: auto !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  margin-bottom: 0 !important;
+  z-index: 120 !important;
 }
 
+/* Position banners in center area */
+#event-banner,
 #error-banner {
-  position: absolute;
-  bottom: -60px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
+  top: -40px !important;
+  bottom: auto !important;
+  font-size: 1rem; /* consistent size */
 }
 
 .center-piles-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 .center-pile-container {
@@ -920,9 +925,9 @@ body {
 #my-area {
   position: relative;
   /* match CPU padding */
-  padding-top: 4.5rem !important; /* Bump to 4.5rem for extra space under banner */
-  gap: 1.2rem !important;
-  min-width: calc(var(--card-w)*4 + 48px);
+  padding-top: 3rem !important; /* lessen space under banner */
+  gap: 0.8rem !important;      /* tighter stacking of sections */
+  min-height: 350px !important; /* shrink overall zone */
   max-width: calc(var(--card-w)*5 + 64px);
   min-height: 420px;
   max-height: 520px;
@@ -1208,12 +1213,12 @@ body {
 /* ========== Event Banner ========== */
 #event-banner {
   position: absolute; /* Change from relative to absolute */
-  top: -60px; /* Move banner up slightly (was -2.5rem) */
+  top: -40px !important; /* Move banner up slightly */
   left: 50%;
   transform: translateX(-50%);
   padding: 8px 16px;
   border-radius: 4px;
-  font-size: 1.5rem;
+  font-size: 1rem; /* consistent size */
   font-weight: bold;
   color: white;
   text-align: center;
@@ -1244,7 +1249,7 @@ body {
 
 .error-banner {
   position: absolute;
-  bottom: -60px;
+  top: -40px !important;
   left: 50%;
   transform: translateX(-50%);
   padding: 8px 16px;
@@ -1263,18 +1268,17 @@ body {
   padding: 0.5rem 0 0 0;
   margin: 0 !important;
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem; /* tighter spacing */
   max-width: none;
   outline: none !important;
 }
-.button-container button {
-  padding: 0.6rem 1.3rem;
-  min-width: unset;
-  width: auto;
-  border-radius: 6px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s;
+.button-container .btn {
+  width: auto !important; /* allow side-by-side */
+  padding: 0.4rem 0.8rem; /* smaller buttons */
+  font-size: 0.9rem; /* slightly smaller text */
+}
+#table .button-container {
+  margin-bottom: 0.5rem; /* Ensure button container sits close above piles */
 }
 
 #play {
@@ -1320,6 +1324,40 @@ body {
 #join-computer {
   background: var(--accent2);
   color: white;
+}
+
+/* ========== Toast Notifications ========== */
+#toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  z-index: 2000;
+  pointer-events: none;
+}
+.toast {
+  background: rgba(0, 0, 0, 0.85);
+  color: #ffffff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  pointer-events: auto;
+  animation: toastInOut 2.5s ease forwards;
+}
+@keyframes toastInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  10%, 80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+/* Special card icon (fallback style) */
+.special-icon {
+  pointer-events: none;
+  user-select: none;
 }
 
 /* ========== Responsive Styles ========== */
@@ -1446,6 +1484,7 @@ body {
 
   #table {
     padding: 0.5rem;
+    margin-top: -1rem; /* reduce green gap above top player */
   }
   
   #center {
@@ -1542,22 +1581,20 @@ body {
   gap: 1rem !important;             /* space between Up/Down label and cards */
 }
 
-/* Player name header banners */
+/* Shrink player name banners */
 .player-area .player-name-header,
 #my-area .player-name-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  border-radius: 12px 12px 0 0;
-  background: var(--header-bg);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  padding: 0.7rem 1.2rem 0.2rem 1.2rem;
-  z-index: 2;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 1.75rem !important;
-  height: 3rem !important;
-  padding: 0 1.2rem !important;
+  font-size: 1.2rem !important;
+  height: 2.2rem !important;
+  padding: 0.4rem 0.8rem !important;
+}
+
+/* Ring pulse animation for discard pile highlight */
+@keyframes ringPulse {
+  0% { box-shadow: 0 0 0 0 var(--accent); }
+  50% { box-shadow: 0 0 0 0.5rem var(--accent); }
+  100% { box-shadow: 0 0 0 0 var(--accent); }
+}
+.discard.ring-pulse {
+  animation: ringPulse 0.7s ease-out;
 }

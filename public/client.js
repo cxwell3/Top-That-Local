@@ -800,25 +800,46 @@ document.addEventListener('DOMContentLoaded', () => {
     if (playBtn) playBtn.disabled = active;
   }
 
-  function showError(msg) {
-    const errorBanner = document.getElementById('error-banner');
-    if (!errorBanner) {
-      console.error('#error-banner element not found!');
-      return;
+  // Overlay special card symbol on top of discard pile card
+  function showCardEvent(cardValue, type) {
+    const discardImg = document.querySelector('.discard .card-img');
+    if (!discardImg) return;
+    // Remove any existing icon
+    const prev = discardImg.parentElement.querySelector('.special-icon');
+    if (prev) prev.remove();
+    const icon = document.createElement('div');
+    icon.className = 'special-icon';
+    icon.textContent = cardValue === 2 ? '♻️' : cardValue === 5 ? '🌀' : cardValue === 10 || type === 'four' ? '🔥' : '';
+    // Position centered over card and apply glow for visibility
+    icon.style.position = 'absolute';
+    icon.style.top = '50%';
+    icon.style.left = '50%';
+    icon.style.transform = 'translate(-50%, -50%)';
+    icon.style.fontSize = '2.5rem';
+    icon.style.textShadow = '0 0 8px #fff, 0 0 16px gold';
+    icon.style.pointerEvents = 'none';
+    discardImg.parentElement.style.position = 'relative';
+    discardImg.parentElement.appendChild(icon);
+    // Highlight discard pile with ring pulse
+    const discardPile = discardImg.closest('.discard');
+    if (discardPile) {
+      discardPile.classList.add('ring-pulse');
+      setTimeout(() => discardPile.classList.remove('ring-pulse'), 700);
     }
-    console.log(`[Debug] showError called with message: "${msg}"`); // Add log
+    // Remove after delay
+    setTimeout(() => icon.remove(), 1200);
+  }
 
-    // Clear any existing timeout before showing the new message
-    clearTimeout(errorBanner._hideTimeout);
-
-    errorBanner.textContent = msg;
-    errorBanner.classList.remove('hidden');
-
-    // Set a new timeout to hide the banner
-    errorBanner._hideTimeout = setTimeout(() => {
-      errorBanner.classList.add('hidden');
-      errorBanner.textContent = '';
-    }, 2000); // shorten error banner display from 4000ms to 2000ms
+  function showError(msg) {
+    console.log('[Debug] showError:', msg);
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    container.appendChild(toast);
+    // Auto-remove after 2s
+    setTimeout(() => toast.remove(), 2200);
   }
 
   function clearError() {
@@ -884,48 +905,6 @@ document.addEventListener('DOMContentLoaded', () => {
     section.append(label, rowEl);
     parent.appendChild(section);
     return section;
-  }
-
-  function showCardEvent(cardValue, type) {
-    const banner = document.getElementById('event-banner');
-    if (!banner) {
-      console.error("#event-banner not found in showCardEvent!");
-      return;
-    }
-
-    let text = '';
-    let className = '';
-
-    if (cardValue === 2) {
-      text = '♻️ RESET!';
-      className = 'reset';
-    } else if (cardValue === 5 && type === 'five') {
-      text = '🌀 COPY!';
-      className = 'copy';
-    } else if (cardValue === 10) {
-      text = '🔥 BURN!';
-      className = 'burn';
-    } else if (type === 'four') {
-      text = '4️⃣ FOUR!';
-      className = 'burn';
-    } else {
-      banner.className = '';
-      banner.textContent = '';
-      return;
-    }
-
-    banner.textContent = text;
-    banner.className = '';
-    void banner.offsetWidth;
-    banner.className = `event-banner-visible ${className}`;
-
-    clearTimeout(banner._hideTimeout);
-    banner._hideTimeout = setTimeout(() => {
-      if (banner.classList.contains('event-banner-visible')) {
-        banner.classList.remove('event-banner-visible');
-        setTimeout(() => { banner.textContent = ''; }, 400);
-      }
-    }, 1000); // shorten banner display from 3000ms to 1000ms
   }
 
   function showTookPileBanner(panel) {
