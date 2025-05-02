@@ -426,6 +426,30 @@ document.addEventListener('DOMContentLoaded', () => {
         errorBanner.textContent = message;
         errorBanner.classList.remove('hidden');
       }, 1000); // Increased delay to 1000ms (1 second)
+      if (message.includes('must take the pile')) {
+        // Show special centered banner
+        const wrapper = document.getElementById('center');
+        if (!wrapper) return;
+        const banner = document.createElement('div');
+        banner.className = 'take-pile-banner';
+        banner.textContent = 'You must take the pile!';
+        banner.style.position = 'absolute';
+        banner.style.top = '50%';
+        banner.style.left = '50%';
+        banner.style.transform = 'translate(-50%, -50%)';
+        banner.style.zIndex = '2000';
+        banner.style.backgroundColor = '#ff6b6b';
+        banner.style.color = '#fff';
+        banner.style.fontWeight = 'bold';
+        banner.style.fontSize = '1.5rem';
+        banner.style.padding = '1rem 2rem';
+        banner.style.borderRadius = '10px';
+        wrapper.parentNode.insertBefore(banner, wrapper.nextSibling);
+
+        noticeTimeout = setTimeout(() => {
+          banner.remove();
+        }, 2000); // Show for 2 seconds (uniform)
+      }
     } else {
       // Hide immediately if the message is empty
       errorBanner.classList.add('hidden');
@@ -843,7 +867,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => discardPile.classList.remove('ring-pulse'), 700);
       }
       // Remove after delay
-      setTimeout(() => icon.remove(), 1200);
+      setTimeout(() => icon.remove(), 2000);
     }
     if (!discardImg.complete) {
       discardImg.addEventListener('load', runEffect, { once: true });
@@ -860,8 +884,8 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.className = 'toast';
     toast.textContent = msg;
     container.appendChild(toast);
-    // Auto-remove after 2s
-    setTimeout(() => toast.remove(), 2200);
+    // Auto-remove after 2s (uniform)
+    setTimeout(() => toast.remove(), 2000);
   }
 
   function clearError() {
@@ -893,23 +917,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof onCardLoad === 'function') onCardLoad(img);
     };
     if (sel) {
-      img.classList.add('selectable');  // mark image as selectable
+      img.classList.add('selectable');
       img.style.cursor = 'pointer';
       img.style.touchAction = 'manipulation';
-      // Use pointerdown for selection to support touch
-      img.addEventListener('pointerdown', (e) => {
-        e.preventDefault(); e.stopPropagation();
-        const isSelected = img.classList.toggle('selected');
-        container.classList.toggle('selected-container', isSelected);
-      });
-      // Keep double-click to play with touch-to-click devices falling back
-      img.addEventListener('dblclick', (e) => {
-        e.preventDefault(); e.stopPropagation();
-        if (!img.classList.contains('selected')) {
-          img.classList.add('selected');
-          container.classList.add('selected-container');
+      // Single-click to select/deselect; double-click (two quick clicks) to play immediately
+      img.addEventListener('click', (e) => {
+        if (e.detail === 2) {
+          // Ensure card is selected before playing
+          if (!img.classList.contains('selected')) {
+            img.classList.add('selected');
+            container.classList.add('selected-container');
+          }
+          playSelectedCards();
+        } else {
+          // Toggle selection
+          const isSelected = img.classList.toggle('selected');
+          container.classList.toggle('selected-container', isSelected);
         }
-        playSelectedCards();
       });
     } else {
       img.style.cursor = 'default';
@@ -938,7 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
     panel.insertBefore(banner, panel.firstChild);
     setTimeout(() => {
       banner.remove();
-    }, 1750);
+    }, 2000);
   }
 
   function playSelectedCards() {
@@ -1201,8 +1225,9 @@ document.addEventListener('DOMContentLoaded', () => {
     createCenterPiles(s);
     // Show any pending specialEffect banner now that cards are rendered
     if (pendingSpecialEffect) {
-      showCardEvent(pendingSpecialEffect.value, pendingSpecialEffect.type);
+      const effect = pendingSpecialEffect;
       pendingSpecialEffect = null;
+      setTimeout(() => showCardEvent(effect.value, effect.type), 400); // show banner 400ms after card is rendered
     }
   }
 
