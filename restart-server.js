@@ -7,6 +7,9 @@ import { exec } from 'child_process';
 const PORT = 3000;
 const MAX_RETRIES = 10;
 const DELAY_AFTER_KILL = 2000; // 2 seconds
+const isWin = process.platform === 'win32';
+const listCmd = isWin ? `netstat -ano | findstr :${PORT}` : `lsof -i :${PORT}`;
+const killCmdTemplate = isWin ? pid => `taskkill /PID ${pid} /F` : pid => `kill -9 ${pid}`;
 
 console.log('Finding processs using port 3000...');
 
@@ -15,9 +18,10 @@ function waitForPortFree(interval = 500, timeout = 60000) { // Increased timeout
   return new Promise(resolve => {
     const startTime = Date.now();
     function check() {
-      exec(`lsof -i :${PORT}`, (err, stdout) => {
-        console.log(`[waitForPortFree] lsof output (err: ${err ? err.code : 'none'}):\n${stdout}`);
-        if ((err && err.code === 1) || (stdout && stdout.trim().split('\n').length <= 1)) {
+      exec(listCmd, (err, stdout) => {
+        console.log(`[waitForPortFree] listCmd output (err: ${err ? err.code : 'none'}):\n${stdout}`);
+        const lines = stdout.trim().split('\n');
+        if ((err && err.code === 1) || (lines.length <= 1)) {
           console.log(`[waitForPortFree] Port ${PORT} is free after ${(Date.now() - startTime) / 1000}s`);
           return resolve();
         }
@@ -37,10 +41,12 @@ function waitForPortReallyFree(interval = 500, timeout = 60000) {
   return new Promise(resolve => {
     const startTime = Date.now();
     function check() {
-      exec(`lsof -i :${PORT}`, (err, stdout) => {
-        if ((err && err.code === 1) || (stdout && stdout.trim().split('\n').length <= 1)) {
+      exec(listCmd, (err, stdout) => {
+        const lines = stdout.trim().split('\n');
+        if ((err && err.code === 1) || (lines.length <= 1)) {
           // Double-check with netstat
-          exec(`netstat -tuln | grep :${PORT}`, (netErr, netStdout) => {
+          const netstatCmd = isWin ? `netstat -ano | findstr :${PORT}` : `netstat -tuln | grep :${PORT}`;
+          exec(netstatCmd, (netErr, netStdout) => {
             if (!netStdout || netStdout.trim() === '') {
               return resolve();
             }
@@ -66,8 +72,8 @@ function waitForPortReallyFree(interval = 500, timeout = 60000) {
 let restartInProgress = false;
 
 // Find process using port 3000
-exec(`lsof -i :${PORT}`, async (error, stdout, stderr) => {
-  console.log(`[restart-server] Initial lsof output (err: ${error ? error.code : 'none'}):\n${stdout}`);
+exec(listCmd, async (error, stdout, stderr) => {
+  console.log(`[restart-server] Initial listCmd output (err: ${error ? error.code : 'none'}):\n${stdout}`);
   if (restartInProgress) {
     console.log('[restart-server] Restart already in progress, skipping duplicate trigger.');
     return;
@@ -87,7 +93,7 @@ exec(`lsof -i :${PORT}`, async (error, stdout, stderr) => {
   }
   
   const lines = stdout.trim().split('\n');
-  console.log(`[restart-server] lsof lines:`, lines);
+  console.log(`[restart-server] listCmd lines:`, lines);
   if (lines.length <= 1) {
     console.log(`No process found using port ${PORT}`);
     await waitForPortFree();
@@ -97,10 +103,18 @@ exec(`lsof -i :${PORT}`, async (error, stdout, stderr) => {
   
   // Parse the output to find the PID(s)
   const pids = [];
-  for (let i = 1; i < lines.length; i++) {
-    const match = lines[i].match(/\s+(\d+)\s+/);
-    if (match && match[1]) {
-      pids.push(match[1]);
+  if (isWin) {
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].trim().split(/\s+/);
+      const pid = cols[cols.length - 1];
+      pids.push(pid);
+    }
+  } else {
+    for (let i = 1; i < lines.length; i++) {
+      const match = lines[i].match(/\s+(\d+)\s+/);
+      if (match && match[1]) {
+        pids.push(match[1]);
+      }
     }
   }
   console.log(`[restart-server] Parsed PIDs:`, pids);
@@ -114,8 +128,9 @@ exec(`lsof -i :${PORT}`, async (error, stdout, stderr) => {
   
   // Kill the processes
   const killPromises = pids.map(pid => new Promise(resolve => {
-    console.log(`Killing process ${pid}...`);
-    exec(`kill -9 ${pid}`, (killError, killStdout, killStderr) => {
+    const killCmd = killCmdTemplate(pid);
+    console.log(`Killing process ${pid} using: ${killCmd}`);
+    exec(killCmd, (killError, killStdout, killStderr) => {
       if (killError) {
         console.error(`Error killing process ${pid}: ${killError.message}`);
       } else {

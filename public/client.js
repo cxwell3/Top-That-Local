@@ -12,6 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
     const back = new Image();
     back.src = 'https://deckofcardsapi.com/static/img/back.png';
+    // Preload special icons
+    ['Reset-icon.png','Copy-icon.png','Burn-icon.png'].forEach(name => {
+      const img = new Image();
+      img.src = name;
+    });
   })();
 
   const socket = io({
@@ -804,30 +809,47 @@ document.addEventListener('DOMContentLoaded', () => {
   function showCardEvent(cardValue, type) {
     const discardImg = document.querySelector('.discard .card-img');
     if (!discardImg) return;
-    // Remove any existing icon
-    const prev = discardImg.parentElement.querySelector('.special-icon');
-    if (prev) prev.remove();
-    const icon = document.createElement('div');
-    icon.className = 'special-icon';
-    icon.textContent = cardValue === 2 ? '♻️' : cardValue === 5 ? '🌀' : cardValue === 10 || type === 'four' ? '🔥' : '';
-    // Position centered over card and apply glow for visibility
-    icon.style.position = 'absolute';
-    icon.style.top = '50%';
-    icon.style.left = '50%';
-    icon.style.transform = 'translate(-50%, -50%)';
-    icon.style.fontSize = '2.5rem';
-    icon.style.textShadow = '0 0 8px #fff, 0 0 16px gold';
-    icon.style.pointerEvents = 'none';
-    discardImg.parentElement.style.position = 'relative';
-    discardImg.parentElement.appendChild(icon);
-    // Highlight discard pile with ring pulse
-    const discardPile = discardImg.closest('.discard');
-    if (discardPile) {
-      discardPile.classList.add('ring-pulse');
-      setTimeout(() => discardPile.classList.remove('ring-pulse'), 700);
+    // Wait for card to load before showing icon
+    function runEffect() {
+      // Remove any existing icon
+      const prev = discardImg.parentElement.querySelector('.special-icon');
+      if (prev) prev.remove();
+      // Create an image for the special effect
+      const icon = document.createElement('img');
+      icon.className = 'special-icon';
+      // Choose image based on effect
+      let src = '';
+      if (cardValue === 2) src = 'Reset-icon.png';
+      else if (cardValue === 5) src = 'Copy-icon.png';
+      else if (cardValue === 10 || type === 'four') src = 'Burn-icon.png';
+      icon.src = src;
+      // Position and size
+      icon.style.position = 'absolute';
+      icon.style.top = '50%';
+      icon.style.left = '50%';
+      icon.style.transform = 'translate(-50%, -50%)';
+      icon.style.width = '120px';
+      icon.style.height = '120px';
+      icon.style.background = 'none';
+      icon.style.backgroundColor = 'transparent';
+      icon.style.pointerEvents = 'none';
+      // Ensure parent is positioned
+      discardImg.parentElement.style.position = 'relative';
+      discardImg.parentElement.appendChild(icon);
+      // Highlight discard pile
+      const discardPile = discardImg.closest('.discard');
+      if (discardPile) {
+        discardPile.classList.add('ring-pulse');
+        setTimeout(() => discardPile.classList.remove('ring-pulse'), 700);
+      }
+      // Remove after delay
+      setTimeout(() => icon.remove(), 1200);
     }
-    // Remove after delay
-    setTimeout(() => icon.remove(), 1200);
+    if (!discardImg.complete) {
+      discardImg.addEventListener('load', runEffect, { once: true });
+    } else {
+      runEffect();
+    }
   }
 
   function showError(msg) {
