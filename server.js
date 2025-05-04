@@ -94,6 +94,7 @@ function createServer() {
         if (!game) {
           const newRoomId = Math.random().toString(36).substring(2, 8);
           game = new Game(io);
+          game.roomId = newRoomId;  // Associate roomId with game instance
           // limit players to requested total
           game.MAX_PLAYERS = requestedTotal;
           games.set(newRoomId, game);

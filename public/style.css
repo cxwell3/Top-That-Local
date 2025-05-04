@@ -35,6 +35,18 @@
   --card-w: 67.2px; /* 96px * 0.7 */
   --card-h: 92.4px; /* 132px * 0.7 */
   --card-peek: calc(var(--card-h) * 0.2);
+
+  /* Z-index layers for predictable stacking */
+  --z-base: 1;          /* Base layer for regular elements */
+  --z-card: 10;         /* Regular cards */
+  --z-card-hover: 20;   /* Cards being hovered */
+  --z-card-selected: 30;/* Selected cards */
+  --z-card-icon: 100;   /* Special card icons */
+  --z-ui-elements: 200; /* Buttons and UI controls */
+  --z-tutorial: 500;    /* Tutorial overlays */
+  --z-modal: 1000;      /* Modal dialogs */
+  --z-toast: 2000;      /* Toast messages */
+  --z-game-over: 3000;  /* Game over overlay */
 }
 
 /* ========== Base Styles ========== */
@@ -61,6 +73,100 @@ body {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+/* Add this near the top of your CSS file, with the other animations */
+@keyframes iconPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(0.95);
+    opacity: 1;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.9;
+  }
+}
+
+/* Make the ring-pulse animation lighter for better performance */
+@keyframes ring-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255,255,255, 0.3); }
+  70% { box-shadow: 0 0 0 12px rgba(255,255,255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,255,255, 0); }
+}
+
+/* Card snap animation - make it smoother */
+@keyframes snap-anim {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-12px); }
+  100% { transform: translateY(0); }
+}
+
+/* Special card animation for highlighting special cards */
+@keyframes specialCardPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8);
+    transform: scale(1);
+  }
+  25% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.4);
+    transform: scale(1.05);
+  }
+  50% {
+    box-shadow: 0 0 0 15px rgba(255, 255, 255, 0.2);
+    transform: scale(1.08);
+  }
+  75% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    transform: scale(1);
+  }
+}
+
+/* Regular card glow animation */
+@keyframes regularCardGlow {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+  50% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.6); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+}
+
+.special-card-pulse {
+  animation: specialCardPulse 0.8s ease-in-out;
+  z-index: 50;
+  position: relative;
+}
+
+.regular-card-glow {
+  animation: regularCardGlow 1.5s ease-in-out;
+  z-index: 50;
+  position: relative;
+}
+
+/* Add explicit card image sizing (fix monstrous card issue) */
+.card-img {
+  width: var(--card-w);
+  height: var(--card-h);
+  object-fit: contain;
+  border-radius: 5px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* ========== Header & Navigation ========== */
@@ -408,7 +514,7 @@ body {
   width: 100%;
   height: 100%;
   background-color: var(--overlay-bg);
-  z-index: 1005; /* Below modals, above content */
+  z-index: 999; /* Updated z-index */
   opacity: 0; /* Hidden by default */
   transition: opacity 0.3s ease-out;
   pointer-events: none; /* Allow clicks through when hidden */
@@ -427,7 +533,7 @@ body {
   color: var(--card-text);
   border-radius: 12px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-  z-index: 1010; /* Above overlay */
+  z-index: 1000; /* Updated z-index */
   width: 90%;
   max-width: 600px;
   max-height: 80vh; /* Limit height and allow scrolling */
@@ -531,7 +637,7 @@ body {
   text-align: center;
   border-radius: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  z-index: 10;
+  z-index: 100; /* Updated z-index */
 }
 
 .error-banner {
@@ -643,10 +749,12 @@ body {
   align-items: center;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1; /* Updated z-index */
 }
 
 .deck, .discard {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 1; /* Updated z-index */
 }
 
 .deck:hover, .discard:hover {
@@ -763,7 +871,7 @@ body {
 .card-img.selected {
   transform: translateY(-10px) !important;
   box-shadow: 0 8px 16px rgba(0,0,0,0.5) !important;
-  z-index: 20 !important;
+  z-index: var(--z-card-selected); /* Updated z-index */
   outline: 3px solid gold !important; /* Persistent outline for selected cards */
 }
 
@@ -775,6 +883,7 @@ body {
   transform: translateY(-12px) scale(1.08) !important;
   box-shadow: 0 0 0 3px gold, 0 8px 20px rgba(255, 215, 0, 0.6) !important;
   outline: none !important; /* remove solid outline in favor of glow */
+  z-index: var(--z-card-hover); /* Updated z-index */
 }
 
 /* Subtle alternating tilt on hover for natural feel */
@@ -790,7 +899,7 @@ body {
   transform: translateY(-10px) scale(1.05) !important;
   box-shadow: 0 5px 12px rgba(0,0,0,0.5) !important;
   outline: 3px solid gold !important;
-  z-index: 10 !important;
+  z-index: var(--z-card-hover); /* Updated z-index */
 }
 
 /* Disable all other hover-based transforms */
@@ -817,8 +926,8 @@ body {
 
 /* Pulse animation for selected cards */
 @keyframes selectedPulse {
-  0% { box-shadow: 0 8px 16px rgba(255,215,0,0.4), 0 0 4px gold; }
-  100% { box-shadow: 0 12px 24px rgba(255,215,0,0.8), 0 0 8px gold; }
+  0% { box-shadow: 0 4px 8px rgba(255,215,0,0.4), 0 0 4px gold; }
+  100% { box-shadow: 0 6px 12px rgba(255,215,0,0.6), 0 0 6px gold; }
 }
 .card-img.selected {
   animation: selectedPulse 1.5s ease-in-out infinite alternate;
@@ -1066,6 +1175,7 @@ body {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
   position: relative;
+  z-index: var(--z-card); /* Updated z-index */
 }
 .player-area .hand .card-img:last-child {
   margin-right: 0;
@@ -1073,7 +1183,7 @@ body {
 .player-area .hand .card-img:hover {
   transform: translateY(-10px) scale(1.05);
   box-shadow: 0 5px 12px rgba(0,0,0,0.5);
-  z-index: 5; /* Ensure hovered card appears above others */
+  z-index: var(--z-card-hover); /* Updated z-index */
 }
 
 /* Opponent hand shingling - Target the placeholder */
@@ -1091,7 +1201,7 @@ body {
 .player-area .opp-hand .card-placeholder:hover {
   transform: translateY(-10px) scale(1.05);
   box-shadow: 0 5px 12px rgba(0,0,0,0.5);
-  z-index: 5; /* Ensure hovered card appears above others */
+  z-index: var(--z-card-hover); /* Updated z-index */
 }
 
 /* Ensure the card image itself doesn't have conflicting margins */
@@ -1130,14 +1240,15 @@ body {
   width: var(--card-w);
   height: var(--card-h); /* Reduced from calc(var(--card-h) + 20px) to just the card height */
   margin-top: 20px; /* Space for down card to peek out */
+  z-index: var(--z-base);
 }
 
 .stack .card-img.down-card {
   position: absolute !important;
-  top: -20px; /* Peek out from top */
+  top: -20px !important;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1;
+  z-index: calc(var(--z-card) - 1); /* Always below the up card */
 }
 
 .stack .card-img.up-card {
@@ -1145,7 +1256,25 @@ body {
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: var(--z-card); /* Base z-index for up cards */
+}
+
+.stack.playable-stack:hover .card-img.up-card,
+.stack.playable-stack:hover .card-img.down-card {
+  transform: translateX(-50%) translateY(-10px) scale(1.05);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.45);
+  z-index: var(--z-card-hover); /* Higher z-index when hovering */
+}
+
+.stack.playable-stack .card-img.up-card.selected,
+.stack.playable-stack .card-img.down-card.selected {
+  z-index: var(--z-card-selected); /* Highest z-index when selected */
+}
+
+/* Allow selecting cards during pile transition */
+.card-img.selectable {
+  cursor: pointer !important;
+  pointer-events: auto !important;
 }
 
 /* Remove conflicting styles */
@@ -1158,46 +1287,7 @@ body {
 .stack .card-img.down-card:hover {
   transform: translateX(-50%) translateY(-10px) scale(1.05);
   box-shadow: 0 5px 12px rgba(0,0,0,0.45);
-  z-index: 3;
-}
-
-/* ========== Card Images & Containers ========== */
-.card-img {
-  display: block; /* Ensure images behave predictably */
-  width: var(--card-w);
-  height: var(--card-h);
-  box-shadow: 0 2.6px 5.2px rgba(0, 0, 0, 0.3);
-  border-radius: 5.2px;
-}
-
-/* Stacks */
-.stack .card-img {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.stack .card-img.down-card {
-  z-index: 1;
-}
-.stack .card-img.up-card {
-  z-index: 2;
-}
-.stack.playable-stack:hover .card-img.up-card,
-.stack.playable-stack:hover .card-img.down-card {
-  transform: translateX(-50%) translateY(-10px) scale(1.05); /* Keep hover effect */
-  box-shadow: 0 5px 12px rgba(0,0,0,0.45); /* Keep shadow */
-  z-index: 3; /* Ensure hovered stack is above others */
-}
-
-/* Ensure hover effect applies within opponent panel too */
-.player .stack.playable-stack:hover .card-img.up-card,
-.player .stack.playable-stack:hover .card-img.down-card,
-#my-area .stack.playable-stack:hover .card-img.up-card, /* Explicitly add for player */
-#my-area .stack.playable-stack:hover .card-img.down-card { /* Explicitly add for player */
-  transform: translateX(-50%) translateY(-10px) scale(1.05); /* Keep hover effect */
-  box-shadow: 0 5px 12px rgba(0,0,0,0.45); /* Keep shadow */
-  z-index: 3; /* Ensure hovered stack is above others */
+  z-index: var(--z-card-hover); /* Updated z-index */
 }
 
 /* --- Only one authoritative rule for peeking down cards in stack --- */
@@ -1206,7 +1296,7 @@ body {
   top: -20px !important;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1;
+  z-index: calc(var(--z-card) - 1); /* Updated z-index */
 }
 
 /* ========== Event Banner ========== */
@@ -1334,7 +1424,7 @@ body {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.5rem;
-  z-index: 2000;
+  z-index: var(--z-toast);
   pointer-events: none;
 }
 .toast {
@@ -1358,10 +1448,31 @@ body {
   pointer-events: none;
   user-select: none;
   background: transparent !important;
+  z-index: var(--z-card-icon); /* Updated z-index */
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7));
 }
 .special-icon img {
   background: transparent !important;
   display: block;
+}
+
+/* ========== Special Effect Animation ========== */
+@keyframes iconPulse {
+  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+  20% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+}
+
+/* Optimize the ring-pulse animation to be less CPU intensive */
+@keyframes ring-pulse {
+  0% { box-shadow: 0 0 0 rgba(255, 215, 0, 0); }
+  50% { box-shadow: 0 0 10px 3px rgba(255, 215, 0, 0.8); }
+  100% { box-shadow: 0 0 0 rgba(255, 215, 0, 0); }
+}
+
+.ring-pulse {
+  animation: ring-pulse 0.7s ease-out;
 }
 
 /* ========== Responsive Styles ========== */
@@ -1601,4 +1712,28 @@ body {
 }
 .discard.ring-pulse {
   animation: ringPulse 0.7s ease-out;
+}
+
+/* Add Game Log panel styling */
+#game-log {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  width: 260px;
+  max-height: 300px;
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  padding: var(--gutter);
+  overflow-y: auto;
+  z-index: var(--z-toast);
+  pointer-events: auto;
+}
+#game-log h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+#game-log-entries div {
+  margin-bottom: 0.3rem;
+  cursor: default;
 }

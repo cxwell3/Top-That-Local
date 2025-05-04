@@ -1,8 +1,38 @@
 export class Game {
+  // Standardized delays (in milliseconds)
+  static DELAY_INITIAL_PLACEMENT = 1000;    // delay before first card placement
+  static DELAY_SPECIAL_DISPLAY = 1500;      // duration to show special banners (reduced from 2000ms)
+  static DELAY_AFTER_PLAY = 300;            // pause after any card is placed before next turn
+  static DELAY_FIRST_TURN = 1000;           // delay before starting first turn
+  static DELAY_CPU_DECISION = 720;          // time for CPU to "think" before playing
+
   constructor(io) {
     this.io = io;
+    this.roomId = null;  // Associate roomId set by server for logging
     this.MAX_PLAYERS = 4; // Max players (can be adjusted)
+    this.CPU_MOVE_DELAY = Game.DELAY_CPU_DECISION;  // CPU reaction delay after special banners
     this.reset();
+  }
+
+  // Helper methods for consistent card value checks
+  isSpecialCard(value) {
+    return this.isWildCard(value) || this.isTenCard(value);
+  }
+
+  isWildCard(value) {
+    return this.isTwoCard(value) || this.isFiveCard(value);
+  }
+
+  isTwoCard(value) {
+    return value == 2; // Use loose equality for consistent type checking
+  }
+
+  isFiveCard(value) {
+    return value == 5;
+  }
+
+  isTenCard(value) {
+    return value == 10;
   }
 
   addPlayer(sock, name = 'Player') {
@@ -69,6 +99,9 @@ export class Game {
         return;
     }
 
+    // Determine if player is playing down cards
+    const isPlayingDownCards = idxs.some(i => i >= 2000);
+    
     const cards = idxs.map(i => {
       if (i === 2000) return p.down[0];
       if (i >= 1000) return p.up[i - 1000];
@@ -80,17 +113,43 @@ export class Game {
     }
 
     if (!this.valid(cards)) {
-      console.log(`[DEBUG play] Invalid play attempted by ${p ? p.name : 'unknown'} (${sock.id}) with cards: ${JSON.stringify(cards)}. Current turn: ${this.turn}`);
-      sock.emit?.('err', 'Illegal play');
-      return;
+        console.log(`[DEBUG play] Invalid play attempted by ${p.name} (${sock.id}) with cards: ${JSON.stringify(cards)}. Current turn: ${this.turn}`);
+        
+        // Handle invalid plays differently based on card type
+        if (isPlayingDownCards) {
+            // For down cards: take the pile (player can't see them)
+            cards.forEach(c => p.hand.push(c));
+            this.sortHand(p);
+            this.io.to(this.roomId).emit('specialEffect', { value: null, type: 'invalid' });
+            this.takePile(sock);
+            // Emit log event for invalid play
+            this.io.to(this.roomId).emit('log', { player: p.name, action: 'invalid', cards });
+        } else {
+            // For hand or up cards: show error message but DON'T take pile
+            // Return cards to player's hand if they were from hand
+            if (!idxs.some(i => i >= 1000)) {
+                cards.forEach(c => p.hand.push(c));
+                this.sortHand(p);
+            }
+            // Send error to player
+            sock.emit?.('err', 'Invalid play: card must be higher than the top card');
+            // Emit log event for invalid attempt
+            this.io.to(this.roomId).emit('log', { player: p.name, action: 'invalid-attempt', cards });
+        }
+        return;
     }
+    
+    // Rest of the function handles valid plays
+    // Emit log event for successful play
+    this.io.to(this.roomId).emit('log', { player: p.name, action: 'play', cards });
 
     cards.forEach(c => this.playPile.push(c));
     console.log(`[DEBUG play] ${p ? p.name : 'unknown'} played cards: ${JSON.stringify(cards)}. New playPile: ${JSON.stringify(this.playPile)}. Turn: ${this.turn}`);
     const playedValue = cards[0].value;
     const isFourOfAKind = cards.length === 4;
 
-    if (![2, 5, 10, '2', '5', '10'].includes(playedValue) && !isFourOfAKind) {
+    // Update lastRealCard (using helper methods for consistency)
+    if (!this.isSpecialCard(playedValue) && !isFourOfAKind) {
         this.lastRealCard = cards[0];
     }
 
@@ -102,59 +161,62 @@ export class Game {
       p.down.shift();
     }
 
+    // Prepare turn advancement for after effects are applied
     const finishTurn = () => {
         this.refill(p);
         this.advanceTurn();
         console.log(`[DEBUG finishTurn] Advancing turn. New turn: ${this.turn}`);
         this.pushState();
+        
+        // For non-CPU players, we're done
         const nextPlayer = this.byId(this.turn);
-        if (nextPlayer && nextPlayer.isComputer) {
-            // Wait 2 seconds after a special effect, otherwise 0.84s
-            const delay = (String(playedValue) === '10' || isFourOfAKind || String(playedValue) === '5') ? effectDelay : 840;
-            setTimeout(() => this.computerTurn(nextPlayer.id), delay);
-        }
+        if (!nextPlayer || !nextPlayer.isComputer) return;
+        
+        // For CPU players, schedule their turn with a proper delay
+        // Always use a consistent, longer delay to ensure animations complete
+        console.log(`[DEBUG finishTurn] Scheduling CPU turn with delay: ${Game.DELAY_SPECIAL_DISPLAY + 1000}ms`);
+        setTimeout(() => this.computerTurn(nextPlayer.id), Game.DELAY_SPECIAL_DISPLAY + 1000);
     };
 
-    const effectDelay = 2000; // 2 seconds for burn effect (longer visibility)
-
-    if (String(playedValue) === '10' || isFourOfAKind) {
+    // For all played cards (special or regular), emit the effect and add animation delay
+    // Special cards (2, 5, 10) or four-of-a-kind get their specific animation
+    if (this.isTenCard(playedValue) || isFourOfAKind) {
+        // Show special effect banner
         this.io.emit('specialEffect', { value: 10, type: isFourOfAKind ? 'four' : 'ten' });
-        // defer UI update until after burn effect to avoid skip
+        // Do not mutate the play pile or push state until after the animation delay
         setTimeout(() => {
-            console.log(`[DEBUG play] Applying delayed burn effect.`);
+            // Burn effect: move play pile to discard, draw new card if available
             this.discard = (this.discard || []).concat(this.playPile.splice(0));
             if (this.deck.length > 0) {
                 const nextCard = this.draw();
                 this.playPile.push(nextCard);
-                 if (![2, 5, 10, '2', '5', '10'].includes(nextCard.value)) {
+                if (!this.isSpecialCard(nextCard.value)) {
                     this.lastRealCard = nextCard;
-                 } else {
+                } else {
                     this.lastRealCard = null;
-                 }
+                }
             } else {
-                 this.lastRealCard = null;
+                this.lastRealCard = null;
             }
             finishTurn();
-        }, effectDelay);
-
-    } else if (String(playedValue) === '5') {
+        }, Game.DELAY_SPECIAL_DISPLAY);
+        return;
+    } else if (this.isFiveCard(playedValue)) {
         this.io.emit('specialEffect', { value: 5, type: 'five' });
-        this.pushState();
         setTimeout(() => {
-            console.log(`[DEBUG play] Applying delayed copy effect.`);
-            if (this.lastRealCard) {
-                this.playPile.push({ ...this.lastRealCard, copied: true });
-            }
+            if (this.lastRealCard) this.playPile.push({ ...this.lastRealCard, copied: true });
             finishTurn();
-        }, effectDelay);
-
-    } else if (String(playedValue) === '2') {
+        }, Game.DELAY_SPECIAL_DISPLAY);
+        return;
+    } else if (this.isTwoCard(playedValue)) {
         this.io.emit('specialEffect', { value: 2, type: 'two' });
-        finishTurn();
-
-    } else {
-        finishTurn();
+        setTimeout(finishTurn, Game.DELAY_SPECIAL_DISPLAY);
+        return;
     }
+    // For regular cards (A, K, etc.), show a brief play animation too
+    this.io.emit('specialEffect', { value: playedValue, type: 'regular' });
+    // Standard delay after regular card play - increase from 300ms to allow animation to be seen
+    setTimeout(finishTurn, Game.DELAY_AFTER_PLAY + 1000);
   }
 
   computerTurn(computerId = 'computer') {
@@ -167,10 +229,10 @@ export class Game {
       if (computer.hand.length > 0) {
         const wilds = computer.hand
           .map((card, index) => ({ card, index }))
-          .filter(({ card }) => [2, 5, 10].includes(card.value));
+          .filter(({ card }) => this.isSpecialCard(card.value));
         const regulars = computer.hand
           .map((card, index) => ({ card, index }))
-          .filter(({ card }) => ![2, 5, 10].includes(card.value));
+          .filter(({ card }) => !this.isSpecialCard(card.value));
         const playableRegulars = regulars.filter(({ card }) => this.valid([card]));
         const playableWilds = wilds.filter(({ card }) => this.valid([card]));
         let playChoice = null;
@@ -183,7 +245,7 @@ export class Game {
             playChoice = playableRegulars[0];
           }
         } else if (playableWilds.length > 0) {
-          const ten = playableWilds.find(({ card }) => card.value === 10);
+          const ten = playableWilds.find(({ card }) => this.isTenCard(card.value));
           if (ten) playChoice = ten;
           else playChoice = playableWilds[0];
         }
@@ -212,39 +274,46 @@ export class Game {
       // No moves: take the pile then schedule next CPU turn if any
       this.takePile({ id: computerId, skipNotice: true });
       // After auto-pickup, schedule the next CPU turn
-      setTimeout(() => this.computerTurn(this.turn), 840);
+      setTimeout(() => this.computerTurn(this.turn), Game.DELAY_CPU_DECISION);
       return;
-    }, 840); // CPU decision delay now ~0.84s (15% faster)
+    }, Game.DELAY_CPU_DECISION);
   }
 
   takePile(sock) {
     const p = this.findPlayerById(sock.id);
     console.log(`[DEBUG takePile] called by ${sock.id}, turn before givePile: ${this.turn}`);
 
-    this.givePile(p, 'You picked up the pile');
-    console.log(`[DEBUG takePile] turn after givePile: ${this.turn}`);
-    // Notify players of the take-pile event
-    if (p.sock && !p.isComputer) {
-      this.players.forEach(other => {
-        if (other.id !== p.id && other.sock) {
-          other.sock.emit('opponentTookPile', { playerId: p.id });
-        }
-      });
-    } else if (p.isComputer && !sock.skipNotice) {
-      this.players.forEach(other => {
-        if (other.sock && !other.isComputer) {
-          other.sock.emit('notice', `${p.name} must take the pile.`);
-        }
-      });
-    }
-    // Finally, push the updated game state
-    this.pushState();
-    // If next player is a computer, schedule their turn
-    const nextPlayer = this.byId(this.turn);
-    if (nextPlayer && nextPlayer.isComputer) {
-      // Use the same CPU decision delay
-      setTimeout(() => this.computerTurn(nextPlayer.id), 840);
-    }
+    // Always emit specialEffect for take pile and wait for animation before updating state
+    this.io.emit('specialEffect', { value: null, type: 'take' });
+    
+    // Wait a moment for the animation to play before actually giving the pile
+    setTimeout(() => {
+      this.givePile(p, 'You picked up the pile');
+      console.log(`[DEBUG takePile] turn after givePile: ${this.turn}`);
+      
+      // Notify players of the take-pile event
+      if (p.sock && !p.isComputer) {
+        this.players.forEach(other => {
+          if (other.id !== p.id && other.sock) {
+            other.sock.emit('opponentTookPile', { playerId: p.id });
+          }
+        });
+      } else if (p.isComputer && !sock.skipNotice) {
+        this.players.forEach(other => {
+          if (other.sock && !other.isComputer) {
+            other.sock.emit('notice', `${p.name} must take the pile.`);
+          }
+        });
+      }
+      
+      // Finally, push the updated game state
+      this.pushState();
+      // If next player is a computer, schedule their turn with the proper delay
+      const nextPlayer = this.byId(this.turn);
+      if (nextPlayer && nextPlayer.isComputer) {
+        setTimeout(() => this.computerTurn(nextPlayer.id), Game.DELAY_CPU_DECISION);
+      }
+    }, Game.DELAY_SPECIAL_DISPLAY); // Use the same delay as other special effects
   }
 
   startGame() {
@@ -266,67 +335,52 @@ export class Game {
     this.playPile = []; // Ensure play pile is empty initially
     this.lastRealCard = null;
     this.pushState(); // Push state with hands dealt, empty pile
-    console.log(`Initial empty state pushed. Waiting 1.24 seconds before placing first card.`);
+    console.log(`Initial empty state pushed. Waiting ${Game.DELAY_INITIAL_PLACEMENT}ms before placing first card.`);
 
-    // --- Wait 1.24 seconds before placing the first card ---
+    // --- Wait before placing the first card ---
     setTimeout(() => {
       if (!this.started) return; // Check if game was reset during delay
       console.log(`Placing initial card...`);
       let initialCard = null;
       while (this.deck.length > 0) {
         initialCard = this.draw();
-        if (String(initialCard.value) === '10') {
-          // Place the 10 on the pile, push state, then burn after 1.24 seconds
+        // If it's a 10, burn then continue drawing
+        if (this.isTenCard(initialCard.value)) {
           this.playPile.push(initialCard);
           this.lastRealCard = null;
           this.pushState();
           this.io.emit('specialEffect', { value: 10, type: 'ten' });
           setTimeout(() => {
             this.discard = (this.discard || []).concat(this.playPile.splice(0));
-            // Draw a new card to start the pile if possible
+            // draw next non-10 if available
             let nextCard = null;
             while (this.deck.length > 0) {
               nextCard = this.draw();
-              if (String(nextCard.value) !== '10') break;
+              if (!this.isTenCard(nextCard.value)) break;
               this.discard = (this.discard || []).concat(nextCard);
               this.io.emit('specialEffect', { value: 10, type: 'ten' });
               nextCard = null;
             }
             if (nextCard) {
               this.playPile.push(nextCard);
-              if (![2, 5, '2', '5'].includes(nextCard.value)) {
-                this.lastRealCard = nextCard;
-              }
-            } else {
-              this.lastRealCard = null;
-            }
-            this.pushState();
-            // Wait 1.24 seconds before starting the first turn
-            setTimeout(() => {
-              if (!this.started || !this.players.length) return;
-              this.turn = this.players[0].id;
+              this.lastRealCard = this.isWildCard(nextCard.value) ? null : nextCard;
               this.pushState();
-              const firstPlayer = this.byId(this.turn);
-              if (firstPlayer && firstPlayer.isComputer) {
-                this.computerTurn(firstPlayer.id);
-              }
-            }, 1240);
-          }, 1240); // Show burn for ~1.24 seconds (15% faster)
+            }
+          }, Game.DELAY_SPECIAL_DISPLAY);
           return;
-        } else {
-          break;
         }
+        break; // non-10, place normally
       }
       if (initialCard) {
         this.playPile.push(initialCard); // Place the card
-        if (![2, 5, '2', '5'].includes(initialCard.value)) {
+        if (!this.isSpecialCard(initialCard.value)) {
           this.lastRealCard = initialCard;
         }
         this.pushState();
       } else {
         this.lastRealCard = null;
       }
-      // Wait 1.24 seconds before starting the first turn
+      // Wait before starting the first turn
       setTimeout(() => {
         if (!this.started || !this.players.length) return;
         this.turn = this.players[0].id;
@@ -335,18 +389,24 @@ export class Game {
         if (firstPlayer && firstPlayer.isComputer) {
           this.computerTurn(firstPlayer.id);
         }
-      }, 1240); // ~1.24-second delay before placing the first card (15% faster)
-    }, 1240); // ~1.24-second delay before placing the first card (15% faster)
+      }, Game.DELAY_FIRST_TURN);
+    }, Game.DELAY_INITIAL_PLACEMENT);
   }
 
   buildDeck() {
     const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
     const vals = [2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A'];
     this.deck = [];
-    const numDecks = this.players.length <= 2 ? 1 : 2;
-    for (let d = 0; d < numDecks; d++) {
+    
+    // Add the first standard deck
+    suits.forEach(s => vals.forEach(v => this.deck.push({ value: v, suit: s })));
+    
+    // Add a second deck ONLY if we have 4+ players
+    if (this.players.length >= 4) {
       suits.forEach(s => vals.forEach(v => this.deck.push({ value: v, suit: s })));
     }
+    
+    console.log(`Built deck with ${this.deck.length} cards for ${this.players.length} players (${this.players.length >= 4 ? '2 decks' : '1 deck'})`);
     this.shuffle(this.deck);
   }
 
@@ -396,7 +456,7 @@ export class Game {
   effectiveTop() {
     const t = this.top();
     if (!t) return null;
-    if (t.value === 5 && t.copied && this.lastRealCard) {
+    if (this.isFiveCard(t.value) && t.copied && this.lastRealCard) {
       return { ...this.lastRealCard, copied: true };
     }
     return t;
@@ -408,7 +468,7 @@ export class Game {
 
   rank(c) {
     const v = String(c.value).toUpperCase();
-    if (v === '2') return 2;
+    if (this.isTwoCard(c.value)) return 2;
     return { 'J': 11, 'Q': 12, 'K': 13, 'A': 14 }[v] ?? parseInt(v);
   }
 
@@ -419,7 +479,7 @@ export class Game {
     }
 
     if (!cards.length || !cards.every(c => c.value === cards[0].value)) return false;
-    if (new Set([2, 5, 10, '2', '5', '10']).has(cards[0].value)) return true;
+    if (this.isSpecialCard(cards[0].value)) return true;
     const t = this.effectiveTop();
     if (!t) return true;
     const isValidRank = this.rank(cards[0]) > this.rank(t);
@@ -438,26 +498,13 @@ export class Game {
 
   sortHand(p) {
     p.hand.sort((a, b) => this.rank(a) - this.rank(b));
-    console.log('🔢 Sorted hand for', p.name, ':', p.hand.map(c => c.value));
   }
-
-  advanceTurn() {
-    const prevTurn = this.turn;
-    const currentIndex = this.players.findIndex(p => p.id === this.turn);
-    if (currentIndex !== -1) {
-      this.turn = this.players[(currentIndex + 1) % this.players.length].id;
-    } else if (this.players.length > 0) {
-      this.turn = this.players[0].id;
-    }
-    console.log(`[DEBUG advanceTurn] ${prevTurn} -> ${this.turn}`);
-  }
-
+  
   hasMove(p) {
     if (p.hand.length > 0) {
       if (p.hand.some(c => this.valid([c]))) {
         return true;
       }
-      return false;
     }
 
     if (p.up.length > 0) {
@@ -492,16 +539,14 @@ export class Game {
   pushState() {
     const currentPlayer = this.byId(this.turn);
 
-    // Only show the 'must take pile' notice if it's a human player's turn
+    // Remove forced 'must take the pile' notice logic
+    // Only auto-pickup for CPU when no moves
     if (currentPlayer && !this.hasMove(currentPlayer)) {
-      if (currentPlayer.sock && !currentPlayer.isComputer) {
-        const noticeMsg = `${currentPlayer.name} must take the pile.`;
-        currentPlayer.sock.emit('notice', noticeMsg);
-      } else if (currentPlayer.isComputer) {
-        // Auto-pickup for CPU when no moves
+      if (currentPlayer.isComputer) {
         setTimeout(() => this.takePile({ id: currentPlayer.id, skipNotice: true }), 97);
         return; // Skip further state push until after pickup
       }
+      // For humans, do not emit any notice or block the UI; let them take the pile at any time
     } else if (currentPlayer && currentPlayer.sock) {
       currentPlayer.sock.emit('notice', '');
     }

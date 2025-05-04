@@ -1,0 +1,11 @@
+[33m[nodemon] 3.1.10[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): '*.js'[39m
+[33m[nodemon] watching extensions: js,css,html[39m
+[32m[nodemon] starting `npx kill-port 3000 && node -e "setTimeout(() =, 1000)" && node server.js`[39m
+Process on port 3000 killed
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting child process[39m
+[32m[nodemon] starting `npx kill-port 3000 && node -e "setTimeout(() =, 1000)" && node server.js`[39m
+Process on port 3000 killed
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m

@@ -18,12 +18,15 @@
       <nav>
         <button id="rules-button" class="btn btn-secondary" aria-haspopup="dialog">How to Play</button>
         <button id="back-to-lobby-button" class="btn btn-secondary">Lobby</button>
+        <!-- Rewind/Forward controls -->
+        <button id="rewind-btn" class="btn btn-secondary hidden">◀ Prev</button>
+        <button id="forward-btn" class="btn btn-secondary hidden">Next ▶</button>
       </nav>
     </div>
   </header>
 
   <div id="notice-banner" class="notice hidden"></div>
-
+  <div id="error-banner" class="notice hidden"></div>
   <div id="modal-overlay" class="hidden"></div>
 
   <main id="main-content">
@@ -77,6 +80,10 @@
       </div>
     </div>
   </main>
+  <section id="game-log" class="game-log hidden">
+    <h3>Game Log</h3>
+    <div id="game-log-entries" style="max-height:200px; overflow-y:auto; background:#f9f9f9; padding:10px; border:1px solid #ccc;"></div>
+  </section>
 
   <div id="rules-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
     <div class="modal-content">
