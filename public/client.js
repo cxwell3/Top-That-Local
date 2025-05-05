@@ -1,3 +1,6 @@
+// TEST: nodemon restart check
+console.log('Nodemon test: client.js loaded at', new Date().toISOString());
+
 // Wrap the main logic in DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM fully loaded and parsed'); // New log
@@ -93,55 +96,35 @@ document.addEventListener('DOMContentLoaded', () => {
     eventCounter: 0, // For sequence numbering
     startTime: Date.now(),
     maxEntries: 100,
-    
-    // Format timestamp with millisecond precision
     formatTimestamp: function(timestamp) {
       const d = new Date(timestamp);
       return `${d.toLocaleTimeString()}.${String(d.getMilliseconds()).padStart(3, '0')}`;
     },
-    
-    // Format time elapsed in ms with + prefix for readability
     formatElapsed: function(elapsed) {
       return (elapsed >= 0 ? '+' : '') + elapsed + 'ms';
     },
-    
-    // Log any game event with precise timing
     logEvent: function(category, action, details) {
       if (!this.enabled) return;
-      
       const timestamp = Date.now();
       const elapsedFromStart = timestamp - this.startTime;
-      
-      // Find the most recent event for relative timing
       const lastEvent = this.gameEvents.length > 0 ? this.gameEvents[this.gameEvents.length - 1] : null;
       const elapsed = lastEvent ? timestamp - lastEvent.timestamp : 0;
-      
       const event = {
         seq: ++this.eventCounter,
-        category,
-        action,
-        details,
-        timestamp,
-        elapsedFromStart,
-        elapsed,
+        category: category,
+        action: action,
+        details: details,
+        timestamp: timestamp,
+        elapsedFromStart: elapsedFromStart,
+        elapsed: elapsed,
         relativeToLastSameType: this.getTimeSinceLastSameType(category, timestamp)
       };
-      
       this.gameEvents.push(event);
-      if (this.gameEvents.length > this.maxEntries * 2) {
-        this.gameEvents.shift();
-      }
-      
-      // Log formatted output to console
+      if (this.gameEvents.length > this.maxEntries * 2) this.gameEvents.shift();
       console.log(`[DEBUG:${event.seq}] [${this.formatTimestamp(timestamp)}] [${this.formatElapsed(elapsed)}] [${category}] ${action}${details ? ': ' + JSON.stringify(details) : ''}`);
-      
-      // Update the debug panel
       this.updateDebugPanel();
-      
       return event;
     },
-    
-    // Get time elapsed since last event of same category
     getTimeSinceLastSameType: function(category, timestamp) {
       for (let i = this.gameEvents.length - 1; i >= 0; i--) {
         if (this.gameEvents[i].category === category && this.gameEvents[i].timestamp < timestamp) {
@@ -150,120 +133,78 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return null;
     },
-    
-    // Track when human player makes a play
     logHumanPlay: function(cards) {
       if (!this.enabled) return;
-      
       this.lastHumanPlay = {
         timestamp: Date.now(),
-        cards: Array.isArray(cards) ? [...cards] : cards,
+        cards: Array.isArray(cards) ? [...cards] : cards
       };
-      
       this.logEvent('PLAY', 'Human played', {
-        cards: Array.isArray(cards) ? 
-          cards.map(c => (c.value + (c.suit ? ' ' + c.suit[0] : ''))) : 
-          cards
+        cards: Array.isArray(cards) ? cards.map(c => (c.value + (c.suit ? ' ' + c.suit[0] : ''))) : cards
       });
     },
-    
-    // Track CPU plays and calculate response time
     logCPUPlay: function(playerId, cards) {
       if (!this.enabled) return;
-      
       const now = Date.now();
       this.lastCPUPlay = {
         timestamp: now,
-        playerId,
+        playerId: playerId,
         cards: Array.isArray(cards) ? [...cards] : cards,
         responseTime: this.lastHumanPlay ? (now - this.lastHumanPlay.timestamp) : null
       };
-      
-      // Alert if CPU plays too quickly (might indicate a logic bug)
       let alertText = null;
       if (this.lastHumanPlay && this.lastCPUPlay.responseTime < 300) {
         alertText = `Fast CPU play detected: ${this.lastCPUPlay.responseTime}ms response time`;
         console.warn(`[DEBUG] CPU played suspiciously fast: ${this.lastCPUPlay.responseTime}ms after human play`);
         this.addDebugAlert(alertText);
       }
-      
       this.logEvent('PLAY', 'CPU played', {
-        playerId,
-        cards: Array.isArray(cards) ? 
-          cards.map(c => (c.value + (c.suit ? ' ' + c.suit[0] : ''))) : 
-          cards,
+        playerId: playerId,
+        cards: Array.isArray(cards) ? cards.map(c => (c.value + (c.suit ? ' ' + c.suit[0] : ''))) : cards,
         responseTime: this.lastCPUPlay.responseTime,
         suspiciouslyFast: alertText !== null
       });
     },
-    
-    // Track special card effects with precise timing
     logSpecialEffect: function(value, type, currentTurn, nextTurn, phase = "queued") {
       if (!this.enabled) return;
-      
       const timestamp = Date.now();
       const effect = {
-        timestamp,
+        timestamp: timestamp,
         seq: ++this.eventCounter,
-        value,
-        type,
-        currentTurn,
-        nextTurn,
-        phase
+        value: value,
+        type: type,
+        currentTurn: currentTurn,
+        nextTurn: nextTurn,
+        phase: phase
       };
-      
       this.specialCardPlays.push(effect);
-      if (this.specialCardPlays.length > this.maxEntries) {
-        this.specialCardPlays.shift();
-      }
-      
-      // Also add to unified event log
-      this.logEvent('EFFECT', `${type} effect ${phase}`, {
-        value, 
-        type, 
-        currentTurn, 
-        nextTurn
-      });
+      if (this.specialCardPlays.length > this.maxEntries) this.specialCardPlays.shift();
+      this.logEvent('EFFECT', `${type} effect ${phase}`, { value, type, currentTurn, nextTurn });
     },
-    
-    // Track effect animation phases
     logEffectPhase: function(effectId, phase, details = {}) {
       if (!this.enabled) return;
-      
       const timestamp = Date.now();
       const sequenceItem = {
-        timestamp,
-        effectId,
-        phase,
-        details
+        timestamp: timestamp,
+        effectId: effectId,
+        phase: phase,
+        details: details
       };
-      
       this.effectSequence.push(sequenceItem);
-      if (this.effectSequence.length > this.maxEntries * 2) {
-        this.effectSequence.shift();
-      }
-      
+      if (this.effectSequence.length > this.maxEntries * 2) this.effectSequence.shift();
       this.logEvent('EFFECT_PHASE', `${effectId} - ${phase}`, details);
     },
-    
-    // Track turn changes with precise timing
     logTurnChange: function(fromPlayer, toPlayer) {
       if (!this.enabled) return;
-      
       const timestamp = Date.now();
       const change = {
-        timestamp,
+        timestamp: timestamp,
         seq: ++this.eventCounter,
         from: fromPlayer,
         to: toPlayer
       };
-      
       this.turnChanges.push(change);
-      if (this.turnChanges.length > this.maxEntries) {
-        this.turnChanges.shift();
-      }
-      
-      // Calculate time since last turn change for this player
+      if (this.turnChanges.length > this.maxEntries) this.turnChanges.shift();
       let lastTurnTime = null;
       for (let i = this.turnChanges.length - 2; i >= 0; i--) {
         if (this.turnChanges[i].to === fromPlayer) {
@@ -271,73 +212,46 @@ document.addEventListener('DOMContentLoaded', () => {
           break;
         }
       }
-      
-      this.logEvent('TURN', `${fromPlayer} → ${toPlayer}`, {
-        fromPlayer,
-        toPlayer,
-        turnDuration: lastTurnTime
-      });
+      this.logEvent('TURN', `${fromPlayer} → ${toPlayer}`, { fromPlayer, toPlayer, turnDuration: lastTurnTime });
     },
-    
-    // Track state updates with timing data
     logStateUpdate: function(state, renderStart) {
       if (!this.enabled) return;
-      
       const timestamp = Date.now();
       const stateUpdate = {
-        timestamp,
+        timestamp: timestamp,
         seq: ++this.eventCounter,
         turn: state.turn,
         playPileLength: state.playPile ? state.playPile.length : 0,
         deckCount: state.deckCount,
         playerHandCounts: state.players.map(p => ({ id: p.id, handCount: p.handCount }))
       };
-      
       this.stateUpdates.push(stateUpdate);
-      if (this.stateUpdates.length > this.maxEntries) {
-        this.stateUpdates.shift();
-      }
-      
+      if (this.stateUpdates.length > this.maxEntries) this.stateUpdates.shift();
       this.logEvent('STATE', `Updated game state`, {
         turn: state.turn,
         playPileLength: state.playPile ? state.playPile.length : 0,
-        lastCard: state.playPile && state.playPile.length > 0 ? 
-          state.playPile[state.playPile.length - 1].value : 'none',
+        lastCard: state.playPile && state.playPile.length > 0 ? state.playPile[state.playPile.length - 1].value : 'none',
         isFirstState: this.stateUpdates.length === 1,
         renderStarted: renderStart ? 'yes' : 'no'
       });
-      
       if (renderStart) {
-        // Start tracking render time
         this.currentRenderStart = timestamp;
       }
     },
-    
-    // Track render completion times
     logRenderComplete: function() {
       if (!this.enabled || !this.currentRenderStart) return;
-      
       const timestamp = Date.now();
       const renderTime = {
-        timestamp,
+        timestamp: timestamp,
         seq: ++this.eventCounter,
         renderStart: this.currentRenderStart,
         renderDuration: timestamp - this.currentRenderStart
       };
-      
       this.renderTimes.push(renderTime);
-      if (this.renderTimes.length > this.maxEntries) {
-        this.renderTimes.shift();
-      }
-      
-      this.logEvent('RENDER', `Render completed`, {
-        duration: renderTime.renderDuration
-      });
-      
+      if (this.renderTimes.length > this.maxEntries) this.renderTimes.shift();
+      this.logEvent('RENDER', `Render completed`, { duration: renderTime.renderDuration });
       this.currentRenderStart = null;
     },
-    
-    // Create and update visual debug panel
     createDebugPanel: function() {
       if (document.getElementById('game-debug-panel')) return;
       
@@ -375,7 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
         font-size: 14px;
       `;
       
-      // Create panel controls
       const controlsDiv = document.createElement('div');
       controlsDiv.style.display = 'flex';
       controlsDiv.style.gap = '8px';
@@ -444,7 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
       
       document.body.appendChild(panel);
     },
-    
     updateDebugPanel: function() {
       this.createDebugPanel();
       const content = document.getElementById('debug-panel-content');
@@ -452,22 +364,19 @@ document.addEventListener('DOMContentLoaded', () => {
       
       let html = '<div style="margin-bottom: 12px;"><strong>Timing Analysis:</strong></div>';
       
-      // Show event timeline (most recent first)
       html += '<div style="margin-bottom: 10px;"><strong>Recent Events (Newest First):</strong></div>';
       html += '<table style="width:100%; font-size:12px; border-collapse:collapse;">';
       html += '<tr style="text-align:left; border-bottom:1px solid #33ff33;">';
       html += '<th>#</th><th>Time</th><th>Δ</th><th>Type</th><th>Detail</th>';
       html += '</tr>';
       
-      // Show most recent 10 events
       this.gameEvents.slice(-10).reverse().forEach(event => {
-        // Set color based on category
         let rowColor = '';
-        if (event.category === 'TURN') rowColor = 'color:#ffd700;'; // Gold
-        else if (event.category === 'PLAY') rowColor = 'color:#00ffff;'; // Cyan
-        else if (event.category.includes('EFFECT')) rowColor = 'color:#ff00ff;'; // Magenta
-        else if (event.category === 'STATE') rowColor = 'color:#7fff00;'; // Chartreuse
-        else if (event.category === 'RENDER') rowColor = 'color:#ff7f50;'; // Coral
+        if (event.category === 'TURN') rowColor = 'color:#ffd700;';
+        else if (event.category === 'PLAY') rowColor = 'color:#00ffff;';
+        else if (event.category.includes('EFFECT')) rowColor = 'color:#ff00ff;';
+        else if (event.category === 'STATE') rowColor = 'color:#7fff00;';
+        else if (event.category === 'RENDER') rowColor = 'color:#ff7f50;';
         
         html += `<tr style="${rowColor}">`;
         html += `<td>${event.seq}</td>`;
@@ -479,7 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       html += '</table>';
       
-      // Timing specific concerns
       if (this.turnChanges.length > 0) {
         const lastTurnChange = this.turnChanges[this.turnChanges.length - 1];
         html += `<div style="margin-top:12px;"><strong>Last turn change:</strong> ${lastTurnChange.from} → ${lastTurnChange.to} (${this.formatTimestamp(lastTurnChange.timestamp)})</div>`;
@@ -490,10 +398,8 @@ document.addEventListener('DOMContentLoaded', () => {
         html += `<div><strong>Last render time:</strong> ${lastRender.renderDuration}ms</div>`;
       }
       
-      // Show alerts section
       const alerts = document.getElementById('debug-alerts');
       if (alerts) {
-        // Keep existing alerts
         const existingAlerts = alerts.innerHTML;
         content.innerHTML = html;
         alerts.innerHTML = existingAlerts;
@@ -502,7 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
         content.innerHTML = html;
       }
     },
-    
     addDebugAlert: function(message) {
       const alerts = document.getElementById('debug-alerts');
       if (!alerts) return;
@@ -513,13 +418,10 @@ document.addEventListener('DOMContentLoaded', () => {
       alert.style.marginBottom = '5px';
       alert.style.fontWeight = 'bold';
       
-      // Add to unified event log
       this.logEvent('ALERT', message);
       
-      // Add alert with animation
       alerts.appendChild(alert);
       
-      // Remove after 15 seconds
       setTimeout(() => {
         if (alert.parentNode === alerts) {
           alert.style.opacity = '0';
@@ -532,23 +434,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }, 15000);
     },
-    
-    // Export debug data in a copy-pastable format
     exportDebugData: function() {
-      // Create CSV for timeline events
       let csv = "Seq,Timestamp,Elapsed,Category,Action,Details\n";
       this.gameEvents.forEach(event => {
         const timestamp = this.formatTimestamp(event.timestamp);
         const elapsed = this.formatElapsed(event.elapsed);
-        const details = JSON.stringify(event.details || {}).replace(/"/g, '""'); // Escape quotes for CSV
+        const details = JSON.stringify(event.details || {}).replace(/"/g, '""');
         csv += `${event.seq},"${timestamp}","${elapsed}","${event.category}","${event.action}","${details}"\n`;
       });
       
-      // Create a downloadable file
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       
-      // Create a temporary link and trigger download
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `top-that-debug-${Date.now()}.csv`);
@@ -557,16 +454,14 @@ document.addEventListener('DOMContentLoaded', () => {
       link.click();
       document.body.removeChild(link);
       
-      // Create a JSON export for clipboard
       const jsonExport = {
         timestamp: Date.now(),
         events: this.gameEvents,
         turnChanges: this.turnChanges,
         specialEffects: this.specialCardPlays,
-        renderTimes: this.renderTimes
+        renderTimes: this.renderTimes,
       };
       
-      // Copy JSON to clipboard
       const jsonText = JSON.stringify(jsonExport, null, 2);
       navigator.clipboard.writeText(jsonText).then(() => {
         this.addDebugAlert("Debug data copied to clipboard and CSV file downloaded");
@@ -577,8 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
       
       return jsonExport;
     },
-    
-    // Get diagnostics data as an object
     getDiagnostics: function() {
       return {
         timestamp: Date.now(),
@@ -591,25 +484,19 @@ document.addEventListener('DOMContentLoaded', () => {
           lastEventTime: this.gameEvents.length > 0 ? 
             this.gameEvents[this.gameEvents.length-1].timestamp : null,
           averageRenderTime: this.calculateAverageRenderTime(),
-          maxRenderTime: this.calculateMaxRenderTime()
-        }
+          maxRenderTime: this.calculateMaxRenderTime(),
+        },
       };
     },
-    
-    // Calculate average render time
     calculateAverageRenderTime: function() {
       if (this.renderTimes.length === 0) return null;
       const sum = this.renderTimes.reduce((sum, item) => sum + item.renderDuration, 0);
       return Math.round(sum / this.renderTimes.length);
     },
-    
-    // Calculate maximum render time
     calculateMaxRenderTime: function() {
       if (this.renderTimes.length === 0) return null;
       return Math.max(...this.renderTimes.map(item => item.renderDuration));
     },
-    
-    // Show diagnostic report (can be triggered from console)
     showDiagnostics: function() {
       const data = this.getDiagnostics();
       
@@ -638,13 +525,10 @@ document.addEventListener('DOMContentLoaded', () => {
       this.createDebugPanel();
       this.updateDebugPanel();
       
-      // Print instructions
       console.log('Use gameDebug.exportDebugData() to download timing data or copy to clipboard');
       
       return data;
     },
-    
-    // Toggle debug panel visibility
     togglePanel: function() {
       const panel = document.getElementById('game-debug-panel');
       if (panel) {
@@ -657,23 +541,16 @@ document.addEventListener('DOMContentLoaded', () => {
         this.createDebugPanel();
       }
     },
-
-    // Add tracking for take pile events to gameDebug object
     logTakePileEvent: function(playerId, isForced = false) {
       if (!this.enabled) return;
-      
       const timestamp = Date.now();
       const event = {
-        timestamp,
+        timestamp: timestamp,
         seq: ++this.eventCounter,
-        playerId,
-        isForced
+        playerId: playerId,
+        isForced: isForced
       };
-      
-      this.logEvent('PILE_TAKE', isForced ? 'Forced take pile' : 'Voluntary take pile', {
-        playerId,
-        isForced
-      });
+      this.logEvent('PILE_TAKE', isForced ? 'Forced take pile' : 'Voluntary take pile', { playerId, isForced });
     }
   };
   
@@ -1289,18 +1166,15 @@ document.addEventListener('DOMContentLoaded', () => {
           copyIndicator.style.opacity = '0';
           copyIndicator.style.transition = 'opacity 0.5s';
           
-          // Add to card parent
           const cardParent = discardImg.parentElement;
           if (cardParent) {
             cardParent.style.position = 'relative';
             cardParent.appendChild(copyIndicator);
             
-            // Fade in
             setTimeout(() => {
               copyIndicator.style.opacity = '1';
               gameDebug.logEffectPhase(effect.type, "copy-indicator-shown");
               
-              // Remove after a while
               setTimeout(() => {
                 copyIndicator.style.opacity = '0';
                 setTimeout(() => {
@@ -1313,22 +1187,17 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
         
-        // Step 4: Complete the effect sequence
         setTimeout(() => {
-          // Remove special card flag
           discardImg.classList.remove('current-special-card');
           
-          // Re-enable play buttons
           setPileTransition(false);
           console.log(`[Debug] Special card effect complete: ${effect.type}`);
           gameDebug.logEffectPhase(effect.type, "completed");
           
-          // Wait longer between effects to ensure each is fully visible
-          // Use a guaranteed minimum delay to prevent animations overlapping
           setTimeout(processNextEffect, 1000);
-        }, 2000); // Final wait before allowing play - increased to ensure card remains visible
-      }, 2000); // Wait after showing icon before finishing effect - increased to ensure card remains visible
-    }, 1000); // Wait before showing icon - increased from 800ms
+        }, 2000);
+      }, 2000);
+    }, 1000);
   }
 
   socket.on('log', ({ player, action, cards }) => {
@@ -1388,8 +1257,6 @@ document.addEventListener('DOMContentLoaded', () => {
       actionHistory.push({ type: 'take' });
       clearError();
       
-      // Just take the pile directly without showing the special effect
-      // This is a voluntary take, not a forced take due to no valid moves
       gameDebug.logTakePileEvent(myId, false);
       socket.emit('takePile');
     };
@@ -1419,7 +1286,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inject a fake game state for tutorial mode
   function injectTutorialGameState() {
-    // Simulate a real game start: 3 hand, 3 up, 3 down for player and opponent
     const tutorialState = {
       deckCount: 40,
       playPile: [{ value: 4, suit: 'hearts' }],
@@ -1434,20 +1300,20 @@ document.addEventListener('DOMContentLoaded', () => {
           hand: [
             { value: 7, suit: 'diamonds' },
             { value: 2, suit: 'spades' },
-            { value: 9, suit: 'clubs' }
+            { value: 9, suit: 'clubs' },
           ],
           handCount: 3,
           up: [
             { value: 5, suit: 'clubs' },
             { value: 10, suit: 'hearts' },
-            { value: 8, suit: 'spades' }
+            { value: 8, suit: 'spades' },
           ],
           down: [
             { back: true },
             { back: true },
-            { back: true }
+            { back: true },
           ],
-          downCount: 3
+          downCount: 3,
         },
         {
           id: 'tutorial-opponent',
@@ -1459,59 +1325,58 @@ document.addEventListener('DOMContentLoaded', () => {
           up: [
             { value: 6, suit: 'hearts' },
             { value: 3, suit: 'spades' },
-            { value: 'K', suit: 'clubs' }
+            { value: 'K', suit: 'clubs' },
           ],
           down: [
             { back: true },
             { back: true },
-            { back: true }
+            { back: true },
           ],
-          downCount: 3
-        }
-      ]
+          downCount: 3,
+        },
+      ],
     };
     myId = 'tutorial-player';
     renderGameState(tutorialState);
   }
 
-  // --- Tutorial Logic ---
   const tutorialSteps = [
     {
       message: 'Welcome to Top That! Let\'s learn the basics. Click Next to continue.',
       highlight: null,
       restrict: null,
-      expect: null
+      expect: null,
     },
     {
       message: 'This is your hand. Play any card higher than the top card of the discard pile (highlighted).',
       highlight: 'hand',
       restrict: 'hand',
-      expect: [0, 2] // allow 7 or 9 (indexes in hand)
+      expect: [0, 2],
     },
     {
       message: 'Try to play a 2. It resets the pile and lets you play anything next!',
       highlight: 'special2',
       restrict: '2',
-      expect: [1] // only index 1 (the 2)
+      expect: [1],
     },
     {
       message: 'Try to play a 10. It burns the pile!',
       highlight: null,
       restrict: null,
-      expect: null // up card, will allow in next step
+      expect: null,
     },
     {
       message: 'Try to play a 5. It copies the previous card\'s value!',
       highlight: null,
       restrict: null,
-      expect: null // up card, will allow in next step
+      expect: null,
     },
     {
       message: 'Great job! You\'ve learned the basics. Play a full game to master the rest!',
       highlight: null,
       restrict: null,
-      expect: null
-    }
+      expect: null,
+    },
   ];
   let tutorialStep = 0;
   let tutorialActive = false;
@@ -1575,13 +1440,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function highlightTutorialCards(type) {
-    // Remove previous highlights
     document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
     if (!type) return;
     if (type === 'hand') {
       document.querySelectorAll('#my-hand .card-img').forEach(el => el.classList.add('tutorial-highlight'));
     }
-    // Special card highlights (2, 5, 10)
     if (type === 'special2') {
       document.querySelectorAll('#my-hand .card-img').forEach(el => {
         if (el.src.includes('/2')) el.classList.add('tutorial-highlight');
@@ -1627,7 +1490,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function snapCard(cardElement) {
     if (!cardElement) return;
     cardElement.classList.remove('snap-anim');
-    // Force reflow to restart animation
     void cardElement.offsetWidth;
     cardElement.classList.add('snap-anim');
     setTimeout(() => cardElement.classList.remove('snap-anim'), 300);
@@ -1675,37 +1537,19 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => {
           console.error('Failed to copy link: ', err);
-          if(shareLinkMessage) shareLinkMessage.textContent = 'Could not copy link automatically.'; // Added null check
+          if(shareLinkMessage) shareLinkMessage.textContent = 'Could not copy link automatically.';
         });
     };
   }
 
-  /* Remove Ctrl+R listener */
-  /* document.addEventListener('keydown', e => {
-    if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      console.log('🛑 Sending adminReset');
-      socket.emit('adminReset');
-      myId = null;
-      currentRoom = null;
-      sessionStorage.removeItem('myId');
-      sessionStorage.removeItem('currentRoom');
-      window.history.pushState({}, '', window.location.pathname);
-      showLobbyForm();
-    }
-  }); */
-
-  /* ---------- Helper Functions ---------- */
   function setPileTransition(active) {
     pileTransition = active;
     const playBtn = document.getElementById('play');
     if (playBtn) playBtn.disabled = active;
   }
 
-  // Overlay special card symbol on top of discard pile card with improved animation
   function showCardEvent(cardValue, type) {
     let discardImg = document.querySelector('.discard .card-img');
-    // If the discard pile is empty, retry after a short delay (up to 5 times)
     let retries = 0;
     function tryRunEffect() {
       discardImg = document.querySelector('.discard .card-img');
@@ -1714,17 +1558,14 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(tryRunEffect, 100);
         return;
       }
-      if (!discardImg) return; // Give up if still not found
+      if (!discardImg) return;
       function runEffect() {
-        // Remove any existing icon
         const prev = discardImg.parentElement.querySelector('.special-icon');
         if (prev) prev.remove();
         
-        // Create an image for the special effect
         const icon = document.createElement('img');
         icon.className = 'special-icon';
         
-        // Choose image based on effect using loose equality for consistent checks
         let src = '';
         if (type === 'two' || cardValue == 2) src = 'Reset-icon.png';
         else if (type === 'five' || cardValue == 5) src = 'Copy-icon.png';
@@ -1732,24 +1573,20 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (type === 'invalid') src = 'Invalid play-icon.png';
         else if (type === 'take') src = 'Take pile-icon.png';
         else if (type === 'regular') {
-          // No outline or glow, just return
           return;
         }
         
-        // Debug check for icon path
         console.log(`[DEBUG] Using icon: ${src}`);
         
         icon.src = src;
         icon.onerror = () => {
           console.error(`[ERROR] Failed to load icon: ${src}`);
-          // Fallback for missing image
           icon.style.background = 'rgba(255,255,255,0.7)';
           icon.style.borderRadius = '50%';
           icon.style.display = 'flex';
           icon.style.justifyContent = 'center';
           icon.style.alignItems = 'center';
           
-          // Add text as fallback
           const fallbackText = document.createElement('div');
           fallbackText.textContent = type === 'take' ? 'TAKE' : 
                                     type === 'two' ? 'RESET' :
@@ -1760,40 +1597,35 @@ document.addEventListener('DOMContentLoaded', () => {
           icon.appendChild(fallbackText);
         };
         
-        // Position and size with improved styling
         icon.style.position = 'absolute';
         icon.style.top = '50%';
         icon.style.left = '50%';
         icon.style.transform = 'translate(-50%, -50%)';
-        icon.style.width = '90px'; // Slightly bigger for better visibility
+        icon.style.width = '90px';
         icon.style.height = '90px';
-        icon.style.zIndex = '100'; // Ensure icon is above the card but below other UI elements
+        icon.style.zIndex = '100';
         icon.style.background = 'none';
         icon.style.backgroundColor = 'transparent';
         icon.style.pointerEvents = 'none';
-        icon.style.filter = 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.9))'; // Enhanced glow
+        icon.style.filter = 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.9))';
         
-        // Use CSS animation for smoother performance
-        icon.style.animation = 'iconPulse 1.5s ease-in-out'; // Longer animation
+        icon.style.animation = 'iconPulse 1.5s ease-in-out';
         
-        // Ensure parent is positioned for absolute positioning to work
         discardImg.parentElement.style.position = 'relative';
         discardImg.parentElement.appendChild(icon);
         
-        // Highlight discard pile
         const discardPile = discardImg.closest('.discard');
         if (discardPile) {
           discardPile.classList.add('ring-pulse');
-          setTimeout(() => discardPile.classList.remove('ring-pulse'), 1000); // Longer pulse effect
+          setTimeout(() => discardPile.classList.remove('ring-pulse'), 1000);
         }
         
-        // Remove after delay with fade out for smoother transition
         setTimeout(() => {
-          icon.style.transition = 'opacity 0.5s ease, transform 0.5s ease'; // Slower fade
+          icon.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
           icon.style.opacity = '0';
           icon.style.transform = 'translate(-50%, -50%) scale(0.8)';
-          setTimeout(() => icon.remove(), 500); // Wait longer before removing
-        }, 1800); // Show for 1.8 seconds, increased from 1 second
+          setTimeout(() => icon.remove(), 500);
+        }, 1800);
       }
       
       if (!discardImg.complete) {
@@ -1830,7 +1662,6 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.className = 'toast';
     toast.textContent = msg;
     container.appendChild(toast);
-    // Auto-remove after 2s (uniform)
     setTimeout(() => toast.remove(), 2000);
   }
 
@@ -1853,7 +1684,7 @@ document.addEventListener('DOMContentLoaded', () => {
     container.classList.add('card-container');
     const img = new Image();
     img.className = 'card-img';
-    img.style.visibility = 'hidden';  // Hide alt text until image loads
+    img.style.visibility = 'hidden';
     img.src = card.back
       ? 'https://deckofcardsapi.com/static/img/back.png'
       : `https://deckofcardsapi.com/static/img/${code(card)}.png`;
@@ -1866,56 +1697,43 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sel) {
       img.classList.add('selectable');
       img.style.cursor = 'pointer';
-      img.style.touchAction = 'manipulation'; // Improves touch responsiveness
+      img.style.touchAction = 'manipulation';
       
-      // Track click/touch timing for better interaction handling
       let lastInteractionTime = 0;
-      const DOUBLE_INTERACTION_THRESHOLD = 300; // ms
+      const DOUBLE_INTERACTION_THRESHOLD = 300;
       
-      // Combined function for both click and touch
       const handleInteraction = (e) => {
         const now = Date.now();
         const timeSinceLastInteraction = now - lastInteractionTime;
         
-        // Handle double-click/tap
         if (timeSinceLastInteraction < DOUBLE_INTERACTION_THRESHOLD) {
-          // Double interaction - select and play the card
           if (!img.classList.contains('selected')) {
             img.classList.add('selected');
             container.classList.add('selected-container');
           }
           
-          // Prevent event propagation
           e.stopPropagation();
           e.preventDefault();
           
-          // Visual feedback
           snapCard(img);
           
-          // Play immediately
           playSelectedCards();
           
-          // Reset tracking
           lastInteractionTime = 0;
         } else {
-          // Single interaction - toggle selection
           const isSelected = img.classList.toggle('selected');
           container.classList.toggle('selected-container', isSelected);
           lastInteractionTime = now;
         }
       };
       
-      // Mouse events
       img.addEventListener('click', handleInteraction);
       
-      // Touch events for mobile
       img.addEventListener('touchstart', (e) => {
-        // Prevent scrolling when interacting with cards
         if (e.cancelable) e.preventDefault();
       }, { passive: false });
       
       img.addEventListener('touchend', (e) => {
-        // Only process if this is a tap (not a scroll or multi-touch)
         if (e.changedTouches && e.changedTouches.length === 1) {
           handleInteraction(e);
         }
@@ -1954,22 +1772,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const center = document.getElementById('center');
     if (!center) return;
 
-    // Clear existing content except for event/error banners
     const eventBanner = document.getElementById('event-banner');
     const errorBanner = document.getElementById('error-banner');
     center.innerHTML = '';
     if (eventBanner) center.appendChild(eventBanner);
     if (errorBanner) center.appendChild(errorBanner);
 
-    // Create center area to hold the piles
     const centerArea = document.createElement('div');
     centerArea.className = 'center-area';
 
-    // Create wrapper for piles
     const pilesWrapper = document.createElement('div');
     pilesWrapper.className = 'center-piles-wrapper';
 
-    // Create deck pile
     const deckContainer = document.createElement('div');
     deckContainer.className = 'center-pile-container';
     const deckLabel = document.createElement('div');
@@ -1984,7 +1798,6 @@ document.addEventListener('DOMContentLoaded', () => {
     deckContainer.appendChild(deckLabel);
     deckContainer.appendChild(deckPile);
 
-    // Create discard pile
     const discardContainer = document.createElement('div');
     discardContainer.className = 'center-pile-container';
     const discardLabel = document.createElement('div');
@@ -2000,20 +1813,16 @@ document.addEventListener('DOMContentLoaded', () => {
     discardContainer.appendChild(discardLabel);
     discardContainer.appendChild(discardPile);
 
-    // Add piles to wrapper
     pilesWrapper.appendChild(deckContainer);
     pilesWrapper.appendChild(discardContainer);
 
-    // Add wrapper to center area
     centerArea.appendChild(pilesWrapper);
     
-    // Add center area to center
     center.appendChild(centerArea);
   }
 
   function renderGameState(s) {
     console.log('[CLIENT] renderGameState called. State:', s);
-    // Card table layout: clear all slots
     const slotTop = document.querySelector('.table-slot-top');
     const slotBottom = document.querySelector('.table-slot-bottom');
     const slotLeft = document.querySelector('.table-slot-left');
@@ -2024,19 +1833,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (slotLeft) slotLeft.innerHTML = '';
     if (slotRight) slotRight.innerHTML = '';
 
-    // Remove any previous active highlights
     document.querySelectorAll('.player-area.active').forEach(el => el.classList.remove('active'));
 
-    // --- Robust seat assignment for 2-4 players ---
     const meIdx = s.players.findIndex(p => p.id === myId);
     const playerCount = s.players.length;
-    // Map seat index to slot name
     function seatFor(idx) {
       if (playerCount === 2) return idx === meIdx ? 'bottom' : 'top';
       if (playerCount === 3) {
         if (idx === meIdx) return 'bottom';
         if ((idx - meIdx + playerCount) % playerCount === 1) return 'left';
-        return 'right'; // Use right instead of top for 3 players
+        return 'right';
       }
       if (playerCount === 4) {
         if (idx === meIdx) return 'bottom';
@@ -2047,7 +1853,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return 'bottom';
     }
 
-    // --- Render all players in correct slots ---
     s.players.forEach((p, idx) => {
       const seat = seatFor(idx);
       let panel = document.createElement('div');
@@ -2057,24 +1862,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (p.isComputer) panel.classList.add('computer-player');
       if (p.disconnected) panel.classList.add('disconnected');
       if (p.id === s.turn) panel.classList.add('active');
-      // All player panels: vertical stacking (banner, hand, up/down)
       panel.style.display = 'flex';
       panel.style.flexDirection = 'column';
       panel.style.alignItems = 'center';
-      // Add rotation classes for left/right CPUs
       if (seat === 'left') panel.classList.add('rotate-right');
       if (seat === 'right') panel.classList.add('rotate-left');
-      // Name header (banner)
       const nameHeader = document.createElement('div');
       nameHeader.className = 'player-name-header ' + (p.isComputer ? 'player-cpu' : 'player-human');
       nameHeader.innerHTML = `<span class="player-name-text">${p.name}${p.disconnected ? " <span class='player-role'>(Disconnected)</span>" : ''}</span>`;
       panel.appendChild(nameHeader);
-      // Hand row
       const handRow = document.createElement('div');
       if (p.id === myId) handRow.id = 'my-hand';
       handRow.className = p.id === myId ? 'hand' : 'opp-hand';
       if (p.id === myId && p.hand && p.hand.length > 0) {
-        // Render hand cards and tag each img with its index for play detection
         for (let i = 0; i < p.hand.length; i++) {
           const card = p.hand[i];
           const canInteract = s.turn === myId;
@@ -2084,8 +1884,6 @@ document.addEventListener('DOMContentLoaded', () => {
           handRow.appendChild(container);
         }
       } else if (p.handCount > 0) {
-        // Show placeholder backs for opponents (human or CPU)
-        // Limit CPU display to a maximum of 3 cards even if they have more
         const displayCount = Math.min(p.handCount, 3);
         for (let i = 0; i < displayCount; i++) {
           const el = document.createElement('div');
@@ -2096,10 +1894,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
-      // Show the actual card count in the section label for opponents
       renderSection(panel, `Hand${p.id === myId ? '' : ' (' + p.handCount + ')'}`, handRow);
       
-      // Buttons for human player (only in bottom slot)
       if (p.id === myId && seat === 'bottom') {
         let btnContainer = document.createElement('div');
         btnContainer.className = 'button-container';
@@ -2120,14 +1916,11 @@ document.addEventListener('DOMContentLoaded', () => {
         takeBtnDyn.className = 'btn btn-secondary';
         btnContainer.appendChild(playBtnDyn);
         btnContainer.appendChild(takeBtnDyn);
-        // Enable/disable based on turn
         playBtnDyn.disabled = !s.turn || s.turn !== myId || pileTransition;
-        // Take button is only disabled if it's not your turn
         takeBtnDyn.disabled = !s.turn || s.turn !== myId ? true : false;
         btnContainer.style.display = 'flex';
         panel.appendChild(btnContainer);
       }
-      // Up/Down stacks
       const stackRow = document.createElement('div');
       stackRow.className = 'stack-row';
       if (p.up && p.up.length > 0) {
@@ -2145,7 +1938,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           col.append(downCard, upCard);
           if (p.id === myId && s.turn === myId && p.hand.length === 0 && !pileTransition) {
-            col.classList.add('playable-stack'); // mark stack as playable
+            col.classList.add('playable-stack');
           }
           stackRow.appendChild(col);
         });
@@ -2161,27 +1954,23 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           col.appendChild(downCard);
           if (p.id === myId && s.turn === myId && (!p.up || p.up.length === 0) && i === 0 && !pileTransition) {
-            col.classList.add('playable-stack'); // mark stack as playable
+            col.classList.add('playable-stack');
           }
           stackRow.appendChild(col);
         }
       }
       renderSection(panel, 'Up / Down', stackRow);
-      // Place panel in correct slot
       if (seat === 'bottom' && slotBottom) slotBottom.appendChild(panel);
       else if (seat === 'top' && slotTop) slotTop.appendChild(panel);
       else if (seat === 'left' && slotLeft) slotLeft.appendChild(panel);
       else if (seat === 'right' && slotRight) slotRight.appendChild(panel);
     });
 
-    // Create center piles AFTER players are rendered
     createCenterPiles(s);
     
-    // Process any queued special effects after rendering
     setTimeout(() => processSpecialEffectsQueue(), 200);
   }
 
-  // Process any queued special effects
   function processSpecialEffectsQueue() {
     if (specialEffectsQueue.length > 0 && !processingEffects) {
       processNextEffect();
@@ -2189,7 +1978,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showGameOverMessage(didIWin, winnerName) {
-    // Create or find a container for the game over message
     let gameOverContainer = document.createElement('div');
     gameOverContainer.id = 'game-over-container';
     gameOverContainer.style.position = 'fixed';
@@ -2202,7 +1990,7 @@ document.addEventListener('DOMContentLoaded', () => {
     gameOverContainer.style.flexDirection = 'column';
     gameOverContainer.style.justifyContent = 'center';
     gameOverContainer.style.alignItems = 'center';
-    gameOverContainer.style.zIndex = '3000'; // Ensure it's on top
+    gameOverContainer.style.zIndex = '3000';
     gameOverContainer.style.color = 'white';
     gameOverContainer.style.textAlign = 'center';
     document.body.appendChild(gameOverContainer);
@@ -2216,16 +2004,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <button id="play-again-btn" class="btn btn-primary" style="font-size: 1.2em; padding: 10px 20px;">Play Again</button>
     `;
 
-    // Add event listener for the play again button
     const playAgainBtn = document.getElementById('play-again-btn');
     if (playAgainBtn) {
       playAgainBtn.onclick = () => {
-        // Reload the page to go back to the lobby
         window.location.reload();
       };
     }
-
-    gameOverContainer.classList.remove('hidden');
   }
 
 }); // End of DOMContentLoaded listener
