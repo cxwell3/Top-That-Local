@@ -35,6 +35,12 @@ export class Game {
     return value == 10;
   }
 
+  checkWinCondition(player) {
+    // Player wins if they have no hand, no up cards, and no down cards
+    if (!player) return false;
+    return player.hand.length === 0 && player.up.length === 0 && player.down.length === 0;
+  }
+
   addPlayer(sock, name = 'Player') {
     if (this.started) {
       sock.emit('err', 'Game already started');
@@ -94,7 +100,7 @@ export class Game {
 
   play(sock, idxs) {
     const p = this.findPlayerById(sock.id);
-    console.log(`[DEBUG play] play() called by ${p ? p.name : 'unknown'} (${sock.id}) with idxs: ${JSON.stringify(idxs)}. Current turn: ${this.turn}`);
+    console.log(`[SERVER] play() called by ${p ? p.name : 'unknown'} (${sock.id}) with idxs: ${JSON.stringify(idxs)}. Current turn: ${this.turn}`);
     if (!p || p.disconnected || (this.turn !== p.id)) { // Simplified turn check
         return;
     }
@@ -143,6 +149,19 @@ export class Game {
     // Emit log event for successful play
     this.io.to(this.roomId).emit('log', { player: p.name, action: 'play', cards });
 
+    // Card removal logging
+    const handBefore = [...p.hand];
+    const upBefore = [...p.up];
+    const downBefore = [...p.down];
+    p.hand = p.hand.filter((_, i) => !idxs.includes(i));
+    if (idxs.some(i => i >= 1000 && i < 2000)) {
+      p.up = p.up.filter((_, i) => !idxs.includes(i + 1000));
+    }
+    if (idxs.some(i => i >= 2000)) {
+      p.down.shift();
+    }
+    console.log(`[SERVER] After card removal: hand: ${JSON.stringify(handBefore)} -> ${JSON.stringify(p.hand)}, up: ${JSON.stringify(upBefore)} -> ${JSON.stringify(p.up)}, down: ${JSON.stringify(downBefore)} -> ${JSON.stringify(p.down)}`);
+
     cards.forEach(c => this.playPile.push(c));
     console.log(`[DEBUG play] ${p ? p.name : 'unknown'} played cards: ${JSON.stringify(cards)}. New playPile: ${JSON.stringify(this.playPile)}. Turn: ${this.turn}`);
     const playedValue = cards[0].value;
@@ -153,29 +172,30 @@ export class Game {
         this.lastRealCard = cards[0];
     }
 
-    p.hand = p.hand.filter((_, i) => !idxs.includes(i));
-    if (idxs.some(i => i >= 1000 && i < 2000)) {
-      p.up = p.up.filter((_, i) => !idxs.includes(i + 1000));
-    }
-    if (idxs.some(i => i >= 2000)) {
-      p.down.shift();
-    }
-
-    // Prepare turn advancement for after effects are applied
     const finishTurn = () => {
-        this.refill(p);
+        // Check for win condition FIRST
+        if (this.checkWinCondition(p)) {
+          console.log(`[SERVER] Player ${p.name} wins!`);
+          this.io.to(this.roomId).emit('gameOver', { winnerId: p.id, winnerName: p.name });
+          this.started = false;
+          return;
+        }
+        // Advance turn and push state BEFORE refill
         this.advanceTurn();
-        console.log(`[DEBUG finishTurn] Advancing turn. New turn: ${this.turn}`);
+        console.log(`[SERVER] finishTurn: Advancing turn. New turn: ${this.turn}`);
         this.pushState();
-        
-        // For non-CPU players, we're done
+        this.refill(p);
+        if (this.checkWinCondition(p)) {
+          console.log(`[SERVER] Player ${p.name} wins after refill!`);
+          this.io.to(this.roomId).emit('gameOver', { winnerId: p.id, winnerName: p.name });
+          this.started = false;
+          return;
+        }
         const nextPlayer = this.byId(this.turn);
-        if (!nextPlayer || !nextPlayer.isComputer) return;
-        
-        // For CPU players, schedule their turn with a proper delay
-        // Always use a consistent, longer delay to ensure animations complete
-        console.log(`[DEBUG finishTurn] Scheduling CPU turn with delay: ${Game.DELAY_SPECIAL_DISPLAY + 1000}ms`);
-        setTimeout(() => this.computerTurn(nextPlayer.id), Game.DELAY_SPECIAL_DISPLAY + 1000);
+        if (nextPlayer && nextPlayer.isComputer) {
+          console.log(`[SERVER] finishTurn: Scheduling CPU turn (${nextPlayer.id}) with delay: ${Game.DELAY_CPU_DECISION}ms`);
+          setTimeout(() => this.computerTurn(nextPlayer.id), Game.DELAY_CPU_DECISION);
+        }
     };
 
     // For all played cards (special or regular), emit the effect and add animation delay
@@ -363,9 +383,23 @@ export class Game {
             }
             if (nextCard) {
               this.playPile.push(nextCard);
-              this.lastRealCard = this.isWildCard(nextCard.value) ? null : nextCard;
+              if (!this.isSpecialCard(nextCard.value)) {
+                this.lastRealCard = nextCard;
+              } else {
+                this.lastRealCard = null;
+              }
               this.pushState();
             }
+            // Schedule first turn after special display
+            setTimeout(() => {
+              if (!this.started || !this.players.length) return;
+              this.turn = this.players[0].id;
+              this.pushState();
+              const firstPlayer = this.byId(this.turn);
+              if (firstPlayer && firstPlayer.isComputer) {
+                this.computerTurn(firstPlayer.id);
+              }
+            }, Game.DELAY_FIRST_TURN);
           }, Game.DELAY_SPECIAL_DISPLAY);
           return;
         }
@@ -551,6 +585,8 @@ export class Game {
       currentPlayer.sock.emit('notice', '');
     }
 
+    console.log(`[SERVER] pushState: turn=${this.turn}, playPile=${JSON.stringify(this.playPile)}, players=${this.players.map(p=>p.id+':'+p.hand.length).join(',')}`);
+
     this.players.forEach(targetPlayer => {
       if (targetPlayer.sock && !targetPlayer.disconnected) {
         targetPlayer.sock.emit('state', {
@@ -573,6 +609,29 @@ export class Game {
         });
       }
     });
+  }
+
+  advanceTurn() {
+    if (!this.started || this.players.length < 2) return;
+    const currentPlayerIndex = this.players.findIndex(player => player.id === this.turn);
+    if (currentPlayerIndex === -1) {
+      this.turn = this.players.find(p => !p.disconnected)?.id || null;
+      console.log(`[SERVER] advanceTurn: Current player not found, setting turn to ${this.turn}`);
+      return;
+    }
+    let nextPlayerIndex = (currentPlayerIndex + 1) % this.players.length;
+    let attempts = 0;
+    while (this.players[nextPlayerIndex].disconnected && attempts < this.players.length) {
+      nextPlayerIndex = (nextPlayerIndex + 1) % this.players.length;
+      attempts++;
+    }
+    if (attempts >= this.players.length) {
+      console.warn("[SERVER] advanceTurn: All players seem disconnected. Setting turn to null.");
+      this.turn = null;
+    } else {
+      this.turn = this.players[nextPlayerIndex].id;
+      console.log(`[SERVER] advanceTurn: Turn advanced to ${this.players[nextPlayerIndex].name} (${this.turn})`);
+    }
   }
 
   reset() {

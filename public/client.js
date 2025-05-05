@@ -1022,7 +1022,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let stateIndex = -1;
 
   socket.on('state', s => {
-    console.log('[Debug] Received state event:', s);
+    console.log('[CLIENT] Received state event:', s);
+    // Always render the state, regardless of animation or pileTransition
+    renderGameState(s);
 
     // Track turn changes for debugging
     const prevState = stateHistory.length > 0 ? stateHistory[stateHistory.length - 1] : null;
@@ -1349,39 +1351,6 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- Event Listeners ---------- */
   // Unified Create / Join game
   const playSelected = playSelectedCards;
-  function playAndRecord() {
-    const selectedCards = document.querySelectorAll('.card-img.selected');
-    if (selectedCards.length === 0) return;
-    const indexes = Array.from(selectedCards).map(img => parseInt(img.dataset.idx));
-    
-    // Get card information for debugging
-    const currentState = stateHistory[stateIndex];
-    if (currentState) {
-      const cardInfos = [];
-      indexes.forEach(idx => {
-        if (idx < 1000) {
-          // Hand card
-          const card = currentState.players.find(p => p.id === myId)?.hand[idx];
-          if (card) cardInfos.push(card);
-        } else if (idx < 2000) {
-          // Up card
-          const upIdx = idx - 1000;
-          const card = currentState.players.find(p => p.id === myId)?.up[upIdx];
-          if (card) cardInfos.push(card); 
-        } else {
-          // Down card - can't know value
-          cardInfos.push({ value: 'unknown', suit: 'unknown' });
-        }
-      });
-      
-      // Log the human play
-      gameDebug.logHumanPlay(cardInfos);
-    }
-    
-    actionHistory.push({ type: 'play', indexes });
-    socket.emit('playCards', indexes);
-  }
-  window.playSelectedCards = playAndRecord;
 
   const createJoinBtn = $('create-join');
   if (createJoinBtn) {
@@ -1664,36 +1633,32 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => cardElement.classList.remove('snap-anim'), 300);
   }
 
-  // Patch playSelectedCards to use tutorial logic and snap effect
-  const realPlaySelectedCards = playSelectedCards;
-  function playSelectedCardsTutorial() {
-    if (!tutorialActive) return realPlaySelectedCards();
+  function playSelectedCards() {
+    if (pileTransition) return;
+
     const selectedCards = document.querySelectorAll('.card-img.selected');
     if (selectedCards.length === 0) return;
+
     const indexes = Array.from(selectedCards).map(img => parseInt(img.dataset.idx));
-    const step = tutorialSteps[tutorialStep];
-    if (step.expect && (!indexes.every(idx => step.expect.includes(idx)) || indexes.length !== step.expect.length)) {
-      showError('Please play the highlighted card(s) for this step.');
+    console.log('Debug playSelectedCards:', { indexes, isHandPlay: indexes.every(idx => idx < 1000), isUpPlay: indexes.every(idx => idx >= 1000 && idx < 2000), isDownPlay: indexes.every(idx => idx >= 2000) });
+
+    const isHandPlay = indexes.every(idx => idx < 1000);
+    const isUpPlay = indexes.every(idx => idx >= 1000 && idx < 2000);
+    const isDownPlay = indexes.every(idx => idx >= 2000);
+
+    if (!(isHandPlay || isUpPlay || isDownPlay)) {
+      showError("You can only play cards from one area (Hand, Up, or Down) at a time.");
+      selectedCards.forEach(img => {
+        img.classList.remove('selected');
+        const cont = img.closest('.card-container');
+        if (cont) cont.classList.remove('selected-container');
+      });
       return;
     }
-    // Snap animation for all selected cards
-    selectedCards.forEach(img => snapCard(img));
-    // Simulate the play: remove the card from hand and advance
-    tutorialStep = Math.min(tutorialSteps.length - 1, tutorialStep + 1);
-    showTutorialStep();
-    injectTutorialGameState();
+    
+    socket.emit('playCards', indexes);
   }
-  window.playSelectedCards = playSelectedCardsTutorial;
-
-  // Enhance snap effect for main game as well
-  const origPlaySelectedCards = playSelectedCards;
-  function playSelectedCardsWithSnap() {
-    if (pileTransition) return;
-    const selectedCards = document.querySelectorAll('.card-img.selected');
-    selectedCards.forEach(img => snapCard(img));
-    origPlaySelectedCards();
-  }
-  window.playSelectedCards = playSelectedCardsWithSnap;
+  window.playSelectedCards = playSelectedCards;
 
   if (copyLinkBtn) {
     copyLinkBtn.onclick = () => {
@@ -1985,32 +1950,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2000);
   }
 
-  function playSelectedCards() {
-    if (pileTransition) return;
-
-    const selectedCards = document.querySelectorAll('.card-img.selected');
-    if (selectedCards.length === 0) return;
-
-    const indexes = Array.from(selectedCards).map(img => parseInt(img.dataset.idx));
-    console.log('Debug playSelectedCards:', { indexes, isHandPlay: indexes.every(idx => idx < 1000), isUpPlay: indexes.every(idx => idx >= 1000 && idx < 2000), isDownPlay: indexes.every(idx => idx >= 2000) });
-
-    const isHandPlay = indexes.every(idx => idx < 1000);
-    const isUpPlay = indexes.every(idx => idx >= 1000 && idx < 2000);
-    const isDownPlay = indexes.every(idx => idx >= 2000);
-
-    if (!(isHandPlay || isUpPlay || isDownPlay)) {
-      showError("You can only play cards from one area (Hand, Up, or Down) at a time.");
-      selectedCards.forEach(img => {
-        img.classList.remove('selected');
-        const cont = img.closest('.card-container');
-        if (cont) cont.classList.remove('selected-container');
-      });
-      return;
-    }
-    
-    socket.emit('playCards', indexes);
-  }
-  
   function createCenterPiles(state) {
     const center = document.getElementById('center');
     if (!center) return;
@@ -2073,7 +2012,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderGameState(s) {
-    console.log('[Debug] renderGameState called. State:', s);
+    console.log('[CLIENT] renderGameState called. State:', s);
     // Card table layout: clear all slots
     const slotTop = document.querySelector('.table-slot-top');
     const slotBottom = document.querySelector('.table-slot-bottom');
