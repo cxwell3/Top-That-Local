@@ -938,7 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // Enable rewind/forward buttons
           if (rewindBtn) rewindBtn.disabled = stateIndex <= 0;
           if (forwardBtn) forwardBtn.disabled = stateIndex >= stateHistory.length - 1;
-        }, 1500); // 1.5 second delay before showing CPU play
+        }, 500); // shorten CPU play delay to 0.5s for snappier play
       } else {
         // Normal state update
         stateHistory.push(JSON.parse(JSON.stringify(s)));
@@ -980,30 +980,21 @@ document.addEventListener('DOMContentLoaded', () => {
       // Get the discard pile card to animate on
       const discardImg = document.querySelector('.discard .card-img');
       if (discardImg) {
-        // Add pulse animation to the card
-        discardImg.classList.add('special-card-pulse');
+        // Show the invalid play icon with full animation
+        showCardEvent(null, 'invalid');
         
-        // After brief delay, show the icon
+        // Deselect cards immediately for better feedback
+        const selectedCards = document.querySelectorAll('.card-img.selected');
+        selectedCards.forEach(img => {
+          img.classList.remove('selected');
+          const container = img.closest('.card-container');
+          if (container) container.classList.remove('selected-container');
+        });
+        
+        // Re-enable buttons after animation completes
         setTimeout(() => {
-          // Remove pulse effect
-          discardImg.classList.remove('special-card-pulse');
-          
-          // Show the invalid play icon with full animation
-          showCardEvent(null, 'invalid');
-          
-          // Deselect cards immediately for better feedback
-          const selectedCards = document.querySelectorAll('.card-img.selected');
-          selectedCards.forEach(img => {
-            img.classList.remove('selected');
-            const container = img.closest('.card-container');
-            if (container) container.classList.remove('selected-container');
-          });
-          
-          // Re-enable buttons after animation completes
-          setTimeout(() => {
-            setPileTransition(false);
-          }, 1200);
-        }, 800);
+          setPileTransition(false);
+        }, 800); // shorten invalid play re-enable delay
       } else {
         // Fallback if no discard pile is found
         showCardEvent(null, 'invalid');
@@ -1084,11 +1075,8 @@ document.addEventListener('DOMContentLoaded', () => {
     processingEffects = true;
     const effect = specialEffectsQueue.shift();
     console.log(`[Debug] Processing effect: ${effect.type}`);
-    
-    // Only block play/take for actual special cards, not for 'take' effect
-    if (effect.type === 'invalid') {
-      setPileTransition(true);
-    }
+    // Block interactions during any special effect
+    setPileTransition(true);
     
     // Handle immediate-display effects (invalid play, take pile)
     if (effect.type === 'invalid' || effect.type === 'take') {
@@ -1101,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Continue with next effect after a sufficient delay
         // Add a small buffer to ensure animations don't overlap
-        setTimeout(processNextEffect, 800);
+        setTimeout(processNextEffect, 400); // faster next effect
       }, 1500);
       return;
     }
@@ -1130,17 +1118,12 @@ document.addEventListener('DOMContentLoaded', () => {
     discardImg.classList.add('current-special-card');
     
     // Step 1: Highlight the special card that was played (already on discard pile)
-    // Add a subtle pulse animation to draw attention to the special card
-    discardImg.classList.add('special-card-pulse');
     gameDebug.logEffectPhase(effect.type, "pulse-start");
     
     // Step 2: After showing the special card briefly, show the icon
     setTimeout(() => {
-      // Hide the pulse effect but keep showing the card
-      discardImg.classList.remove('special-card-pulse');
-      
       // Show the special effect icon
-      showCardEvent(effect.value, effect.type);
+      showCardEvent(effect.value, effect.type); // show icon after initial highlight
       gameDebug.logEffectPhase(effect.type, "icon-shown");
       
       // Log for debugging
@@ -1190,14 +1173,21 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
           discardImg.classList.remove('current-special-card');
           
+          // Remove any selected state on discard image to prevent gold outline
+          if (discardImg.classList.contains('selected')) {
+            discardImg.classList.remove('selected');
+            const container = discardImg.closest('.card-container');
+            if (container) container.classList.remove('selected-container');
+          }
+          
           setPileTransition(false);
           console.log(`[Debug] Special card effect complete: ${effect.type}`);
           gameDebug.logEffectPhase(effect.type, "completed");
           
-          setTimeout(processNextEffect, 1000);
-        }, 2000);
-      }, 2000);
-    }, 1000);
+          setTimeout(processNextEffect, 300); // faster transition to next effect
+        }, 800); // shorten icon display to 800ms
+      }, 300); // shorten initial delay to 300ms
+    }, 500); // give 500ms for the card to show before the icon
   }
 
   socket.on('log', ({ player, action, cards }) => {
@@ -1563,6 +1553,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const prev = discardImg.parentElement.querySelector('.special-icon');
         if (prev) prev.remove();
         
+        // Remove any selected state on discard image to prevent gold outline
+        if (discardImg.classList.contains('selected')) {
+          discardImg.classList.remove('selected');
+          const container = discardImg.closest('.card-container');
+          if (container) container.classList.remove('selected-container');
+        }
+        
         const icon = document.createElement('img');
         icon.className = 'special-icon';
         
@@ -1609,23 +1606,17 @@ document.addEventListener('DOMContentLoaded', () => {
         icon.style.pointerEvents = 'none';
         icon.style.filter = 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.9))';
         
-        icon.style.animation = 'iconPulse 1.5s ease-in-out';
+        icon.style.animation = 'iconPulse 0.8s ease-in-out';
         
         discardImg.parentElement.style.position = 'relative';
         discardImg.parentElement.appendChild(icon);
-        
-        const discardPile = discardImg.closest('.discard');
-        if (discardPile) {
-          discardPile.classList.add('ring-pulse');
-          setTimeout(() => discardPile.classList.remove('ring-pulse'), 1000);
-        }
         
         setTimeout(() => {
           icon.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
           icon.style.opacity = '0';
           icon.style.transform = 'translate(-50%, -50%) scale(0.8)';
-          setTimeout(() => icon.remove(), 500);
-        }, 1800);
+          setTimeout(() => icon.remove(), 300);
+        }, 800);
       }
       
       if (!discardImg.complete) {

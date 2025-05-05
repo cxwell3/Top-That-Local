@@ -180,11 +180,11 @@ export class Game {
           this.started = false;
           return;
         }
-        // Advance turn and push state BEFORE refill
+        // Advance turn, refill hand, then push updated state
         this.advanceTurn();
         console.log(`[SERVER] finishTurn: Advancing turn. New turn: ${this.turn}`);
-        this.pushState();
         this.refill(p);
+        this.pushState();
         if (this.checkWinCondition(p)) {
           console.log(`[SERVER] Player ${p.name} wins after refill!`);
           this.io.to(this.roomId).emit('gameOver', { winnerId: p.id, winnerName: p.name });
