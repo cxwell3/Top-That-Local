@@ -1,3 +1,9 @@
+// TEST: File watch verification
+console.log('File watch test - client.js loaded at:', new Date().toISOString());
+
+// TEST: File watch verification - second test
+console.log('Second file watch test:', new Date().toISOString());
+
 // TEST: nodemon restart check
 console.log('Nodemon test: client.js loaded at', new Date().toISOString());
 
@@ -81,7 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let specialEffectsQueue = []; // Queue to track pending specialEffects for banner display
   let processingEffects = false; // Flag to track if we're currently processing effects
   let actionHistory = []; // Track user-initiated actions for replay
-  
+  let notifiedNoPlay = false; // Track if no valid play notification has been shown
+
   // Debugging system for tracking game logic inconsistencies
   const gameDebug = {
     enabled: true,
@@ -955,7 +962,20 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => processNextEffect(), 800);
       }
     }
-    // Do not override waiting state here; lobby event controls showing the waiting UI
+
+    // Show take-pile prompt for human when no plays available
+    if (s.turn === myId && !pileTransition) {
+      const playBtn = document.getElementById('play');
+      const takeBtn = document.getElementById('take');
+      if (playBtn && playBtn.disabled && takeBtn && !takeBtn.disabled && !notifiedNoPlay) {
+        showPileError('No valid plays — you must take the pile');
+        outlineActivePlayer();
+        notifiedNoPlay = true;
+      }
+    } else {
+      // reset notification when turn changes
+      notifiedNoPlay = false;
+    }
   });
 
   socket.on('gameOver', ({ winnerId, winnerName }) => {
@@ -967,57 +987,20 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('err', msg => {
     console.error(`❌ Server Error: ${msg}`);
     
-    // Check if this is an invalid play type of error that should show an icon
     const isInvalidPlay = msg.toLowerCase().includes('invalid play') || 
                           msg.toLowerCase().includes('must be higher') || 
                           msg.toLowerCase().includes('cannot play');
-    
-    // For invalid play errors, use the special card animation sequence
+
     if (isInvalidPlay) {
-      // Disable play buttons during effect
-      setPileTransition(true);
-      
-      // Get the discard pile card to animate on
-      const discardImg = document.querySelector('.discard .card-img');
-      if (discardImg) {
-        // Show the invalid play icon with full animation
-        showCardEvent(null, 'invalid');
-        
-        // Deselect cards immediately for better feedback
-        const selectedCards = document.querySelectorAll('.card-img.selected');
-        selectedCards.forEach(img => {
-          img.classList.remove('selected');
-          const container = img.closest('.card-container');
-          if (container) container.classList.remove('selected-container');
-        });
-        
-        // Re-enable buttons after animation completes
-        setTimeout(() => {
-          setPileTransition(false);
-        }, 800); // shorten invalid play re-enable delay
-      } else {
-        // Fallback if no discard pile is found
-        showCardEvent(null, 'invalid');
-        
-        // Always deselect cards on invalid plays
-        const selectedCards = document.querySelectorAll('.card-img.selected');
-        selectedCards.forEach(img => {
-          img.classList.remove('selected');
-          const container = img.closest('.card-container');
-          if (container) container.classList.remove('selected-container');
-        });
-        
-        setPileTransition(false);
-      }
-      
+      // Show error over pile and outline board
+      showPileError(msg);
+      outlineActivePlayer();
       // Track this error in the debug system
       gameDebug.logEvent('ERROR', 'Invalid play', { message: msg });
-    } else {
-      // For other errors, just show the message
-      gameDebug.logEvent('ERROR', 'Server error', { message: msg });
+      return; // skip default error handling
     }
-    
-    // Show toast notification for all errors
+
+    // For other errors, show toast as before
     showError(msg);
 
     // Handle "Game room no longer exists" error during rejoin
@@ -1057,6 +1040,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Queue the effect with standardized type
     specialEffectsQueue.push({ value, type: standardizedType });
+    // For take-pile, show error banner immediately and outline board
+    if (standardizedType === 'take') {
+      showPileError('You must take the pile');
+      outlineActivePlayer();
+    }
     
     // If we're not already processing effects and the game has started, process the queue
     if (!processingEffects && stateHistory.length > 0) {
@@ -1626,6 +1614,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     tryRunEffect();
+  }
+
+  function showPileError(msg) {
+    const banner = document.getElementById('error-banner');
+    if (banner) {
+      banner.textContent = msg;
+      banner.classList.remove('hidden');
+      setTimeout(() => banner.classList.add('hidden'), 2000);
+    }
+  }
+
+  function outlineActivePlayer() {
+    const el = document.querySelector('.player-area.active');
+    if (el) {
+      el.classList.add('take-active');
+      setTimeout(() => el.classList.remove('take-active'), 2000);
+    }
   }
 
   function showIcon(iconSrc) {

@@ -1065,6 +1065,12 @@ body {
   animation: activePulse 1s infinite; /* Add pulsing animation for active state */
 }
 
+/* Outline player's board red when taking the pile */
+.player-area.take-active {
+  border: 3px solid var(--error-color) !important;
+  box-shadow: 0 0 10px var(--error-color) !important;
+}
+
 @keyframes activePulse {
   0% { box-shadow: 0 0 20px 5px rgba(0, 204, 204, 0.4); }
   50% { box-shadow: 0 0 25px 8px rgba(0, 204, 204, 0.5); }

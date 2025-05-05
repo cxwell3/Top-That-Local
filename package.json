@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon --watch . --ext js,css,html --delay 2.5 --exec \"node wait.js && node server.js\"",
+    "dev": "node wait.js && nodemon --signal SIGTERM server.js",
     "test:cpu": "node test-cpu-run.js"
   },
   "dependencies": {

@@ -1,0 +1,17 @@
+{
+  "verbose": true,
+  "watch": ["*.js", "public/*"],
+  "ignore": ["node_modules/*"],
+  "ext": "js,json,html,css",
+  "delay": "1000",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "execMap": {
+    "js": "node"
+  },
+  "restartable": "rs",
+  "events": {
+    "restart": "clear"
+  }
+}

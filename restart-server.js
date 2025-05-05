@@ -22,17 +22,18 @@ function waitForPortFree(interval = 1000, timeout = PORT_CHECK_TIMEOUT) {
     function check() {
       exec(listCmd, (err, stdout) => {
         console.log(`[waitForPortFree] listCmd output (err: ${err ? err.code : 'none'}):\n${stdout}`);
-        const lines = stdout.trim().split('\n');
+        const lines = stdout.trim().split('\n')
+          .filter(line => line.includes(':' + PORT));  // Only consider lines that actually mention our port
         
-        // If error with code 1 or no output lines, port is free
-        if ((err && err.code === 1) || !stdout || stdout.trim() === '' || lines.length <= 1) {
+        // If no lines mention our port or there's an error, port is free
+        if ((err && err.code === 1) || lines.length === 0) {
           console.log(`[waitForPortFree] Port ${PORT} is free after ${(Date.now() - startTime) / 1000}s`);
           return resolve(true);
         }
         
         // Check if we've timed out
         if (Date.now() - startTime > timeout) {
-          console.warn(`[waitForPortFree] Timeout waiting for port ${PORT} to free after ${(Date.now() - startTime) / 1000}s.`);
+          console.warn(`[waitForPortFree] Timeout waiting for port ${PORT} to free after ${(Date.now() - startTime) / 1000}s`);
           return resolve(false);
         }
         

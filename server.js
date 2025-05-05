@@ -265,7 +265,10 @@ function createServer() {
   const publicPath = path.join(__dirname, 'public');
   fs.watch(publicPath, { recursive: true }, (eventType, filename) => {
     console.log(`🔄 Public file changed (${filename}), sending reload to clients.`);
+    console.log('Server starting at ' + new Date().toISOString());
     io.emit('reload');
+    // Test file watching
+    console.log('Server restarted at:', new Date().toISOString());
   });
 
   return httpServer;
@@ -273,31 +276,51 @@ function createServer() {
 
 const server = createServer();
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Top That! server listening on :${PORT}`);
-});
 
-// Graceful shutdown for SIGTERM/SIGINT
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Shutting down gracefully...');
-  server.close(() => {
-    console.log('Server closed successfully.');
-    process.exit(0);
-  });
-  setTimeout(() => {
-    console.log('Forced shutdown after timeout');
-    process.exit(1);
-  }, 5000);
-});
+let serverInstance = null;
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received. Shutting down gracefully...');
-  server.close(() => {
-    console.log('Server closed successfully.');
-    process.exit(0);
+// Improved server startup with error handling
+function startServer() {
+  return new Promise((resolve, reject) => {
+    serverInstance = server.listen(PORT, () => {
+      console.log(`🚀 Top That! server starting at ${new Date().toISOString()} on port ${PORT}`);
+      console.log('Server is ready for connections');
+      resolve();
+    }).on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log('Port in use, waiting for it to be available...');
+        setTimeout(() => {
+          serverInstance.close();
+          startServer().then(resolve).catch(reject);
+        }, 1000);
+      } else {
+        reject(err);
+      }
+    });
   });
-  setTimeout(() => {
-    console.log('Forced shutdown after timeout');
-    process.exit(1);
-  }, 5000);
+}
+
+// Enhanced cleanup function
+async function cleanup() {
+  if (serverInstance) {
+    console.log('Gracefully shutting down server...');
+    await new Promise(resolve => {
+      serverInstance.close(() => {
+        console.log('Server closed successfully');
+        resolve();
+      });
+    });
+  }
+  process.exit(0);
+}
+
+// Handle various shutdown signals
+process.on('SIGTERM', cleanup);
+process.on('SIGINT', cleanup);
+process.on('SIGUSR2', cleanup); // Nodemon restart signal
+
+// Start server
+startServer().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
